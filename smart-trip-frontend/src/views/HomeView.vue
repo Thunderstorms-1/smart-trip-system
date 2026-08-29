@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     <header class="navbar">
-      <div class="logo">✈️ SmartTrip 智游伴路</div>
+      <div class="logo">✈️ SmartTrip 智游伴路 ✨</div>
       <div class="user-profile">
         <span class="welcome">欢迎，{{ userStore.userInfo.nickname || '探险家' }}</span>
         <span class="quota-badge">🔥 今日 AI 剩余配额: {{ userStore.remainingQuota }} 次</span>
