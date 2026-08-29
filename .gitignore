@@ -1,0 +1,16 @@
+# 1. 忽略后端 Maven 编译生成的文件与 IDEA 配置
+**/target/
+**/.idea/
+**/*.iml
+**/.mvn/
+**/mvnw
+**/mvnw.cmd
+
+# 2. 忽略前端 node 依赖与打包生成的文件
+**/node_modules/
+**/dist/
+**/.vscode/
+
+# 3. 忽略临时日志文件
+*.log
+.DS_Store
