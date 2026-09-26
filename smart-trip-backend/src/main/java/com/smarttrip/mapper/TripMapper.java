@@ -82,4 +82,8 @@ public interface TripMapper {
             "   WHERE trip_id = #{tripId} AND is_deleted = 0" +
             "), update_time = NOW() WHERE id = #{tripId} AND is_deleted = 0")
     int recalculateAndSyncTotalCost(@Param("tripId") Long tripId);
+
+    // 查询某行程下所有未删除且有预估花费 (> 0) 的卡片
+    @Select("SELECT * FROM trip_item WHERE trip_id = #{tripId} AND is_deleted = 0 AND cost_estimate > 0 ORDER BY sort_order ASC")
+    List<TripItem> selectCostItemsByTripId(@Param("tripId") Long tripId);
 }

@@ -7,6 +7,8 @@ import com.smarttrip.entity.TripPackingItem;
 import java.util.List;
 
 public interface ToolService {
+
+    int importExpensesFromTrip(Long tripId);
     // 记账
     void addExpense(TripExpense expense);
     ExpenseSummaryVO getExpenseSummary(Long tripId);

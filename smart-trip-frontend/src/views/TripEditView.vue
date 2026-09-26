@@ -9,6 +9,8 @@
       </div>
       <div class="nav-right">
         <span class="budget-tag">💰 总预估花费：￥{{ tripStore.currentTrip.totalBudget }}</span>
+        <!-- 【新增】：导出与分享按钮 -->
+        <button class="tool-btn export-btn" @click="isExportOpen = true">📥 导出与分享</button>
         <button class="tool-btn" @click="isExpenseOpen = true">📊 记账看板</button>
         <button class="tool-btn" @click="isPackingOpen = true">🎒 行李清单</button>
         <button class="ai-modify-btn" @click="isAIModalOpen = true">✨ AI 智能调整本天路线</button>
@@ -16,7 +18,7 @@
     </header>
 
     <div class="workbench-layout">
-      <!-- 左侧：天数选择与行程概览 -->
+      <!-- 1. 左侧栏：天数选择与行程概览 -->
       <aside class="sidebar-card">
         <div class="summary-box">
           <h4>💡 AI 行程寄语</h4>
@@ -41,7 +43,7 @@
         </div>
       </aside>
 
-      <!-- 中间：核心垂直时间轴流水线 -->
+      <!-- 2. 中间栏：核心垂直时间轴流水线 -->
       <main class="timeline-main" v-if="tripStore.currentDayData">
         <div class="day-header">
           <div class="day-header-left">
@@ -59,15 +61,16 @@
           </button>
         </div>
 
-        <!-- 【核心改进】：支持 HTML5 鼠标拖拽重排的时间轴列表容器 -->
         <div class="timeline-list">
           <div 
             v-for="(item, index) in tripStore.currentDayData.items" 
             :key="item.id" 
+            :id="'timeline-node-' + item.id"
             class="timeline-node"
             :class="{ 
               'dragging': draggedIndex === index, 
-              'drag-over': dragOverIndex === index 
+              'drag-over': dragOverIndex === index,
+              'active-node': activeMapItemId === item.id
             }"
             draggable="true"
             @dragstart="handleDragStart(index, $event)"
@@ -76,6 +79,7 @@
             @dragleave="handleDragLeave(index)"
             @drop="handleDrop(index)"
             @dragend="handleDragEnd"
+            @click="handleCardClick(item.id)"
           >
             <div class="node-time">
               <span class="time-str">{{ item.startTime || '09:00' }}</span>
@@ -85,16 +89,16 @@
             <div class="node-card">
               <div class="card-top">
                 <div class="name-box">
-                  <!-- 拖拽手柄手势 -->
                   <span class="drag-handle" title="按住拖拽调整顺序">⠿</span>
+                  <span class="index-badge">#{{ index + 1 }}</span>
                   <span :class="['type-tag', (item.itemType || 'scenic').toLowerCase()]">
                     {{ getItemTypeLabel(item.itemType) }}
                   </span>
                   <h4>{{ item.itemName }}</h4>
                 </div>
                 <div class="card-actions">
-                  <button class="edit-btn" @click="openEditModal(item)">✏️ 编辑</button>
-                  <button class="del-btn" @click="handleDeleteItem(item.id)">🗑️ 删除</button>
+                  <button class="edit-btn" @click.stop="openEditModal(item)">✏️ 编辑</button>
+                  <button class="del-btn" @click.stop="handleDeleteItem(item.id)">🗑️ 删除</button>
                 </div>
               </div>
 
@@ -114,7 +118,6 @@
             📍 当天暂无任何行程活动，点击下方按钮开始规划吧！
           </div>
 
-          <!-- 时间轴底部手动添加卡片入口 -->
           <div class="add-node-wrapper">
             <button class="add-item-btn" @click="openAddModal">
               ➕ 添加活动地点 / 自定义行程卡片
@@ -122,7 +125,24 @@
           </div>
         </div>
       </main>
+
+      <!-- 3. 【核心新增】：右侧分栏交互式可视化地图 -->
+      <section class="map-section" v-if="tripStore.currentDayData">
+        <TripMapView 
+          :items="tripStore.currentDayData.items || []" 
+          :activeItemId="activeMapItemId"
+          :destination="tripStore.currentTrip.destination"
+          @select-item="handleMapItemSelect"
+        />
+      </section>
     </div>
+    
+<ExportModal 
+  :tripId="tripStore.currentTrip.id" 
+  :visible="isExportOpen" 
+  @close="isExportOpen = false" 
+  v-if="isExportOpen" 
+/>
 
     <!-- 弹窗 1：手动新增节点卡片 -->
     <div class="modal-mask" v-if="isAddModalOpen">
@@ -176,6 +196,14 @@
               {{ isSubmitting ? '正在保存...' : '立即添加' }}
             </button>
           </div>
+          <div class="card-actions">
+                  <!-- 【新增】：单卡片快捷转记账按钮 -->
+                  <button class="quick-expense-btn" @click.stop="handleQuickExpense(item)" title="快捷录入为实际开销">
+                    💳 转记账
+                  </button>
+                  <button class="edit-btn" @click.stop="openEditModal(item)">✏️ 编辑</button>
+                  <button class="del-btn" @click.stop="handleDeleteItem(item.id)">🗑️ 删除</button>
+                </div>
         </form>
       </div>
     </div>
@@ -233,7 +261,13 @@
     </div>
 
     <!-- 工具箱弹窗挂载 -->
-    <ExpenseModal :tripId="tripStore.currentTrip.id" :visible="isExpenseOpen" @close="isExpenseOpen = false" v-if="isExpenseOpen" />
+<ExpenseModal 
+  :tripId="tripStore.currentTrip.id" 
+  :visible="isExpenseOpen" 
+  :prefillData="expensePrefill"
+  @close="handleCloseExpense" 
+  v-if="isExpenseOpen" 
+/>
     <PackingModal :tripId="tripStore.currentTrip.id" :visible="isPackingOpen" @close="isPackingOpen = false" v-if="isPackingOpen" />
   </div>
 
@@ -257,7 +291,34 @@ import {
 import request from '@/utils/request'
 import ExpenseModal from '@/components/ExpenseModal.vue'
 import PackingModal from '@/components/PackingModal.vue'
+import TripMapView from '@/components/TripMapView.vue'
+import ExportModal from '@/components/ExportModal.vue'
 
+const expensePrefill = ref(null)
+
+const handleQuickExpense = (item) => {
+  // 类型映射
+  const catMap = {
+    SCENIC: 'TICKET',
+    FOOD: 'CATERING',
+    HOTEL: 'HOTEL',
+    TRAFFIC: 'TRAFFIC'
+  }
+  
+  expensePrefill.value = {
+    category: catMap[item.itemType] || 'OTHER',
+    amount: item.costEstimate || 0,
+    expenseName: item.itemName
+  }
+  isExpenseOpen.value = true
+}
+
+const handleCloseExpense = () => {
+  isExpenseOpen.value = false
+  expensePrefill.value = null // 清空预填缓存
+}
+
+const isExportOpen = ref(false)
 const route = useRoute()
 const router = useRouter()
 const tripStore = useTripStore()
@@ -273,11 +334,14 @@ const isModifying = ref(false)
 const isDayOperating = ref(false)
 const modifyRequirement = ref('')
 
-// 【拖拽状态追踪】
+// 地图联动高亮 ID
+const activeMapItemId = ref(null)
+
+// 拖拽状态
 const draggedIndex = ref(null)
 const dragOverIndex = ref(null)
 
-// 新增卡片表单
+// 表单状态
 const addForm = reactive({
   itemType: 'SCENIC',
   itemName: '',
@@ -288,7 +352,6 @@ const addForm = reactive({
   aiTips: ''
 })
 
-// 编辑卡片表单
 const editForm = reactive({
   id: null,
   itemName: '',
@@ -314,7 +377,23 @@ const getItemTypeLabel = (type) => {
 }
 
 // -----------------------------------------------------------------------------
-// 【核心实现】：HTML5 鼠标拖拽重排与批量同步
+// 地图与时间轴双向联动
+// -----------------------------------------------------------------------------
+const handleCardClick = (itemId) => {
+  activeMapItemId.value = itemId
+}
+
+const handleMapItemSelect = (itemId) => {
+  activeMapItemId.value = itemId
+  // 顺滑滚动到左侧对应的卡片节点
+  const el = document.getElementById('timeline-node-' + itemId)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
+// -----------------------------------------------------------------------------
+// HTML5 拖拽排序
 // -----------------------------------------------------------------------------
 const handleDragStart = (index, event) => {
   draggedIndex.value = index
@@ -341,11 +420,9 @@ const handleDrop = async (targetIndex) => {
   }
 
   const items = tripStore.currentDayData.items
-  // 1. 数组就地调整顺序
   const [movedItem] = items.splice(sourceIndex, 1)
   items.splice(targetIndex, 0, movedItem)
 
-  // 2. 重新赋予排序序号并组装 Payload
   const sortPayload = items.map((item, idx) => {
     item.sortOrder = idx + 1
     return {
@@ -354,7 +431,6 @@ const handleDrop = async (targetIndex) => {
     }
   })
 
-  // 3. 异步持久化到数据库
   try {
     await reorderTripItemsApi(sortPayload)
   } catch (error) {
@@ -370,7 +446,7 @@ const handleDragEnd = () => {
 }
 
 // -----------------------------------------------------------------------------
-// 天数管理
+// 天数动态管理
 // -----------------------------------------------------------------------------
 const handleAddDay = async () => {
   isDayOperating.value = true
@@ -420,7 +496,7 @@ const handleDeleteCurrentDay = async () => {
 }
 
 // -----------------------------------------------------------------------------
-// 卡片增/删/改/微调
+// 卡片增/删/改/AI微调
 // -----------------------------------------------------------------------------
 const openAddModal = () => {
   addForm.itemName = ''
@@ -530,6 +606,21 @@ const handleAIModify = async () => {
 </script>
 
 <style scoped>
+
+.quick-expense-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quick-expense-btn:hover {
+  background: #dcfce7;
+}
+
 .workbench-container {
   min-height: 100vh;
   background-color: #f1f5f9;
@@ -606,18 +697,19 @@ const handleAIModify = async () => {
   cursor: pointer;
 }
 
+/* 三栏/自适应响应式布局 */
 .workbench-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
-  padding: 24px 32px;
-  max-width: 1400px;
+  grid-template-columns: 260px 1fr 420px;
+  gap: 20px;
+  padding: 20px 24px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
 .sidebar-card {
   background: white;
-  padding: 20px;
+  padding: 16px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   height: fit-content;
@@ -626,31 +718,31 @@ const handleAIModify = async () => {
 .summary-box {
   background: #f8fafc;
   border-left: 4px solid #3b82f6;
-  padding: 12px;
+  padding: 10px;
   border-radius: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .summary-box h4 {
-  font-size: 13px;
+  font-size: 12px;
   color: #3b82f6;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .summary-box p {
-  font-size: 13px;
+  font-size: 12px;
   color: #475569;
   line-height: 1.5;
 }
 
 .days-menu h4 {
-  font-size: 14px;
-  margin-bottom: 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
   color: #64748b;
 }
 
 .day-btn {
-  padding: 12px;
+  padding: 10px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   margin-bottom: 8px;
@@ -666,36 +758,31 @@ const handleAIModify = async () => {
 .day-num {
   font-weight: bold;
   color: #1e3a8a;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .day-theme-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .add-day-btn {
   width: 100%;
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: 8px;
+  padding: 8px;
   background: #f8fafc;
   border: 1px dashed #3b82f6;
   color: #2563eb;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-day-btn:hover {
-  background: #eff6ff;
 }
 
 .timeline-main {
   background: white;
-  padding: 24px 32px;
+  padding: 20px 24px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -705,18 +792,18 @@ const handleAIModify = async () => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .day-header-left h3 {
-  font-size: 18px;
+  font-size: 16px;
   color: #0f172a;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .date-text {
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
 }
 
@@ -724,31 +811,32 @@ const handleAIModify = async () => {
   background: #fee2e2;
   color: #dc2626;
   border: 1px solid #fca5a5;
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.del-day-btn:hover {
-  background: #fecaca;
 }
 
 .timeline-list {
   position: relative;
-  padding-left: 20px;
+  padding-left: 10px;
 }
 
-/* ---------------- 拖拽交互样式 ---------------- */
 .timeline-node {
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 16px;
-  transition: transform 0.2s, opacity 0.2s;
+  grid-template-columns: 65px 1fr;
+  gap: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.timeline-node.active-node .node-card {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  background: #f8faff;
 }
 
 .timeline-node.dragging {
@@ -761,19 +849,6 @@ const handleAIModify = async () => {
   transform: scale(1.01);
 }
 
-.drag-handle {
-  font-size: 16px;
-  color: #94a3b8;
-  cursor: grab;
-  padding: 0 4px;
-  user-select: none;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-/* --------------------------------------------- */
-
 .node-time {
   text-align: right;
   position: relative;
@@ -781,7 +856,7 @@ const handleAIModify = async () => {
 }
 
 .time-str {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   color: #475569;
 }
@@ -801,7 +876,7 @@ const handleAIModify = async () => {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 16px;
+  padding: 14px;
   transition: all 0.2s;
 }
 
@@ -809,18 +884,34 @@ const handleAIModify = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .name-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.drag-handle {
+  font-size: 14px;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 0 2px;
+}
+
+.index-badge {
+  font-size: 11px;
+  font-weight: bold;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .type-tag {
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: 10px;
+  padding: 2px 5px;
   border-radius: 4px;
   font-weight: 500;
 }
@@ -831,68 +922,65 @@ const handleAIModify = async () => {
 
 .card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .edit-btn, .del-btn {
   background: transparent;
   border: none;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
 }
-
 .edit-btn { color: #2563eb; }
 .del-btn { color: #ef4444; }
 
 .card-meta {
   display: flex;
-  gap: 16px;
-  font-size: 12px;
+  gap: 12px;
+  font-size: 11px;
   color: #64748b;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .ai-tip-box {
   background: #eff6ff;
   border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 11px;
   color: #1e40af;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .empty-day-tips {
   text-align: center;
-  padding: 40px;
+  padding: 30px;
   color: #94a3b8;
-  font-size: 14px;
+  font-size: 13px;
   border: 1px dashed #e2e8f0;
   border-radius: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .add-node-wrapper {
-  margin-top: 16px;
-  padding-left: 96px;
+  margin-top: 14px;
+  padding-left: 77px;
 }
 
 .add-item-btn {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border: 2px dashed #94a3b8;
   background: #f8fafc;
   color: #475569;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.add-item-btn:hover {
-  border-color: #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
+/* 地图区域样式 */
+.map-section {
+  position: relative;
 }
 
 /* 模态弹窗 */
@@ -903,7 +991,7 @@ const handleAIModify = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 9999;
 }
 
 .modal-box {

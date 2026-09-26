@@ -33,3 +33,11 @@ export function togglePackingItemApi(itemId, isChecked) {
     data: { isChecked }
   })
 }
+
+// 5. 从行程预估一键导入记账流水
+export function importExpensesFromTripApi(tripId) {
+  return request({
+    url: `/api/trip/${tripId}/expense/import-from-items`,
+    method: 'POST'
+  })
+}

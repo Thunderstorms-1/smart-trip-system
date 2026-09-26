@@ -44,4 +44,13 @@ public interface ToolMapper {
 
     @Update("UPDATE trip_packing_item SET is_checked = #{isChecked}, update_time = NOW() WHERE id = #{id} AND is_deleted = 0")
     int updatePackingItemCheckStatus(@Param("id") Long id, @Param("isChecked") Integer isChecked);
+
+    // 批量插入记账流水记录
+    @Insert("<script>" +
+            "INSERT INTO trip_expense (trip_id, user_id, category, amount, expense_name, expense_date, remark) VALUES " +
+            "<foreach collection='list' item='e' separator=','>" +
+            "(#{e.tripId}, #{e.userId}, #{e.category}, #{e.amount}, #{e.expenseName}, #{e.expenseDate}, #{e.remark})" +
+            "</foreach>" +
+            "</script>")
+    int batchInsertExpenses(@Param("list") List<TripExpense> list);
 }

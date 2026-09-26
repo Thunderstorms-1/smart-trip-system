@@ -45,4 +45,11 @@ public class ToolController {
         toolService.togglePackingItem(itemId, isChecked);
         return Result.success();
     }
+
+    // 5. 从行程规划预估花费一键批量导入为记账流水
+    @PostMapping("/{tripId}/expense/import-from-items")
+    public Result<Integer> importExpensesFromTrip(@PathVariable Long tripId) {
+        int count = toolService.importExpensesFromTrip(tripId);
+        return Result.success(count);
+    }
 }

@@ -11,6 +11,12 @@ const router = createRouter({
       meta: { title: '首页 - 智游伴路', requiresAuth: true } // 需要登录
     },
     {
+      path: '/trip/share/:id',
+      name: 'trip-share',
+      component: () => import('@/views/TripShareView.vue'),
+      meta: { title: '旅行路书分享 - 智游伴路', requiresAuth: false } // 公开免登录访问
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
