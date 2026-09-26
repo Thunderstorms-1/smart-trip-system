@@ -1,10 +1,8 @@
 package com.smarttrip.controller;
 
+import com.smarttrip.common.BusinessException;
 import com.smarttrip.common.Result;
-import com.smarttrip.entity.TripDetailVO;
-import com.smarttrip.entity.TripItem;
-import com.smarttrip.entity.TripItemAddDTO;
-import com.smarttrip.entity.TripModifyDTO;
+import com.smarttrip.entity.*;
 import com.smarttrip.service.TripService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -59,5 +57,23 @@ public class TripController {
     public Result<TripItem> addTripItem(@RequestBody TripItemAddDTO dto) {
         TripItem newItem = tripService.addTripItem(dto);
         return Result.success(newItem);
+    }
+
+    // 7. 动态新增一天日程
+    @PostMapping("/day/add")
+    public Result<TripDayVO> addTripDay(@RequestBody Map<String, Long> payload) {
+        Long tripId = payload.get("tripId");
+        if (tripId == null) {
+            throw new BusinessException("tripId 不能为空");
+        }
+        TripDayVO newDay = tripService.addTripDay(tripId);
+        return Result.success(newDay);
+    }
+
+    // 8. 动态删除某一天日程（级联删除卡片 + 自动重排序号 + 预算重算）
+    @DeleteMapping("/day/{dayId}")
+    public Result<Void> deleteTripDay(@PathVariable Long dayId) {
+        tripService.deleteTripDay(dayId);
+        return Result.success();
     }
 }

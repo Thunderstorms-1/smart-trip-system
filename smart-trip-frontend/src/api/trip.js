@@ -26,6 +26,32 @@ export function sortTripItemsApi(dayId, sortedItemIds) {
   })
 }
 
+// 4. 手动新增行程节点卡片
+export function addTripItemApi(data) {
+  return request({
+    url: '/api/trip/item/add',
+    method: 'POST',
+    data: data
+  })
+}
+
+// 5. 新增一天行程
+export function addTripDayApi(data) {
+  return request({
+    url: '/api/trip/day/add',
+    method: 'POST',
+    data: data
+  })
+}
+
+// 6. 删除某一天行程
+export function deleteTripDayApi(dayId) {
+  return request({
+    url: `/api/trip/day/${dayId}`,
+    method: 'DELETE'
+  })
+}
+
 // AI 智能二次微调路书
 export function modifyTripByAIApi(data) {
   return request({

@@ -34,6 +34,86 @@ public class TripServiceImpl implements TripService {
     private final AiProperties aiProperties;
 
     /**
+     * 新增一天行程（自动递增 day_index 并同步主表总天数）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripDayVO addTripDay(Long tripId) {
+        log.info("执行新增行程天数: tripId={}", tripId);
+        TripDetailVO trip = tripMapper.selectTripById(tripId);
+        if (trip == null) {
+            throw new BusinessException("目标行程不存在");
+        }
+
+        // 1. 查询当前最大序号并递增
+        int maxIndex = tripMapper.selectMaxDayIndexByTripId(tripId);
+        int nextIndex = maxIndex + 1;
+
+        // 2. 插入新天数
+        TripDayVO newDay = new TripDayVO();
+        newDay.setTripId(tripId);
+        newDay.setDayIndex(nextIndex);
+        newDay.setDayTheme("自由探索与随心漫游");
+        newDay.setDaySummary("由用户自定义新增的第 " + nextIndex + " 天日程");
+        newDay.setItems(new ArrayList<>());
+        tripMapper.insertTripDay(newDay);
+
+        // 3. 同步更新主表 total_days
+        int totalDaysCount = tripMapper.countActiveDaysByTripId(tripId);
+        tripMapper.updateTripTotalDays(tripId, totalDaysCount);
+
+        log.info("新增天数成功: dayId={}, newDayIndex={}, totalDays={}", newDay.getId(), nextIndex, totalDaysCount);
+        return newDay;
+    }
+
+    /**
+     * 删除指定天数（防空校验 + 级联软删除卡片 + 序号重排防断号 + 预算重算）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTripDay(Long dayId) {
+        log.info("执行删除行程天数: dayId={}", dayId);
+
+        // 1. 查询天数明细
+        TripDayVO day = tripMapper.selectDayById(dayId);
+        if (day == null) {
+            throw new BusinessException("该天数日程不存在或已被删除");
+        }
+        Long tripId = day.getTripId();
+
+        // 2. 【防空校验】：若只剩最后 1 天，坚决禁止删除
+        int activeDaysCount = tripMapper.countActiveDaysByTripId(tripId);
+        if (activeDaysCount <= 1) {
+            throw new BusinessException("行程至少需要保留 1 天，无法继续删除！");
+        }
+
+        // 3. 软删除该天数记录
+        tripMapper.softDeleteDayById(dayId);
+
+        // 4. 级联软删除该天下的所有卡片节点
+        tripMapper.softDeleteItemsByDayId(dayId);
+
+        // 5. 【序号紧凑重排（防断号）】：拉取剩余有效天数，重新按 1, 2, 3... 编号
+        List<TripDayVO> remainingDays = tripMapper.selectDaysByTripId(tripId);
+        int currentIndex = 1;
+        for (TripDayVO d : remainingDays) {
+            if (!d.getDayIndex().equals(currentIndex)) {
+                tripMapper.updateDayIndex(d.getId(), currentIndex);
+            }
+            currentIndex++;
+        }
+
+        // 6. 同步更新主表 total_days
+        int newTotalDays = remainingDays.size();
+        tripMapper.updateTripTotalDays(tripId, newTotalDays);
+
+        // 7. 【预算同步】：删除卡片后重新聚合整本路书的总预估花费
+        syncTripTotalCost(tripId);
+
+        log.info("删除天数及级联数据完成: dayId={}, tripId={}, 剩余天数={}", dayId, tripId, newTotalDays);
+    }
+
+    /**
      * 手动新增日程卡片节点（事务内完成排序号自增与总预算原子同步）
      */
     @Override

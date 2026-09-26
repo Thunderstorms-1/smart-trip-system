@@ -14,23 +14,54 @@ public interface TripMapper {
     @Select("SELECT * FROM trip_plan WHERE id = #{tripId} AND is_deleted = 0 LIMIT 1")
     TripDetailVO selectTripById(@Param("tripId") Long tripId);
 
-    // 2. 查询天数列表
+    // 2. 查询未删除的天数列表（严格按序号升序）
     @Select("SELECT * FROM trip_day WHERE trip_id = #{tripId} AND is_deleted = 0 ORDER BY day_index ASC")
     List<TripDayVO> selectDaysByTripId(@Param("tripId") Long tripId);
 
-    // 3. 严格按时间升序排布卡片
+    // 3. 根据 dayId 查询单条天数明细
+    @Select("SELECT * FROM trip_day WHERE id = #{dayId} AND is_deleted = 0 LIMIT 1")
+    TripDayVO selectDayById(@Param("dayId") Long dayId);
+
+    // 4. 查询某行程当前有效天数总数（防空校验使用）
+    @Select("SELECT COUNT(*) FROM trip_day WHERE trip_id = #{tripId} AND is_deleted = 0")
+    int countActiveDaysByTripId(@Param("tripId") Long tripId);
+
+    // 5. 查询当前最大 day_index
+    @Select("SELECT COALESCE(MAX(day_index), 0) FROM trip_day WHERE trip_id = #{tripId} AND is_deleted = 0")
+    int selectMaxDayIndexByTripId(@Param("tripId") Long tripId);
+
+    // 6. 新增天数记录并回填自增 ID
+    @Insert("INSERT INTO trip_day (trip_id, day_index, day_theme, day_summary, is_deleted) " +
+            "VALUES (#{tripId}, #{dayIndex}, #{dayTheme}, #{daySummary}, 0)")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertTripDay(TripDayVO day);
+
+    // 7. 软删除单条天数记录
+    @Update("UPDATE trip_day SET is_deleted = 1, update_time = NOW() WHERE id = #{dayId} AND is_deleted = 0")
+    int softDeleteDayById(@Param("dayId") Long dayId);
+
+    // 8. 级联软删除某天下的所有卡片节点
+    @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE day_id = #{dayId} AND is_deleted = 0")
+    int softDeleteItemsByDayId(@Param("dayId") Long dayId);
+
+    // 9. 更新天数序号（用于删除后的紧凑重排，杜绝断号）
+    @Update("UPDATE trip_day SET day_index = #{dayIndex}, update_time = NOW() WHERE id = #{dayId}")
+    int updateDayIndex(@Param("dayId") Long dayId, @Param("dayIndex") Integer dayIndex);
+
+    // 10. 更新主表总天数
+    @Update("UPDATE trip_plan SET total_days = #{totalDays}, update_time = NOW() WHERE id = #{tripId}")
+    int updateTripTotalDays(@Param("tripId") Long tripId, @Param("totalDays") Integer totalDays);
+
+    // 11. 卡片查询与管理
     @Select("SELECT * FROM trip_item WHERE day_id = #{dayId} AND is_deleted = 0 ORDER BY start_time ASC, sort_order ASC")
     List<TripItem> selectItemsByDayId(@Param("dayId") Long dayId);
 
-    // 4. 根据 itemId 查询单条卡片明细
     @Select("SELECT * FROM trip_item WHERE id = #{itemId} LIMIT 1")
     TripItem selectItemById(@Param("itemId") Long itemId);
 
-    // 5. 【新增】：查询某天现有卡片的最大 sort_order（NULL 时兜底返回 0）
     @Select("SELECT COALESCE(MAX(sort_order), 0) FROM trip_item WHERE day_id = #{dayId} AND is_deleted = 0")
     int selectMaxSortOrderByDayId(@Param("dayId") Long dayId);
 
-    // 6. 【新增】：手动新增卡片节点，并自动回填生成的自增主键 ID
     @Insert("INSERT INTO trip_item (day_id, trip_id, item_type, item_name, start_time, " +
             "cost_time_hours, cost_estimate, transport_tips, ai_tips, sort_order, is_deleted) " +
             "VALUES (#{dayId}, #{tripId}, #{itemType}, #{itemName}, #{startTime}, " +
@@ -38,30 +69,24 @@ public interface TripMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertSingleTripItem(TripItem item);
 
-    // 7. 更新卡片节点明细
     @Update("UPDATE trip_item SET item_name = #{itemName}, start_time = #{startTime}, " +
             "cost_time_hours = #{costTimeHours}, cost_estimate = #{costEstimate}, " +
             "ai_tips = #{aiTips}, is_deleted = #{isDeleted}, update_time = NOW() WHERE id = #{id}")
     int updateTripItem(TripItem item);
 
-    // 8. 软删除单张卡片节点
     @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE id = #{itemId} AND is_deleted = 0")
     int softDeleteItemById(@Param("itemId") Long itemId);
 
-    // 9. 拖拽排序更新
     @Update("UPDATE trip_item SET sort_order = #{sortOrder}, update_time = NOW() WHERE id = #{itemId}")
     int updateItemSortOrder(@Param("itemId") Long itemId, @Param("sortOrder") Integer sortOrder);
 
-    // 10. 物理清空某天下的所有卡片
     @Delete("DELETE FROM trip_item WHERE day_id = #{dayId}")
     int deleteItemsByDayId(@Param("dayId") Long dayId);
 
-    // 11. 原子重算总预算 SQL
     @Update("UPDATE trip_plan SET total_budget = (" +
             "   SELECT COALESCE(SUM(cost_estimate), 0.00) " +
             "   FROM trip_item " +
             "   WHERE trip_id = #{tripId} AND is_deleted = 0" +
             "), update_time = NOW() WHERE id = #{tripId} AND is_deleted = 0")
     int recalculateAndSyncTotalCost(@Param("tripId") Long tripId);
-
 }

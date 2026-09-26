@@ -1,16 +1,18 @@
 package com.smarttrip.service;
 
-import com.smarttrip.entity.TripDetailVO;
-import com.smarttrip.entity.TripItem;
-import com.smarttrip.entity.TripItemAddDTO;
-import com.smarttrip.entity.TripModifyDTO;
+import com.smarttrip.entity.*;
+
 import java.util.List;
 
 public interface TripService {
     TripDetailVO getTripDetail(Long tripId);
-    TripItem addTripItem(TripItemAddDTO dto);
     void updateItem(Long itemId, TripItem item);
+    void deleteTripItem(Long itemId);
+    TripItem addTripItem(TripItemAddDTO dto);
     void sortItems(Long dayId, List<Long> sortedItemIds);
     void modifyTripByAI(TripModifyDTO dto);
-    void deleteTripItem(Long itemId);
+
+    // 【新增】：天数动态管理
+    TripDayVO addTripDay(Long tripId);
+    void deleteTripDay(Long dayId);
 }
