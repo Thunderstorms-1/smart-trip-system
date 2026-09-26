@@ -6,6 +6,7 @@ import com.smarttrip.common.BusinessException;
 import com.smarttrip.config.AiProperties;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.SquareMapper;
+import com.smarttrip.mapper.ToolMapper;
 import com.smarttrip.mapper.UserMapper;
 import com.smarttrip.service.TripAIService;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,46 @@ public class TripAIServiceImpl implements TripAIService {
             .readTimeout(120, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build();
+
+    // 1. 确保类中已注入 ToolMapper
+    private final ToolMapper toolMapper;
+
+    // 2. 在 streamGenerateTrip 方法中的 systemPrompt 追加 packingList 结构约束：
+    String systemPrompt = "你是一名顶级的资深私人旅行定制架构师。\n" +
+            "请严格根据用户需求规划路书。你的回答必须严格分为两大部分：\n\n" +
+            "【第一部分：给用户阅读的精致路书总结】（使用 Markdown 格式，严禁出现英文变量名与 JSON）：\n" +
+            "### 🌟 行程亮点与寄语\n\n" +
+            "### 📅 每日精华安排概览\n\n" +
+            "### 💡 独家避坑指南\n\n" +
+            "【第二部分：给系统落库的结构化数据】（必须严格用 ```json 包裹在最末尾，严禁省略）：\n" +
+            "```json\n" +
+            "{\n" +
+            "  \"days\": [\n" +
+            "    {\n" +
+            "      \"dayIndex\": 1,\n" +
+            "      \"dayTheme\": \"当天主题\",\n" +
+            "      \"items\": [\n" +
+            "        {\n" +
+            "          \"itemType\": \"SCENIC\",\n" +
+            "          \"itemName\": \"景点名\",\n" +
+            "          \"startTime\": \"09:00\",\n" +
+            "          \"costTimeHours\": 2.0,\n" +
+            "          \"costEstimate\": 50.0,\n" +
+            "          \"transportTips\": \"交通建议\",\n" +
+            "          \"aiTips\": \"避坑贴士\"\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"packingList\": [\n" +
+            "    {\n" +
+            "      \"category\": \"SPECIAL\", // SPECIAL目的地专属特备, CLOTHES穿搭衣物, DOC证件, MEDICINE医药, ELECTRONIC数码\n" +
+            "      \"itemName\": \"物品名称\",\n" +
+            "      \"reason\": \"结合目的地气候/海拔的具体特备理由（如：针对高海拔强紫外线防晒）\"\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}\n" +
+            "```";
 
     @Override
     public void streamGenerateTrip(TripGenerateDTO dto, Long userId, SseEmitter emitter) {
@@ -319,6 +360,9 @@ public class TripAIServiceImpl implements TripAIService {
         }
     }
 
+    /**
+     * 【结构化精准落库 + 动态行李清单 + 智能防空双保险】
+     */
     @Transactional(rollbackFor = Exception.class)
     public Long parseAndSaveStructuredTrip(TripGenerateDTO dto, Long userId, String fullOutput) {
         // 1. 插入路书主表
@@ -336,17 +380,20 @@ public class TripAIServiceImpl implements TripAIService {
         Long tripId = trip.getId();
 
         boolean parsedSuccess = false;
+        List<TripPackingItem> packingItems = new ArrayList<>();
 
-        // 2. 尝试从大模型输出中捕获 JSON
+        // 2. 尝试从大模型输出中捕获 JSON 代码块
         Pattern pattern = Pattern.compile("```(?:json|JSON)?\\s*([\\s\\S]*?)\\s*```");
         Matcher matcher = pattern.matcher(fullOutput);
 
         if (matcher.find()) {
             try {
                 String jsonStr = matcher.group(1).trim();
+                // 在这里定义并解析出 root 节点！
                 JsonNode root = objectMapper.readTree(jsonStr);
-                JsonNode daysArray = root.path("days");
 
+                // --- A. 解析日程天数与景点卡片 ---
+                JsonNode daysArray = root.path("days");
                 if (daysArray.isArray() && !daysArray.isEmpty()) {
                     for (JsonNode dayNode : daysArray) {
                         TripDayVO day = new TripDayVO();
@@ -369,7 +416,7 @@ public class TripAIServiceImpl implements TripAIService {
                                 item.setStartTime(itemNode.path("startTime").asText("09:00"));
                                 item.setCostTimeHours(new BigDecimal(itemNode.path("costTimeHours").asText("2.0")));
                                 item.setCostEstimate(new BigDecimal(itemNode.path("costEstimate").asText("50.0")));
-                                item.setTransportTips(itemNode.path("transportTips").asText("建议公共交通或打车前往"));
+                                item.setTransportTips(itemNode.path("transportTips").asText("建议公共交通前往"));
                                 item.setAiTips(itemNode.path("aiTips").asText("AI 游玩避坑贴士"));
                                 item.setSortOrder(sort++);
                                 item.setIsDeleted(0);
@@ -378,16 +425,37 @@ public class TripAIServiceImpl implements TripAIService {
                         }
                     }
                     parsedSuccess = true;
-                    log.info("🎉 大模型 JSON 结构化时间轴精准落库成功！tripId: {}", tripId);
+                    log.info("🎉 大模型 JSON 时间轴落库成功！tripId: {}", tripId);
                 }
+
+                // --- B. 【在这里解析 packingList，root 在同一个作用域内】 ---
+                JsonNode packingNode = root.path("packingList");
+                if (packingNode.isArray() && !packingNode.isEmpty()) {
+                    for (JsonNode pNode : packingNode) {
+                        TripPackingItem item = new TripPackingItem();
+                        item.setTripId(tripId);
+                        item.setCategory(pNode.path("category").asText("SPECIAL"));
+
+                        String name = pNode.path("itemName").asText("必备物品");
+                        String reason = pNode.path("reason").asText("");
+                        if (!reason.isBlank()) {
+                            name = name + " [" + reason + "]";
+                        }
+                        item.setItemName(name);
+                        item.setIsChecked(0);
+                        item.setIsDeleted(0);
+                        packingItems.add(item);
+                    }
+                }
+
             } catch (Exception e) {
-                log.warn("大模型 JSON 解析微瑕，启动智能自愈引擎");
+                log.warn("大模型 JSON 解析微瑕，启动智能自愈引擎: {}", e.getMessage());
             }
         }
 
-        // 3. 【绝对防御】：智能保底填充
+        // 3. 【防白屏兜底 1】：若时间轴解析失败，生成天数与卡片兜底
         if (!parsedSuccess) {
-            log.info("启用智能自愈引擎，为目的地 [{}] 自动排布时间轴", dto.getDestination());
+            log.info("启用时间轴智能自愈引擎，为目的地 [{}] 自动排布卡片", dto.getDestination());
             for (int i = 1; i <= dto.getTotalDays(); i++) {
                 TripDayVO day = new TripDayVO();
                 day.setTripId(tripId);
@@ -411,6 +479,16 @@ public class TripAIServiceImpl implements TripAIService {
             }
         }
 
+        // 4. 【防白屏兜底 2】：若大模型未产出行李清单，生成目的地专属清单兜底入库
+        if (packingItems.isEmpty()) {
+            packingItems = buildDefaultPackingItemsForCity(tripId, dto.getDestination());
+        }
+
+        if (!packingItems.isEmpty()) {
+            toolMapper.batchInsertPackingItems(packingItems);
+            log.info("行李清单已批量存入数据库, tripId={}, 数量={}", tripId, packingItems.size());
+        }
+
         return tripId;
     }
 
@@ -425,4 +503,26 @@ public class TripAIServiceImpl implements TripAIService {
         }
         return "为您定制的精品路线，尽享地道风情与特色美食。";
     }
+
+    private List<TripPackingItem> buildDefaultPackingItemsForCity(Long tripId, String destination) {
+        List<TripPackingItem> list = new ArrayList<>();
+        String[][] defaults = {
+                {"SPECIAL", destination + "出行专属防晒/雨具 [针对当地气候备用]"},
+                {"DOC", "身份证 / 驾照 / 酒店预订凭证 [实名核验必备]"},
+                {"CLOTHES", "舒适防滑运动鞋 & 换洗衣物 [长途步行推荐]"},
+                {"ELECTRONIC", "高速大容量充电宝 & 相机配件 [全天拍照续航]"},
+                {"MEDICINE", "肠胃药 / 创可贴 / 晕车贴 [水土不服应急]"}
+        };
+        for (String[] def : defaults) {
+            TripPackingItem item = new TripPackingItem();
+            item.setTripId(tripId);
+            item.setCategory(def[0]);
+            item.setItemName(def[1]);
+            item.setIsChecked(0);
+            item.setIsDeleted(0);
+            list.add(item);
+        }
+        return list;
+    }
+
 }

@@ -115,10 +115,28 @@ public class ToolServiceImpl implements ToolService {
     public List<TripPackingItem> getPackingList(Long tripId) {
         List<TripPackingItem> items = toolMapper.selectPackingItemsByTripId(tripId);
 
-        // 如果该路书尚未初始化清单，自动为它生成一套智能推荐清单
+        // 老数据兜底：若数据库中尚无记录，动态补齐基础项
         if (items == null || items.isEmpty()) {
-            items = generateDefaultPackingItems(tripId);
-            toolMapper.batchInsertPackingItems(items);
+            TripDetailVO trip = tripMapper.selectTripById(tripId);
+            String dest = (trip != null && trip.getDestination() != null) ? trip.getDestination() : "目的地";
+
+            List<TripPackingItem> defaultList = new ArrayList<>();
+            String[][] defs = {
+                    {"SPECIAL", dest + " 随身温差外套与晴雨伞 [当地气候特备]"},
+                    {"DOC", "身份证原件及电子凭证 [乘车入住必备]"},
+                    {"CLOTHES", "换洗衣物 2-3 套与透气鞋 [游玩舒适度保障]"},
+                    {"ELECTRONIC", "手机充电宝及数据线 [防止电量耗尽]"},
+                    {"MEDICINE", "常备肠胃药与感冒应急药 [异地饮食保障]"}
+            };
+            for (String[] def : defs) {
+                TripPackingItem item = new TripPackingItem();
+                item.setTripId(tripId);
+                item.setCategory(def[0]);
+                item.setItemName(def[1]);
+                item.setIsChecked(0);
+                defaultList.add(item);
+            }
+            toolMapper.batchInsertPackingItems(defaultList);
             items = toolMapper.selectPackingItemsByTripId(tripId);
         }
         return items;
