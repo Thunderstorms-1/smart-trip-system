@@ -8,8 +8,38 @@
         <span class="badge">{{ tripStore.currentTrip.destination }} · {{ tripStore.currentTrip.totalDays }}天</span>
       </div>
       <div class="nav-right">
+        <!-- 广场发布状态指示器 -->
+        <span v-if="tripStore.currentTrip.isPublic === 1" class="public-status-badge">
+          🌐 [已在广场公开]
+        </span>
+
         <span class="budget-tag">💰 总预估花费：￥{{ tripStore.currentTrip.totalBudget }}</span>
-        <!-- 【新增】：导出与分享按钮 -->
+
+        <!-- 按钮分流控制 -->
+        <button 
+          v-if="tripStore.currentTrip.isPublic === 1" 
+          class="tool-btn sync-btn" 
+          @click="handlePublishOrSync"
+          title="将本地最新的修改覆盖更新至广场公开快照"
+        >
+          🔄 同步至广场
+        </button>
+        <button 
+          v-if="tripStore.currentTrip.isPublic === 1" 
+          class="tool-btn unpublish-btn" 
+          @click="handleUnpublish"
+          title="从广场下架，仅自己可见"
+        >
+          🔒 设为私密
+        </button>
+        <button 
+          v-if="!tripStore.currentTrip.isPublic || tripStore.currentTrip.isPublic === 0" 
+          class="share-btn publish-btn" 
+          @click="handlePublishOrSync"
+        >
+          🌍 发布到广场
+        </button>
+
         <button class="tool-btn export-btn" @click="isExportOpen = true">📥 导出与分享</button>
         <button class="tool-btn" @click="isExpenseOpen = true">📊 记账看板</button>
         <button class="tool-btn" @click="isPackingOpen = true">🎒 行李清单</button>
@@ -293,6 +323,35 @@ import ExpenseModal from '@/components/ExpenseModal.vue'
 import PackingModal from '@/components/PackingModal.vue'
 import TripMapView from '@/components/TripMapView.vue'
 import ExportModal from '@/components/ExportModal.vue'
+import { publishTripApi, unpublishTripApi } from '@/api/square'
+
+// 发布或同步最新快照到广场
+const handlePublishOrSync = async () => {
+  const isSync = tripStore.currentTrip.isPublic === 1
+  const actionText = isSync ? '覆盖同步最新修改至广场公开快照' : '发布当前行程至探索广场'
+  
+  if (!confirm(`确定要将当前行程【${actionText}】吗？`)) return
+
+  try {
+    await publishTripApi(tripStore.currentTrip.id)
+    tripStore.currentTrip.isPublic = 1
+    alert(`🎉 ${isSync ? '同步成功！广场公开展示已更新为最新版本！' : '发布成功！已在探索广场公开展示！'}`)
+  } catch (err) {
+    console.error('发布/同步失败:', err)
+  }
+}
+
+// 设为私密 (下架)
+const handleUnpublish = async () => {
+  if (!confirm('确定要将该行程从广场下架设为私密吗？下架后其他用户将无法在广场看到或克隆此行程。')) return
+  try {
+    await unpublishTripApi(tripStore.currentTrip.id)
+    tripStore.currentTrip.isPublic = 0
+    alert('🔒 已成功从广场下架，当前行程已转为私密状态！')
+  } catch (err) {
+    console.error('下架失败:', err)
+  }
+}
 
 const expensePrefill = ref(null)
 
@@ -612,6 +671,48 @@ const handleAIModify = async () => {
 </script>
 
 <style scoped>
+
+.public-status-badge {
+  font-size: 11px;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.publish-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.publish-btn:hover {
+  background: #047857;
+}
+
+.sync-btn {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+.sync-btn:hover {
+  background: #dbeafe;
+}
+
+.unpublish-btn {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fecdd3;
+}
+.unpublish-btn:hover {
+  background: #ffe4e6;
+}
 
 .quick-expense-btn {
   background: #f0fdf4;

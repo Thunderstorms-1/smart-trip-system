@@ -1,8 +1,12 @@
 package com.smarttrip.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smarttrip.common.BusinessException;
 import com.smarttrip.common.PageResult;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.SquareMapper;
+import com.smarttrip.mapper.TripMapper;
+import com.smarttrip.mapper.UserMapper;
 import com.smarttrip.service.SquareService;
 import com.smarttrip.service.TripService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,57 +23,129 @@ import java.util.List;
 public class SquareServiceImpl implements SquareService {
 
     private final SquareMapper squareMapper;
+    private final TripMapper tripMapper;
+    private final UserMapper userMapper;
     private final TripService tripService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
 
     @Override
     public PageResult<SquareTripVO> searchSquareTrips(SquareQueryDTO query) {
-        // 1. 参数默认值保障
-        if (query.getPageNum() == null || query.getPageNum() < 1) {
-            query.setPageNum(1);
-        }
-        if (query.getPageSize() == null || query.getPageSize() < 1) {
-            query.setPageSize(8);
-        }
-        if (query.getSortType() == null || query.getSortType().isBlank()) {
-            query.setSortType("HOT");
-        }
+        if (query.getPageNum() == null || query.getPageNum() < 1) query.setPageNum(1);
+        if (query.getPageSize() == null || query.getPageSize() < 1) query.setPageSize(8);
+        if (query.getSortType() == null || query.getSortType().isBlank()) query.setSortType("HOT");
 
-        // 2. 统计总数
         long total = squareMapper.countSquareTrips(query);
-
-        // 3. 计算分页偏移量
         int offset = (query.getPageNum() - 1) * query.getPageSize();
         List<SquareTripVO> list = squareMapper.selectSquareTripsPaged(query, offset);
-
-        // 4. 空数据库默认兜底演示卡片
-        if (total == 0 && (query.getKeyword() == null || query.getKeyword().isBlank()) && "全部".equals(query.getTravelStyle())) {
-            list = new ArrayList<>();
-            list.add(createMockSquareVO(200501L, "3天2晚 成都微醺美食与古蜀探秘之旅", "成都", 3, "3000.00", "美食探索", 156, 42, "智游体验官"));
-            list.add(createMockSquareVO(200502L, "5天4晚 大理洱海环湖慢生活深度游", "大理", 5, "4500.00", "休闲度假", 289, 78, "风之旅者"));
-            list.add(createMockSquareVO(200503L, "2天1晚 西安大唐不夜城特种兵打卡", "西安", 2, "1200.00", "特种兵打卡", 95, 18, "西北老饕"));
-            total = list.size();
-        }
 
         return new PageResult<>(total, query.getPageNum(), query.getPageSize(), list);
     }
 
+    /**
+     * 【核心实现 1】：发布/同步当前行程至广场（生成不可变快照）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long cloneTrip(Long sourceTripId, Long currentUserId) {
-        if (currentUserId == null) {
-            currentUserId = 1L;
+    public Long publishOrSyncTrip(Long tripId, Long currentUserId) {
+        log.info("用户 [{}] 执行发布/同步快照至广场: tripId={}", currentUserId, tripId);
+
+        // 1. 权限校验
+        TripDetailVO currentTripTree = tripService.getTripDetail(tripId);
+        if (!currentTripTree.getUserId().equals(currentUserId)) {
+            throw new BusinessException(403, "只能发布或同步属于您自己的行程！");
         }
-        log.info("用户 [{}] 正在一键克隆公开路书 [{}]", currentUserId, sourceTripId);
 
-        TripDetailVO sourceTrip = tripService.getTripDetail(sourceTripId);
-        sourceTrip.setUserId(currentUserId);
-        sourceTrip.setTitle(sourceTrip.getTitle() + " (克隆副本)");
-        sourceTrip.setIsPublic(0);
-        squareMapper.insertCloneTrip(sourceTrip);
-        Long newTripId = sourceTrip.getId();
+        User author = userMapper.findById(currentUserId);
+        String authorName = author != null ? author.getNickname() : "旅行探险家";
+        String authorAvatar = author != null ? author.getAvatar() : null;
 
-        if (sourceTrip.getDays() != null) {
-            for (TripDayVO day : sourceTrip.getDays()) {
+        // 2. 将当前父子数据树（包含天数和全部卡片）序列化为不可变 JSON 快照
+        String snapshotJson;
+        try {
+            snapshotJson = objectMapper.writeValueAsString(currentTripTree);
+        } catch (Exception e) {
+            log.error("生成路书快照序列化失败", e);
+            throw new BusinessException(500, "生成路书快照失败");
+        }
+
+        // 3. 构建/更新快照记录
+        SquarePost existingPost = squareMapper.selectPostByTripId(tripId);
+        SquarePost post = new SquarePost();
+        post.setTripId(tripId);
+        post.setUserId(currentUserId);
+        post.setAuthorName(authorName);
+        post.setAuthorAvatar(authorAvatar);
+        post.setTitle(currentTripTree.getTitle());
+        post.setDestination(currentTripTree.getDestination());
+        post.setTotalDays(currentTripTree.getTotalDays());
+        post.setTotalBudget(currentTripTree.getTotalBudget());
+        post.setTripStyle(currentTripTree.getTripStyle());
+        post.setSummary(currentTripTree.getSummary());
+        post.setSnapshotJson(snapshotJson);
+
+        if (existingPost == null) {
+            squareMapper.insertPost(post);
+        } else {
+            squareMapper.updatePostSnapshot(post);
+        }
+
+        // 4. 将源行程标记为公开状态
+        squareMapper.updateTripPublicStatus(tripId, 1);
+        log.info("路书快照发布/同步成功: tripId={}", tripId);
+        return tripId;
+    }
+
+    /**
+     * 【核心实现 2】：将行程设为私密（从广场下架快照）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void unpublishTrip(Long tripId, Long currentUserId) {
+        TripDetailVO currentTripTree = tripService.getTripDetail(tripId);
+        if (!currentTripTree.getUserId().equals(currentUserId)) {
+            throw new BusinessException(403, "只能下架属于您自己的行程！");
+        }
+
+        squareMapper.softDeletePostByTripId(tripId);
+        squareMapper.updateTripPublicStatus(tripId, 0);
+        log.info("路书已成功从广场下架: tripId={}", tripId);
+    }
+
+    /**
+     * 【核心实现 3】：从不可变快照反序列化并一键克隆（彻底解耦源数据）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long cloneFromSnapshot(Long squarePostId, Long currentUserId) {
+        if (currentUserId == null) currentUserId = 1L;
+        log.info("用户 [{}] 从广场快照 [{}] 执行一键克隆", currentUserId, squarePostId);
+
+        // 1. 读取快照实体
+        SquarePost post = squareMapper.selectPostById(squarePostId);
+        if (post == null || post.getSnapshotJson() == null) {
+            throw new BusinessException(404, "该公开路书已下架或快照不存在");
+        }
+
+        // 2. 反序列化快照为完整的路书树状对象
+        TripDetailVO snapshotTree;
+        try {
+            snapshotTree = objectMapper.readValue(post.getSnapshotJson(), TripDetailVO.class);
+        } catch (Exception e) {
+            log.error("反序列化路书快照失败", e);
+            throw new BusinessException(500, "解析路书快照失败");
+        }
+
+        // 3. 克隆主表
+        snapshotTree.setUserId(currentUserId);
+        snapshotTree.setTitle(snapshotTree.getTitle() + " (克隆副本)");
+        snapshotTree.setIsPublic(0); // 克隆出的副本默认私有
+        squareMapper.insertCloneTrip(snapshotTree);
+        Long newTripId = snapshotTree.getId();
+
+        // 4. 克隆所有天数与卡片
+        if (snapshotTree.getDays() != null) {
+            for (TripDayVO day : snapshotTree.getDays()) {
                 day.setTripId(newTripId);
                 squareMapper.insertCloneDay(day);
                 Long newDayId = day.getId();
@@ -85,21 +160,9 @@ public class SquareServiceImpl implements SquareService {
             }
         }
 
-        squareMapper.incrementCloneCount(sourceTripId);
+        // 5. 原发布帖克隆量 +1
+        squareMapper.incrementPostCloneCount(squarePostId);
+        log.info("从快照克隆全新路书成功！新 TripId: {}", newTripId);
         return newTripId;
-    }
-
-    private SquareTripVO createMockSquareVO(Long id, String title, String dest, int days, String budget, String style, int likes, int clones, String author) {
-        SquareTripVO vo = new SquareTripVO();
-        vo.setId(id);
-        vo.setTitle(title);
-        vo.setDestination(dest);
-        vo.setTotalDays(days);
-        vo.setTotalBudget(new BigDecimal(budget));
-        vo.setTripStyle(style);
-        vo.setLikeCount(likes);
-        vo.setCloneCount(clones);
-        vo.setAuthorNickname(author);
-        return vo;
     }
 }
