@@ -18,21 +18,40 @@ public interface TripMapper {
     @Select("SELECT * FROM trip_day WHERE trip_id = #{tripId} AND is_deleted = 0 ORDER BY day_index ASC")
     List<TripDayVO> selectDaysByTripId(@Param("tripId") Long tripId);
 
-    // 3. 【核心修复 1】：严格按照时间 (start_time ASC) 升序排！彻底杜绝时间倒流错乱！
+    // 3. 严格按时间升序排布卡片
     @Select("SELECT * FROM trip_item WHERE day_id = #{dayId} AND is_deleted = 0 ORDER BY start_time ASC, sort_order ASC")
     List<TripItem> selectItemsByDayId(@Param("dayId") Long dayId);
 
-    // 4. 【核心修复 2】：补齐 is_deleted 字段，确保微调时旧卡片能被真正软删除！
+    // 4. 根据 itemId 查询单条卡片明细（用于获取其所属的 tripId）
+    @Select("SELECT * FROM trip_item WHERE id = #{itemId} LIMIT 1")
+    TripItem selectItemById(@Param("itemId") Long itemId);
+
+    // 5. 更新卡片节点明细
     @Update("UPDATE trip_item SET item_name = #{itemName}, start_time = #{startTime}, " +
             "cost_time_hours = #{costTimeHours}, cost_estimate = #{costEstimate}, " +
             "ai_tips = #{aiTips}, is_deleted = #{isDeleted}, update_time = NOW() WHERE id = #{id}")
     int updateTripItem(TripItem item);
 
-    // 5. 拖拽排序更新
+    // 6. 软删除单张卡片节点
+    @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE id = #{itemId} AND is_deleted = 0")
+    int softDeleteItemById(@Param("itemId") Long itemId);
+
+    // 7. 拖拽排序更新
     @Update("UPDATE trip_item SET sort_order = #{sortOrder}, update_time = NOW() WHERE id = #{itemId}")
     int updateItemSortOrder(@Param("itemId") Long itemId, @Param("sortOrder") Integer sortOrder);
 
-    // 6. 物理清空某天下的所有卡片（微调专用，100% 干净，绝不残留旧卡片！）
+    // 8. 物理清空某天下的所有卡片（AI 重排微调使用）
     @Delete("DELETE FROM trip_item WHERE day_id = #{dayId}")
     int deleteItemsByDayId(@Param("dayId") Long dayId);
+
+    // =========================================================================
+    // 【核心新增】：子项金额原子聚合回写主表 SQL (杜绝并发冲突与 NULL 异常)
+    // 兼容 total_budget / estimated_total_cost 字段
+    // =========================================================================
+    @Update("UPDATE trip_plan SET total_budget = (" +
+            "   SELECT COALESCE(SUM(cost_estimate), 0.00) " +
+            "   FROM trip_item " +
+            "   WHERE trip_id = #{tripId} AND is_deleted = 0" +
+            "), update_time = NOW() WHERE id = #{tripId} AND is_deleted = 0")
+    int recalculateAndSyncTotalCost(@Param("tripId") Long tripId);
 }
