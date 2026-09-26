@@ -363,7 +363,13 @@ const editForm = reactive({
 
 onMounted(async () => {
   const tripId = route.params.tripId || 200501
-  await tripStore.fetchTripDetail(tripId)
+  try {
+    await tripStore.fetchTripDetail(tripId)
+  } catch (err) {
+    console.error('加载路书失败或被权限拦截:', err)
+    // 403 或 404 越权访问时，平滑重定向回首页
+    router.replace('/')
+  }
 })
 
 const getItemTypeLabel = (type) => {

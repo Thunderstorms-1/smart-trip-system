@@ -3,6 +3,7 @@ package com.smarttrip.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smarttrip.common.BusinessException;
+import com.smarttrip.common.UserContext;
 import com.smarttrip.config.AiProperties;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.SquareMapper;
@@ -33,125 +34,146 @@ public class TripServiceImpl implements TripService {
     private final SquareMapper squareMapper;
     private final AiProperties aiProperties;
 
-    /**
-     * 新增一天行程（自动递增 day_index 并同步主表总天数）
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public TripDayVO addTripDay(Long tripId) {
-        log.info("执行新增行程天数: tripId={}", tripId);
+    private final OkHttpClient okHttpClient = new OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .build();
+
+    // =========================================================================
+    // 【安全断言 1】：写权限校验（新增、修改、删除、AI微调必须为创建者本人）
+    // =========================================================================
+    private TripDetailVO assertTripWritePermission(Long tripId, Long currentUserId) {
+        if (tripId == null) {
+            throw new BusinessException(400, "行程ID不能为空");
+        }
         TripDetailVO trip = tripMapper.selectTripById(tripId);
         if (trip == null) {
-            throw new BusinessException("目标行程不存在");
+            throw new BusinessException(404, "目标行程不存在或已被删除");
         }
 
-        // 1. 查询当前最大序号并递增
-        int maxIndex = tripMapper.selectMaxDayIndexByTripId(tripId);
-        int nextIndex = maxIndex + 1;
+        // 强行比对所有权
+        if (currentUserId == null || !trip.getUserId().equals(currentUserId)) {
+            log.warn("【水平越权拦截-写操作】用户 [{}] 试图非法修改属于用户 [{}] 的私密行程 [{}]",
+                    currentUserId, trip.getUserId(), tripId);
+            throw new BusinessException(403, "无权修改或操作他人行程！");
+        }
+        return trip;
+    }
 
-        // 2. 插入新天数
-        TripDayVO newDay = new TripDayVO();
-        newDay.setTripId(tripId);
-        newDay.setDayIndex(nextIndex);
-        newDay.setDayTheme("自由探索与随心漫游");
-        newDay.setDaySummary("由用户自定义新增的第 " + nextIndex + " 天日程");
-        newDay.setItems(new ArrayList<>());
-        tripMapper.insertTripDay(newDay);
+    // =========================================================================
+    // 【安全断言 2】：读权限校验（创建者本人放行，他人/游客仅允许查看已公开行程）
+    // =========================================================================
+    private TripDetailVO assertTripReadPermission(Long tripId, Long currentUserId) {
+        if (tripId == null) {
+            throw new BusinessException(400, "行程ID不能为空");
+        }
+        TripDetailVO trip = tripMapper.selectTripById(tripId);
+        if (trip == null) {
+            return buildMockTripDetail(tripId);
+        }
 
-        // 3. 同步更新主表 total_days
-        int totalDaysCount = tripMapper.countActiveDaysByTripId(tripId);
-        tripMapper.updateTripTotalDays(tripId, totalDaysCount);
+        // 1. 如果是创建者本人，放行
+        if (currentUserId != null && trip.getUserId().equals(currentUserId)) {
+            return trip;
+        }
 
-        log.info("新增天数成功: dayId={}, newDayIndex={}, totalDays={}", newDay.getId(), nextIndex, totalDaysCount);
-        return newDay;
+        // 2. 如果已公开发布到广场，放行只读
+        if (trip.getIsPublic() != null && trip.getIsPublic() == 1) {
+            return trip;
+        }
+
+        // 3. 私密行程且非本人访问，坚决拦截
+        log.warn("【水平越权拦截-读操作】用户 [{}] 试图非法查看属于用户 [{}] 的私密行程 [{}]",
+                currentUserId, trip.getUserId(), tripId);
+        throw new BusinessException(403, "该行程为私密行程，您无权查看！");
+    }
+
+    // 辅助方法：重新累加卡片金额回写主表
+    private void syncTripTotalCost(Long tripId) {
+        if (tripId == null) return;
+        int rows = tripMapper.recalculateAndSyncTotalCost(tripId);
+        log.info("【总预算联动同步完成】: tripId={}, 影响主表行数={}", tripId, rows);
     }
 
     /**
-     * 批量持久化卡片拖拽后的新排序（事务原子保障）
+     * 查询行程详情（已加固：私密行程防偷窥）
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void reorderItems(List<ItemSortDTO> sortList) {
-        if (sortList == null || sortList.isEmpty()) {
-            return;
-        }
-        log.info("执行批量卡片拖拽重排, 数量={}", sortList.size());
+    public TripDetailVO getTripDetail(Long tripId) {
+        Long currentUserId = UserContext.getUserId();
+        log.info("拉取路书详情: tripId={}, currentUserId={}", tripId, currentUserId);
 
-        for (ItemSortDTO item : sortList) {
-            if (item.getItemId() != null && item.getSortOrder() != null) {
-                tripMapper.updateItemSortOrder(item.getItemId(), item.getSortOrder());
-            }
+        // 1. 执行读权限安全断言
+        TripDetailVO detail = assertTripReadPermission(tripId, currentUserId);
+
+        // 2. 组装天数与卡片树状结构
+        List<TripDayVO> days = tripMapper.selectDaysByTripId(tripId);
+        for (TripDayVO day : days) {
+            List<TripItem> items = tripMapper.selectItemsByDayId(day.getId());
+            day.setItems(items);
         }
-        log.info("批量拖拽排序更新完成！");
+        detail.setDays(days);
+        return detail;
     }
 
     /**
-     * 删除指定天数（防空校验 + 级联软删除卡片 + 序号重排防断号 + 预算重算）
+     * 更新单张卡片节点（已加固：反查 tripId 校验写权限）
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteTripDay(Long dayId) {
-        log.info("执行删除行程天数: dayId={}", dayId);
-
-        // 1. 查询天数明细
-        TripDayVO day = tripMapper.selectDayById(dayId);
-        if (day == null) {
-            throw new BusinessException("该天数日程不存在或已被删除");
+    public void updateItem(Long itemId, TripItem item) {
+        Long currentUserId = UserContext.getUserId();
+        TripItem existingItem = tripMapper.selectItemById(itemId);
+        if (existingItem == null) {
+            throw new BusinessException(404, "该日程卡片不存在或已被删除");
         }
-        Long tripId = day.getTripId();
+        Long tripId = existingItem.getTripId();
 
-        // 2. 【防空校验】：若只剩最后 1 天，坚决禁止删除
-        int activeDaysCount = tripMapper.countActiveDaysByTripId(tripId);
-        if (activeDaysCount <= 1) {
-            throw new BusinessException("行程至少需要保留 1 天，无法继续删除！");
-        }
+        // 执行写权限安全断言
+        assertTripWritePermission(tripId, currentUserId);
 
-        // 3. 软删除该天数记录
-        tripMapper.softDeleteDayById(dayId);
-
-        // 4. 级联软删除该天下的所有卡片节点
-        tripMapper.softDeleteItemsByDayId(dayId);
-
-        // 5. 【序号紧凑重排（防断号）】：拉取剩余有效天数，重新按 1, 2, 3... 编号
-        List<TripDayVO> remainingDays = tripMapper.selectDaysByTripId(tripId);
-        int currentIndex = 1;
-        for (TripDayVO d : remainingDays) {
-            if (!d.getDayIndex().equals(currentIndex)) {
-                tripMapper.updateDayIndex(d.getId(), currentIndex);
-            }
-            currentIndex++;
-        }
-
-        // 6. 同步更新主表 total_days
-        int newTotalDays = remainingDays.size();
-        tripMapper.updateTripTotalDays(tripId, newTotalDays);
-
-        // 7. 【预算同步】：删除卡片后重新聚合整本路书的总预估花费
+        item.setId(itemId);
+        tripMapper.updateTripItem(item);
         syncTripTotalCost(tripId);
-
-        log.info("删除天数及级联数据完成: dayId={}, tripId={}, 剩余天数={}", dayId, tripId, newTotalDays);
+        log.info("卡片修改成功且总预算已同步: itemId={}, tripId={}", itemId, tripId);
     }
 
     /**
-     * 手动新增日程卡片节点（事务内完成排序号自增与总预算原子同步）
+     * 删除单张卡片节点（已加固：反查 tripId 校验写权限）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTripItem(Long itemId) {
+        Long currentUserId = UserContext.getUserId();
+        TripItem existingItem = tripMapper.selectItemById(itemId);
+        if (existingItem == null) {
+            throw new BusinessException(404, "该日程卡片不存在或已被删除");
+        }
+        Long tripId = existingItem.getTripId();
+
+        // 执行写权限安全断言
+        assertTripWritePermission(tripId, currentUserId);
+
+        tripMapper.softDeleteItemById(itemId);
+        syncTripTotalCost(tripId);
+        log.info("卡片删除成功且总预算已扣减: itemId={}, tripId={}", itemId, tripId);
+    }
+
+    /**
+     * 手动新增卡片（已加固：校验写权限）
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public TripItem addTripItem(TripItemAddDTO dto) {
-        log.info("手动新增卡片节点: tripId={}, dayId={}, itemName={}", dto.getTripId(), dto.getDayId(), dto.getItemName());
+        Long currentUserId = UserContext.getUserId();
+        assertTripWritePermission(dto.getTripId(), currentUserId);
 
-        if (dto.getTripId() == null || dto.getDayId() == null) {
-            throw new BusinessException("路书ID或天数ID不能为空");
-        }
         if (dto.getItemName() == null || dto.getItemName().isBlank()) {
-            throw new BusinessException("活动/地点名称不能为空");
+            throw new BusinessException(400, "活动地点名称不能为空");
         }
 
-        // 1. 查询当前天数下最大的序号，自动计算递增值
         int maxSort = tripMapper.selectMaxSortOrderByDayId(dto.getDayId());
-        int nextSort = maxSort + 1;
-
-        // 2. 构建实体对象并补全默认值
         TripItem item = new TripItem();
         item.setTripId(dto.getTripId());
         item.setDayId(dto.getDayId());
@@ -161,105 +183,125 @@ public class TripServiceImpl implements TripService {
         item.setCostTimeHours(dto.getCostTimeHours() != null ? dto.getCostTimeHours() : new BigDecimal("2.0"));
         item.setCostEstimate(dto.getCostEstimate() != null ? dto.getCostEstimate() : BigDecimal.ZERO);
         item.setTransportTips(dto.getTransportTips());
-        item.setAiTips(dto.getAiTips() != null ? dto.getAiTips() : "用户自定义活动节点");
-        item.setSortOrder(nextSort);
+        item.setAiTips(dto.getAiTips() != null ? dto.getAiTips() : "自定义活动");
+        item.setSortOrder(maxSort + 1);
         item.setIsDeleted(0);
 
-        // 3. 执行插入（MyBatis 自动回填生成的主键 ID）
         tripMapper.insertSingleTripItem(item);
-        log.info("新卡片落库成功: newItemId={}", item.getId());
-
-        // 4. 【核心保障】：原子重算并同步主表总预算
         syncTripTotalCost(dto.getTripId());
-
-        // 5. 返回携带完整 ID 的卡片实体对象
         return item;
     }
 
-    // =========================================================================
-    // 【核心辅助方法】：调用原子 SQL 重新计算整本路书的总预估花费并同步回主表
-    // =========================================================================
-    private void syncTripTotalCost(Long tripId) {
-        if (tripId == null) {
-            return;
-        }
-        int rows = tripMapper.recalculateAndSyncTotalCost(tripId);
-        log.info("【总预算联动同步完成】: tripId={}, 影响主表行数={}", tripId, rows);
-    }
-
     /**
-     * 删除单张日程卡片（软删除 + 触发总预算联动扣减）
+     * 拖拽排序（已加固：校验所属权）
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteTripItem(Long itemId) {
-        log.info("执行卡片软删除: itemId={}", itemId);
+    public void reorderItems(List<ItemSortDTO> sortList) {
+        if (sortList == null || sortList.isEmpty()) return;
+        Long currentUserId = UserContext.getUserId();
 
-        // 1. 先查出该卡片原本属于哪一本路书 (tripId)
-        TripItem existingItem = tripMapper.selectItemById(itemId);
-        if (existingItem == null) {
-            throw new BusinessException("该日程卡片不存在或已被删除");
-        }
-        Long tripId = existingItem.getTripId();
-
-        // 2. 执行软删除标记 is_deleted = 1
-        int rows = tripMapper.softDeleteItemById(itemId);
-        log.info("卡片软删除落库完成: itemId={}, 影响行数={}", itemId, rows);
-
-        // 3. 【核心联动】：重新累加剩余有效卡片花费，原子更新回主表
-        syncTripTotalCost(tripId);
-    }
-
-    @Override
-    public TripDetailVO getTripDetail(Long tripId) {
-        log.info("拉取路书详情: tripId={}", tripId);
-
-        TripDetailVO detail = tripMapper.selectTripById(tripId);
-        if (detail == null) {
-            return buildMockTripDetail(tripId);
+        // 取出第一个元素反查 tripId 做鉴权
+        TripItem firstItem = tripMapper.selectItemById(sortList.get(0).getItemId());
+        if (firstItem != null) {
+            assertTripWritePermission(firstItem.getTripId(), currentUserId);
         }
 
-        List<TripDayVO> days = tripMapper.selectDaysByTripId(tripId);
-        for (TripDayVO day : days) {
-            // 这里会自动调用按 start_time ASC 排序的 SQL！
-            List<TripItem> items = tripMapper.selectItemsByDayId(day.getId());
-            day.setItems(items);
+        for (ItemSortDTO item : sortList) {
+            if (item.getItemId() != null && item.getSortOrder() != null) {
+                tripMapper.updateItemSortOrder(item.getItemId(), item.getSortOrder());
+            }
         }
-        detail.setDays(days);
-
-        return detail;
-    }
-
-    @Override
-    public void updateItem(Long itemId, TripItem item) {
-        item.setId(itemId);
-        tripMapper.updateTripItem(item);
-        log.info("节点更新成功: itemId={}", itemId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void sortItems(Long dayId, List<Long> sortedItemIds) {
-        log.info("更新节点拖拽排序: dayId={}, sortedIds={}", dayId, sortedItemIds);
+        TripDayVO day = tripMapper.selectDayById(dayId);
+        if (day != null) {
+            assertTripWritePermission(day.getTripId(), UserContext.getUserId());
+        }
         for (int i = 0; i < sortedItemIds.size(); i++) {
             tripMapper.updateItemSortOrder(sortedItemIds.get(i), i + 1);
         }
     }
 
+    /**
+     * 新增天数（已加固：校验写权限）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripDayVO addTripDay(Long tripId) {
+        Long currentUserId = UserContext.getUserId();
+        assertTripWritePermission(tripId, currentUserId);
+
+        int maxIndex = tripMapper.selectMaxDayIndexByTripId(tripId);
+        int nextIndex = maxIndex + 1;
+
+        TripDayVO newDay = new TripDayVO();
+        newDay.setTripId(tripId);
+        newDay.setDayIndex(nextIndex);
+        newDay.setDayTheme("自由探索与随心漫游");
+        newDay.setDaySummary("第 " + nextIndex + " 天日程");
+        newDay.setItems(new ArrayList<>());
+        tripMapper.insertTripDay(newDay);
+
+        int totalDaysCount = tripMapper.countActiveDaysByTripId(tripId);
+        tripMapper.updateTripTotalDays(tripId, totalDaysCount);
+        return newDay;
+    }
+
+    /**
+     * 删除天数（已加固：校验写权限）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTripDay(Long dayId) {
+        Long currentUserId = UserContext.getUserId();
+        TripDayVO day = tripMapper.selectDayById(dayId);
+        if (day == null) {
+            throw new BusinessException(404, "该天数日程不存在");
+        }
+        Long tripId = day.getTripId();
+        assertTripWritePermission(tripId, currentUserId);
+
+        int activeDaysCount = tripMapper.countActiveDaysByTripId(tripId);
+        if (activeDaysCount <= 1) {
+            throw new BusinessException(400, "行程至少需要保留 1 天，无法继续删除！");
+        }
+
+        tripMapper.softDeleteDayById(dayId);
+        tripMapper.softDeleteItemsByDayId(dayId);
+
+        List<TripDayVO> remainingDays = tripMapper.selectDaysByTripId(tripId);
+        int currentIndex = 1;
+        for (TripDayVO d : remainingDays) {
+            if (!d.getDayIndex().equals(currentIndex)) {
+                tripMapper.updateDayIndex(d.getId(), currentIndex);
+            }
+            currentIndex++;
+        }
+
+        tripMapper.updateTripTotalDays(tripId, remainingDays.size());
+        syncTripTotalCost(tripId);
+    }
+
+    /**
+     * AI 智能二次调整（已加固：校验写权限，杜绝他人篡改）
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void modifyTripByAI(TripModifyDTO dto) {
-        log.info("【确定性意图微调引擎启动】: tripId={}, dayIndex={}, 指令={}", dto.getTripId(), dto.getDayIndex(), dto.getUserRequirement());
+        Long currentUserId = UserContext.getUserId();
+        // 核心安全校验：确保只有创建者才能指挥 AI 微调
+        TripDetailVO trip = assertTripWritePermission(dto.getTripId(), currentUserId);
 
-        TripDetailVO trip = tripMapper.selectTripById(dto.getTripId());
         List<TripDayVO> days = tripMapper.selectDaysByTripId(dto.getTripId());
         TripDayVO targetDay = days.stream().filter(d -> d.getDayIndex().equals(dto.getDayIndex())).findFirst().orElse(null);
-
-        if (targetDay == null || trip == null) {
-            throw new BusinessException("未找到对应的行程天数");
+        if (targetDay == null) {
+            throw new BusinessException(404, "未找到对应的行程天数");
         }
 
-        // 1. 获取当前已有节点的真实快照
         List<TripItem> currentItems = tripMapper.selectItemsByDayId(targetDay.getId());
         String currentSnapshotJson;
         try {
@@ -268,12 +310,11 @@ public class TripServiceImpl implements TripService {
             currentSnapshotJson = "[]";
         }
 
-        // 2. 意图解析 Prompt：要求大模型输出操作指令 (action) 与节点数据
         String systemPrompt = "你是一个行程数据操作编译器。\n" +
                 "请分析用户的【修改指令】，对比【当前已有行程数据】，输出操作动作与节点列表。\n" +
                 "【动作定义】：\n" +
-                "- APPEND: 仅在当前行程后追加新节点（如看夜景、增加晚餐）；\n" +
-                "- SHIFT_AND_UPDATE: 调整出发时间或修改某几个节点（保留其余已有节点）；\n" +
+                "- APPEND: 仅在当前行程后追加新节点；\n" +
+                "- SHIFT_AND_UPDATE: 调整时间或修改某几个节点；\n" +
                 "- OVERWRITE: 用户明确要求彻底重做整天行程。\n" +
                 "【严格输出格式】：必须且仅输出如下 JSON（用 ```json 包裹）：\n" +
                 "```json\n" +
@@ -318,7 +359,7 @@ public class TripServiceImpl implements TripService {
                     item.setItemName(node.path("itemName").asText("推荐地点"));
                     item.setStartTime(node.path("startTime").asText("10:00"));
                     item.setCostTimeHours(new BigDecimal(node.path("costTimeHours").asText("2.0")));
-                    item.setCostEstimate(new BigDecimal(node.path("costEstimate").asText("30.0")));
+                    item.setCostEstimate(new BigDecimal(node.path("costEstimate").asText("50.0")));
                     item.setTransportTips(node.path("transportTips").asText("建议交通"));
                     item.setAiTips(node.path("aiTips").asText("专属贴士"));
                     item.setIsDeleted(0);
@@ -326,20 +367,18 @@ public class TripServiceImpl implements TripService {
                 }
             }
 
-            // 3. 【确定性 Java 合并状态机】—— 杜绝数据被大模型意外清空
             if ("APPEND".equalsIgnoreCase(action) && !currentItems.isEmpty()) {
-                // 追加模式：保留已有全部节点，仅向后追加新节点
                 for (TripItem newItem : newItems) {
                     squareMapper.insertCloneItem(newItem);
                 }
             } else if ("SHIFT_AND_UPDATE".equalsIgnoreCase(action) && newItems.size() < currentItems.size()) {
-                // 安全防线：如果大模型漏掉了原有节点，Java 底层自动合并已有节点与新补充节点
                 for (TripItem newItem : newItems) {
                     boolean matched = false;
                     for (TripItem old : currentItems) {
                         if (old.getItemName().contains(newItem.getItemName()) || newItem.getItemName().contains(old.getItemName())) {
                             old.setStartTime(newItem.getStartTime());
                             old.setAiTips(newItem.getAiTips());
+                            old.setCostEstimate(newItem.getCostEstimate());
                             tripMapper.updateTripItem(old);
                             matched = true;
                             break;
@@ -350,7 +389,6 @@ public class TripServiceImpl implements TripService {
                     }
                 }
             } else {
-                // 全量重写模式
                 tripMapper.deleteItemsByDayId(targetDay.getId());
                 int sort = 1;
                 for (TripItem item : newItems) {
@@ -359,21 +397,15 @@ public class TripServiceImpl implements TripService {
                 }
             }
 
-            log.info("🎉 意图合并引擎处理完毕: action={}", action);
+            syncTripTotalCost(dto.getTripId());
 
         } catch (Exception e) {
             log.error("意图微调处理失败", e);
-            throw new BusinessException("AI 微调解析失败，请重试");
+            throw new BusinessException(500, "AI 微调解析失败，请重试");
         }
     }
 
     private String callLlmSync(String systemPrompt, String userPrompt) throws Exception {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(90, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .build();
-
         Map<String, Object> bodyMap = new HashMap<>();
         bodyMap.put("model", aiProperties.getModel());
         bodyMap.put("stream", false);
@@ -390,7 +422,7 @@ public class TripServiceImpl implements TripService {
                 .post(RequestBody.create(jsonPayload, MediaType.parse("application/json")))
                 .build();
 
-        try (Response response = client.newCall(request).execute()) {
+        try (Response response = okHttpClient.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
                 throw new RuntimeException("大模型响应异常: " + response.code());
             }
@@ -410,6 +442,7 @@ public class TripServiceImpl implements TripService {
         vo.setTripStyle("自然风光");
         vo.setTravelGroup("独自一人");
         vo.setSummary("为您定制的精品路线。");
+        vo.setIsPublic(1); // Mock 默认公开
 
         List<TripDayVO> days = new ArrayList<>();
         TripDayVO day1 = new TripDayVO();
