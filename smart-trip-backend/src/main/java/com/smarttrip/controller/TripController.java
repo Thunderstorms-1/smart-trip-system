@@ -3,6 +3,7 @@ package com.smarttrip.controller;
 import com.smarttrip.common.Result;
 import com.smarttrip.entity.TripDetailVO;
 import com.smarttrip.entity.TripItem;
+import com.smarttrip.entity.TripItemAddDTO;
 import com.smarttrip.entity.TripModifyDTO;
 import com.smarttrip.service.TripService;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +45,19 @@ public class TripController {
     public Result<Void> modifyTripByAI(@RequestBody TripModifyDTO dto) {
         tripService.modifyTripByAI(dto);
         return Result.success();
+    }
+
+    // 5. 删除某个节点卡片（软删除，并触发总预算重新聚合计算）
+    @DeleteMapping("/item/{itemId}")
+    public Result<Void> deleteTripItem(@PathVariable Long itemId) {
+        tripService.deleteTripItem(itemId);
+        return Result.success();
+    }
+
+    // 6. 手动新增行程节点卡片（集成总预算重算联动）
+    @PostMapping("/item/add")
+    public Result<TripItem> addTripItem(@RequestBody TripItemAddDTO dto) {
+        TripItem newItem = tripService.addTripItem(dto);
+        return Result.success(newItem);
     }
 }

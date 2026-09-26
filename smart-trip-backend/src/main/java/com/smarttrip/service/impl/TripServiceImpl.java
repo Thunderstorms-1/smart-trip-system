@@ -33,6 +33,84 @@ public class TripServiceImpl implements TripService {
     private final SquareMapper squareMapper;
     private final AiProperties aiProperties;
 
+    /**
+     * 手动新增日程卡片节点（事务内完成排序号自增与总预算原子同步）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public TripItem addTripItem(TripItemAddDTO dto) {
+        log.info("手动新增卡片节点: tripId={}, dayId={}, itemName={}", dto.getTripId(), dto.getDayId(), dto.getItemName());
+
+        if (dto.getTripId() == null || dto.getDayId() == null) {
+            throw new BusinessException("路书ID或天数ID不能为空");
+        }
+        if (dto.getItemName() == null || dto.getItemName().isBlank()) {
+            throw new BusinessException("活动/地点名称不能为空");
+        }
+
+        // 1. 查询当前天数下最大的序号，自动计算递增值
+        int maxSort = tripMapper.selectMaxSortOrderByDayId(dto.getDayId());
+        int nextSort = maxSort + 1;
+
+        // 2. 构建实体对象并补全默认值
+        TripItem item = new TripItem();
+        item.setTripId(dto.getTripId());
+        item.setDayId(dto.getDayId());
+        item.setItemType(dto.getItemType() != null ? dto.getItemType() : "SCENIC");
+        item.setItemName(dto.getItemName().trim());
+        item.setStartTime(dto.getStartTime() != null && !dto.getStartTime().isBlank() ? dto.getStartTime() : "09:00");
+        item.setCostTimeHours(dto.getCostTimeHours() != null ? dto.getCostTimeHours() : new BigDecimal("2.0"));
+        item.setCostEstimate(dto.getCostEstimate() != null ? dto.getCostEstimate() : BigDecimal.ZERO);
+        item.setTransportTips(dto.getTransportTips());
+        item.setAiTips(dto.getAiTips() != null ? dto.getAiTips() : "用户自定义活动节点");
+        item.setSortOrder(nextSort);
+        item.setIsDeleted(0);
+
+        // 3. 执行插入（MyBatis 自动回填生成的主键 ID）
+        tripMapper.insertSingleTripItem(item);
+        log.info("新卡片落库成功: newItemId={}", item.getId());
+
+        // 4. 【核心保障】：原子重算并同步主表总预算
+        syncTripTotalCost(dto.getTripId());
+
+        // 5. 返回携带完整 ID 的卡片实体对象
+        return item;
+    }
+
+    // =========================================================================
+    // 【核心辅助方法】：调用原子 SQL 重新计算整本路书的总预估花费并同步回主表
+    // =========================================================================
+    private void syncTripTotalCost(Long tripId) {
+        if (tripId == null) {
+            return;
+        }
+        int rows = tripMapper.recalculateAndSyncTotalCost(tripId);
+        log.info("【总预算联动同步完成】: tripId={}, 影响主表行数={}", tripId, rows);
+    }
+
+    /**
+     * 删除单张日程卡片（软删除 + 触发总预算联动扣减）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTripItem(Long itemId) {
+        log.info("执行卡片软删除: itemId={}", itemId);
+
+        // 1. 先查出该卡片原本属于哪一本路书 (tripId)
+        TripItem existingItem = tripMapper.selectItemById(itemId);
+        if (existingItem == null) {
+            throw new BusinessException("该日程卡片不存在或已被删除");
+        }
+        Long tripId = existingItem.getTripId();
+
+        // 2. 执行软删除标记 is_deleted = 1
+        int rows = tripMapper.softDeleteItemById(itemId);
+        log.info("卡片软删除落库完成: itemId={}, 影响行数={}", itemId, rows);
+
+        // 3. 【核心联动】：重新累加剩余有效卡片花费，原子更新回主表
+        syncTripTotalCost(tripId);
+    }
+
     @Override
     public TripDetailVO getTripDetail(Long tripId) {
         log.info("拉取路书详情: tripId={}", tripId);
