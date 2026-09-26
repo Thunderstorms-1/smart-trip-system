@@ -52,6 +52,15 @@ export function deleteTripDayApi(dayId) {
   })
 }
 
+// 7. 批量更新卡片拖拽排序
+export function reorderTripItemsApi(sortList) {
+  return request({
+    url: '/api/trip/item/reorder',
+    method: 'PUT',
+    data: sortList
+  })
+}
+
 // AI 智能二次微调路书
 export function modifyTripByAIApi(data) {
   return request({

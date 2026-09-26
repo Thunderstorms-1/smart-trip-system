@@ -35,7 +35,6 @@
             <div class="day-theme-text">{{ day.dayTheme || '自由探索' }}</div>
           </div>
 
-          <!-- 【新增】：左侧天数列表底部“增加一天”按钮 -->
           <button class="add-day-btn" @click="handleAddDay" :disabled="isDayOperating">
             {{ isDayOperating ? '正在处理...' : '➕ 增加一天日程' }}
           </button>
@@ -50,7 +49,6 @@
             <span class="date-text">{{ tripStore.currentDayData.dayDate || '自由安排' }}</span>
           </div>
           
-          <!-- 【新增】：删除当前天数按钮（至少保留1天） -->
           <button 
             class="del-day-btn" 
             v-if="tripStore.currentTrip.days && tripStore.currentTrip.days.length > 1" 
@@ -61,11 +59,23 @@
           </button>
         </div>
 
+        <!-- 【核心改进】：支持 HTML5 鼠标拖拽重排的时间轴列表容器 -->
         <div class="timeline-list">
           <div 
             v-for="(item, index) in tripStore.currentDayData.items" 
             :key="item.id" 
             class="timeline-node"
+            :class="{ 
+              'dragging': draggedIndex === index, 
+              'drag-over': dragOverIndex === index 
+            }"
+            draggable="true"
+            @dragstart="handleDragStart(index, $event)"
+            @dragover.prevent="handleDragOver(index)"
+            @dragenter.prevent
+            @dragleave="handleDragLeave(index)"
+            @drop="handleDrop(index)"
+            @dragend="handleDragEnd"
           >
             <div class="node-time">
               <span class="time-str">{{ item.startTime || '09:00' }}</span>
@@ -75,6 +85,8 @@
             <div class="node-card">
               <div class="card-top">
                 <div class="name-box">
+                  <!-- 拖拽手柄手势 -->
+                  <span class="drag-handle" title="按住拖拽调整顺序">⠿</span>
                   <span :class="['type-tag', (item.itemType || 'scenic').toLowerCase()]">
                     {{ getItemTypeLabel(item.itemType) }}
                   </span>
@@ -234,7 +246,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '@/stores/trip'
-import { addTripItemApi, updateTripItemApi, modifyTripByAIApi, addTripDayApi, deleteTripDayApi } from '@/api/trip'
+import { 
+  addTripItemApi, 
+  updateTripItemApi, 
+  modifyTripByAIApi, 
+  addTripDayApi, 
+  deleteTripDayApi,
+  reorderTripItemsApi 
+} from '@/api/trip'
 import request from '@/utils/request'
 import ExpenseModal from '@/components/ExpenseModal.vue'
 import PackingModal from '@/components/PackingModal.vue'
@@ -253,6 +272,10 @@ const isSubmitting = ref(false)
 const isModifying = ref(false)
 const isDayOperating = ref(false)
 const modifyRequirement = ref('')
+
+// 【拖拽状态追踪】
+const draggedIndex = ref(null)
+const dragOverIndex = ref(null)
 
 // 新增卡片表单
 const addForm = reactive({
@@ -291,7 +314,63 @@ const getItemTypeLabel = (type) => {
 }
 
 // -----------------------------------------------------------------------------
-// 【核心新增】：天数动态管理（添加天数 & 级联删除当天）
+// 【核心实现】：HTML5 鼠标拖拽重排与批量同步
+// -----------------------------------------------------------------------------
+const handleDragStart = (index, event) => {
+  draggedIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', index)
+}
+
+const handleDragOver = (index) => {
+  if (draggedIndex.value !== null && draggedIndex.value !== index) {
+    dragOverIndex.value = index
+  }
+}
+
+const handleDragLeave = (index) => {
+  if (dragOverIndex.value === index) {
+    dragOverIndex.value = null
+  }
+}
+
+const handleDrop = async (targetIndex) => {
+  const sourceIndex = draggedIndex.value
+  if (sourceIndex === null || sourceIndex === targetIndex) {
+    return handleDragEnd()
+  }
+
+  const items = tripStore.currentDayData.items
+  // 1. 数组就地调整顺序
+  const [movedItem] = items.splice(sourceIndex, 1)
+  items.splice(targetIndex, 0, movedItem)
+
+  // 2. 重新赋予排序序号并组装 Payload
+  const sortPayload = items.map((item, idx) => {
+    item.sortOrder = idx + 1
+    return {
+      itemId: item.id,
+      sortOrder: idx + 1
+    }
+  })
+
+  // 3. 异步持久化到数据库
+  try {
+    await reorderTripItemsApi(sortPayload)
+  } catch (error) {
+    console.error('保存拖拽排序失败:', error)
+  } finally {
+    handleDragEnd()
+  }
+}
+
+const handleDragEnd = () => {
+  draggedIndex.value = null
+  dragOverIndex.value = null
+}
+
+// -----------------------------------------------------------------------------
+// 天数管理
 // -----------------------------------------------------------------------------
 const handleAddDay = async () => {
   isDayOperating.value = true
@@ -302,7 +381,6 @@ const handleAddDay = async () => {
     if (!tripStore.currentTrip.days) {
       tripStore.currentTrip.days = []
     }
-    // 就地追加
     tripStore.currentTrip.days.push({
       id: newDay.id,
       tripId: newDay.tripId,
@@ -310,8 +388,6 @@ const handleAddDay = async () => {
       dayTheme: newDay.dayTheme,
       items: []
     })
-
-    // 同步主表天数并自动聚焦切换到新增加的一天
     tripStore.currentTrip.totalDays = tripStore.currentTrip.days.length
     tripStore.activeDayIndex = newDay.dayIndex
   } catch (error) {
@@ -325,17 +401,13 @@ const handleDeleteCurrentDay = async () => {
   const currentDay = tripStore.currentDayData
   if (!currentDay) return
 
-  const confirmMsg = `⚠️ 确定要删除【Day ${currentDay.dayIndex}：${currentDay.dayTheme}】吗？\n该天下的所有景点活动卡片也将被一并清除！`
+  const confirmMsg = `⚠️ 确定要删除【Day ${currentDay.dayIndex}：${currentDay.dayTheme}】吗？\n当天的所有景点活动卡片也将被一并清除！`
   if (!confirm(confirmMsg)) return
 
   isDayOperating.value = true
   try {
     await deleteTripDayApi(currentDay.id)
-
-    // 重新从后端拉取完整且排好序号的最新路书
     await tripStore.fetchTripDetail(tripStore.currentTrip.id)
-
-    // 调整激活天数下标（防止删掉最后一天时发生数组越界）
     if (tripStore.activeDayIndex > tripStore.currentTrip.days.length) {
       tripStore.activeDayIndex = tripStore.currentTrip.days.length
     }
@@ -348,7 +420,7 @@ const handleDeleteCurrentDay = async () => {
 }
 
 // -----------------------------------------------------------------------------
-// 卡片增/删/改/AI微调
+// 卡片增/删/改/微调
 // -----------------------------------------------------------------------------
 const openAddModal = () => {
   addForm.itemName = ''
@@ -385,7 +457,6 @@ const handleSaveNewItem = async () => {
       tripStore.currentDayData.items = []
     }
     tripStore.currentDayData.items.push(newItem)
-    tripStore.currentDayData.items.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
 
     tripStore.currentTrip.totalBudget = (
       Number(tripStore.currentTrip.totalBudget || 0) + Number(newItem.costEstimate || 0)
@@ -604,7 +675,6 @@ const handleAIModify = async () => {
   margin-top: 4px;
 }
 
-/* 增加一天按钮 */
 .add-day-btn {
   width: 100%;
   margin-top: 10px;
@@ -671,13 +741,38 @@ const handleAIModify = async () => {
   padding-left: 20px;
 }
 
+/* ---------------- 拖拽交互样式 ---------------- */
 .timeline-node {
   position: relative;
   margin-bottom: 24px;
   display: grid;
   grid-template-columns: 80px 1fr;
   gap: 16px;
+  transition: transform 0.2s, opacity 0.2s;
 }
+
+.timeline-node.dragging {
+  opacity: 0.4;
+}
+
+.timeline-node.drag-over .node-card {
+  border: 2px dashed #3b82f6;
+  background-color: #eff6ff;
+  transform: scale(1.01);
+}
+
+.drag-handle {
+  font-size: 16px;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 0 4px;
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+/* --------------------------------------------- */
 
 .node-time {
   text-align: right;
@@ -707,6 +802,7 @@ const handleAIModify = async () => {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 16px;
+  transition: all 0.2s;
 }
 
 .card-top {

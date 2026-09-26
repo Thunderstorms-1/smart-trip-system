@@ -76,4 +76,11 @@ public class TripController {
         tripService.deleteTripDay(dayId);
         return Result.success();
     }
+
+    // 9. 批量更新卡片拖拽排序
+    @PutMapping("/item/reorder")
+    public Result<Void> reorderItems(@RequestBody List<ItemSortDTO> sortList) {
+        tripService.reorderItems(sortList);
+        return Result.success();
+    }
 }

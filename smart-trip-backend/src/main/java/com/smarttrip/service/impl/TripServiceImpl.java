@@ -67,6 +67,25 @@ public class TripServiceImpl implements TripService {
     }
 
     /**
+     * 批量持久化卡片拖拽后的新排序（事务原子保障）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reorderItems(List<ItemSortDTO> sortList) {
+        if (sortList == null || sortList.isEmpty()) {
+            return;
+        }
+        log.info("执行批量卡片拖拽重排, 数量={}", sortList.size());
+
+        for (ItemSortDTO item : sortList) {
+            if (item.getItemId() != null && item.getSortOrder() != null) {
+                tripMapper.updateItemSortOrder(item.getItemId(), item.getSortOrder());
+            }
+        }
+        log.info("批量拖拽排序更新完成！");
+    }
+
+    /**
      * 删除指定天数（防空校验 + 级联软删除卡片 + 序号重排防断号 + 预算重算）
      */
     @Override

@@ -11,6 +11,7 @@ public interface TripService {
     TripItem addTripItem(TripItemAddDTO dto);
     void sortItems(Long dayId, List<Long> sortedItemIds);
     void modifyTripByAI(TripModifyDTO dto);
+    void reorderItems(List<ItemSortDTO> sortList);
 
     // 【新增】：天数动态管理
     TripDayVO addTripDay(Long tripId);
