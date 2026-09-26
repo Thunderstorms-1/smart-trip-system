@@ -1,10 +1,11 @@
 import request from '@/utils/request'
 
-// 1. 获取广场公开路书列表
-export function getSquareTripsApi() {
+// 1. 多条件检索与分页查询公开路书
+export function searchSquareTripsApi(data) {
   return request({
-    url: '/api/square/trips',
-    method: 'GET'
+    url: '/api/square/search',
+    method: 'POST',
+    data: data
   })
 }
 
