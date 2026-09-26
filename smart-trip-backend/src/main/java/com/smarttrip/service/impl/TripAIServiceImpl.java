@@ -2,6 +2,7 @@ package com.smarttrip.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smarttrip.common.BusinessException;
 import com.smarttrip.config.AiProperties;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.SquareMapper;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,55 +47,61 @@ public class TripAIServiceImpl implements TripAIService {
 
     @Override
     public void streamGenerateTrip(TripGenerateDTO dto, Long userId, SseEmitter emitter) {
-        log.info("工业级双通道 AI 引擎启动: 用户 [{}], 目的地: {}, 天数: {}", userId, dto.getDestination(), dto.getTotalDays());
+        log.info("AI 流式生成请求启动: 用户ID [{}], 目的地: {}, 天数: {}", userId, dto.getDestination(), dto.getTotalDays());
 
-        Long actualUserId = userId != null ? userId : 1L;
-
-        // =========================================================================
-        // 【风控关卡 1】：原子预扣配额 (防止并发刷接口超扣)
-        // =========================================================================
-        int affectedRows = userMapper.decrementQuotaIfAvailable(actualUserId);
-        if (affectedRows == 0) {
-            log.warn("用户 [{}] 发起 AI 生成失败：今日 AI 配额已用尽", actualUserId);
+        // ---------------------------------------------------------------------
+        // 1. 【风控边界】：原子 CAS 预扣配额，杜绝超频调用
+        // ---------------------------------------------------------------------
+        int rows = userMapper.tryPreDeductUserQuota(userId);
+        if (rows <= 0) {
+            log.warn("用户 [{}] 今日免费 AI 配额已耗尽，拒绝生成", userId);
             try {
-                emitter.send(SseEmitter.event()
-                        .name("error")
-                        .data("{\"code\":403,\"message\":\"今日 AI 生成配额已用尽，请明日再来体验！\"}"));
+                emitter.send(SseEmitter.event().name("error").data("抱歉，您今日的免费 AI 定制配额已用完！"));
                 emitter.complete();
-            } catch (Exception ignored) {}
+            } catch (IOException ignored) {}
             return;
         }
+        log.info("用户 [{}] 配额预扣成功，当前已进入冻结状态", userId);
 
-        // 状态机守卫：标记配额当前处于“待确认”的预扣状态
-        final AtomicBoolean quotaDeducted = new AtomicBoolean(true);
-        log.info("用户 [{}] AI 配额预扣成功，已挂载全链路异常补偿状态机", actualUserId);
+        // 状态标记与句柄绑定（用于多分支安全回滚）
+        AtomicBoolean isQuotaSettled = new AtomicBoolean(false); // 是否已最终确认消费
+        AtomicBoolean isCompensated = new AtomicBoolean(false);  // 是否已经执行过回滚
+        AtomicReference<EventSource> eventSourceRef = new AtomicReference<>();
 
-        // 1. 结构化工业级 Prompt：前半部分是精美中文总结，后半部分是严谨结构化 JSON（时间规划表）
+        // 绑定客户端断连监听（如用户关闭标签页、拔掉网线）
+        emitter.onCompletion(() -> log.debug("SseEmitter 完成"));
+        emitter.onTimeout(() -> {
+            log.warn("用户 [{}] SSE 长连接心跳超时，触发安全补偿与流关闭", userId);
+            cancelAndRollback(userId, isQuotaSettled, isCompensated, eventSourceRef.get());
+        });
+        emitter.onError((ex) -> {
+            log.warn("用户 [{}] SSE 管道通信异常断开: {}, 触发安全补偿", userId, ex.getMessage());
+            cancelAndRollback(userId, isQuotaSettled, isCompensated, eventSourceRef.get());
+        });
+
+        // 2. 构造 Prompt
         String systemPrompt = "你是一名顶级的资深私人旅行定制架构师。\n" +
                 "请严格根据用户需求规划路书。你的回答必须严格分为两大部分：\n\n" +
-                "【第一部分：给用户阅读的精致路书总结】（使用 Markdown 格式，绝不允许出现英文变量名与 JSON）：\n" +
-                "### 🌟 行程亮点与寄语\n" +
-                "（一两句充满感染力的总览寄语）\n\n" +
-                "### 📅 每日精华安排概览\n" +
-                "（按天简述每天的上午、下午、晚上的核心亮点）\n\n" +
-                "### 💡 独家避坑指南\n" +
-                "（当地特色穿衣、交通避坑、实名预约技巧）\n\n" +
-                "【第二部分：给系统落库的结构化时间轴数据】（必须严格用 ```json 包裹在最末尾，严禁省略）：\n" +
+                "【第一部分：给用户阅读的精致路书总结】（使用 Markdown 格式，严禁出现英文变量名与 JSON）：\n" +
+                "### 🌟 行程亮点与寄语\n\n" +
+                "### 📅 每日精华安排概览\n\n" +
+                "### 💡 独家避坑指南\n\n" +
+                "【第二部分：给系统落库的结构化时间轴数据】（必须严格用 ```json 包裹在最末尾）：\n" +
                 "```json\n" +
                 "{\n" +
                 "  \"days\": [\n" +
                 "    {\n" +
                 "      \"dayIndex\": 1,\n" +
-                "      \"dayTheme\": \"当天游玩主题\",\n" +
+                "      \"dayTheme\": \"当天主题\",\n" +
                 "      \"items\": [\n" +
                 "        {\n" +
                 "          \"itemType\": \"SCENIC\",\n" +
-                "          \"itemName\": \"真实景点/餐厅名称\",\n" +
+                "          \"itemName\": \"景点名\",\n" +
                 "          \"startTime\": \"09:00\",\n" +
-                "          \"costTimeHours\": 2.5,\n" +
+                "          \"costTimeHours\": 2.0,\n" +
                 "          \"costEstimate\": 50.0,\n" +
-                "          \"transportTips\": \"交通方式建议\",\n" +
-                "          \"aiTips\": \"针对该景点的专属避坑小贴士\"\n" +
+                "          \"transportTips\": \"交通建议\",\n" +
+                "          \"aiTips\": \"避坑贴士\"\n" +
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
@@ -107,11 +115,20 @@ public class TripAIServiceImpl implements TripAIService {
                 dto.getTripStyle(), dto.getTravelGroup(), dto.getCustomRequirements()
         );
 
-        // 2. 发起流式长连接调用（传入配额守卫对象）
-        callDualChannelStream(systemPrompt, userPrompt, dto, actualUserId, emitter, quotaDeducted);
+        // 3. 发起调用
+        callDualChannelStreamWithRollback(systemPrompt, userPrompt, dto, userId, emitter, isQuotaSettled, isCompensated, eventSourceRef);
     }
 
-    private void callDualChannelStream(String systemPrompt, String userPrompt, TripGenerateDTO dto, Long userId, SseEmitter emitter, AtomicBoolean quotaDeducted) {
+    private void callDualChannelStreamWithRollback(
+            String systemPrompt,
+            String userPrompt,
+            TripGenerateDTO dto,
+            Long userId,
+            SseEmitter emitter,
+            AtomicBoolean isQuotaSettled,
+            AtomicBoolean isCompensated,
+            AtomicReference<EventSource> eventSourceRef
+    ) {
         try {
             Map<String, Object> requestBodyMap = new HashMap<>();
             requestBodyMap.put("model", aiProperties.getModel());
@@ -131,37 +148,36 @@ public class TripAIServiceImpl implements TripAIService {
 
             StringBuilder fullTextAccumulator = new StringBuilder();
             AtomicBoolean isCompleted = new AtomicBoolean(false);
-            // 核心状态标识：是否已经进入了 JSON 代码块区域
             AtomicBoolean isJsonBlockStarted = new AtomicBoolean(false);
 
-            EventSources.createFactory(okHttpClient).newEventSource(request, new EventSourceListener() {
+            EventSource eventSource = EventSources.createFactory(okHttpClient).newEventSource(request, new EventSourceListener() {
                 @Override
                 public void onEvent(EventSource eventSource, String id, String type, String data) {
                     if (isCompleted.get()) return;
 
-                    // -----------------------------------------------------------------
-                    // 【边界 4】：大模型正常生成完毕，进入终态落库与配额扣除确认
-                    // -----------------------------------------------------------------
                     if ("[DONE]".equals(data.trim())) {
                         if (isCompleted.compareAndSet(false, true)) {
                             try {
-                                // 1. 解析完整的 JSON 结构化数据并落库
+                                // -------------------------------------------------------------
+                                // 核心步骤：解析并持久化落库（如果抛出异常，触发配额补偿）
+                                // -------------------------------------------------------------
                                 Long newTripId = parseAndSaveStructuredTrip(dto, userId, fullTextAccumulator.toString());
 
-                                // 2. 落库成功，解除守卫（配额正式消费完毕）
-                                quotaDeducted.set(false);
-                                log.info("用户 [{}] 行程成功落库 (tripId={})，配额消费确认", userId, newTripId);
-
-                                // 3. 推送完成信号给前端
+                                // 向客户端推送完成标记
                                 emitter.send(SseEmitter.event().name("finish").data("{\"tripId\":" + newTripId + "}"));
                                 emitter.complete();
+
+                                // 标记配额正式核销完成（不可再回滚）
+                                isQuotaSettled.set(true);
+                                log.info("用户 [{}] 行程 [{}] AI生成全链路成功，配额正式完成核销", userId, newTripId);
+
                             } catch (Exception e) {
-                                // -----------------------------------------------------------------
-                                // 【边界 3】：解析或数据库落库异常，立即补偿回滚配额
-                                // -----------------------------------------------------------------
-                                log.error("行程结构化落库异常，触发配额补偿回滚: userId=[{}]", userId, e);
-                                compensateQuotaIfNecessary(userId, quotaDeducted);
-                                emitter.completeWithError(e);
+                                log.error("用户 [{}] 数据解析/落库阶段发生致命异常，执行配额补偿回滚", userId, e);
+                                cancelAndRollback(userId, isQuotaSettled, isCompensated, eventSource);
+                                try {
+                                    emitter.send(SseEmitter.event().name("error").data("生成中断：数据结构化落库失败，配额已全额返还！"));
+                                    emitter.complete();
+                                } catch (IOException ignored) {}
                             }
                         }
                         return;
@@ -175,76 +191,87 @@ public class TripAIServiceImpl implements TripAIService {
                             if (!deltaContent.isEmpty() && !isCompleted.get()) {
                                 fullTextAccumulator.append(deltaContent);
 
-                                // 核心分流控制：检测是否输出了 ```json
                                 if (fullTextAccumulator.toString().contains("```json") || fullTextAccumulator.toString().contains("```JSON")) {
-                                    isJsonBlockStarted.set(true); // 标记：已经进入数据区，停止向前台推流！
+                                    isJsonBlockStarted.set(true);
                                 }
 
-                                // 只有在人类阅读区时，才向前端推送！一旦进入 JSON 区，静默在后台接收！
                                 if (!isJsonBlockStarted.get()) {
-                                    try {
-                                        synchronized (emitter) {
-                                            emitter.send(SseEmitter.event().name("message").data(deltaContent));
-                                        }
-                                    } catch (IOException e) {
-                                        // -----------------------------------------------------------------
-                                        // 【边界 2】：用户中途刷新或断开连接，立即掐断大模型并回滚配额
-                                        // -----------------------------------------------------------------
-                                        if (isCompleted.compareAndSet(false, true)) {
-                                            log.warn("用户 [{}] 中途关闭页面/断开 SSE 连接，立即熔断大模型连接并回滚配额", userId);
-                                            eventSource.cancel(); // 立即取消大模型调用，止损 Token 消耗
-                                            compensateQuotaIfNecessary(userId, quotaDeducted);
-                                            emitter.complete();
-                                        }
+                                    synchronized (emitter) {
+                                        emitter.send(SseEmitter.event().name("message").data(deltaContent));
                                     }
                                 }
                             }
                         }
+                    } catch (IOException ioException) {
+                        // -------------------------------------------------------------
+                        // 边界 2：客户端中途关闭连接/浏览器导致的写入中断
+                        // -------------------------------------------------------------
+                        log.warn("用户 [{}] 客户端断开连接 (IOException)，立即掐断大模型连接并回滚配额", userId);
+                        isCompleted.set(true);
+                        cancelAndRollback(userId, isQuotaSettled, isCompensated, eventSource);
                     } catch (Exception ignored) {}
                 }
 
                 @Override
                 public void onFailure(EventSource eventSource, Throwable t, Response response) {
                     // -----------------------------------------------------------------
-                    // 【边界 1】：大模型网络通信故障/超时/欠费，立即熔断并回滚配额
+                    // 边界 1：大模型 API 通信故障/限流/鉴权失败
                     // -----------------------------------------------------------------
                     if (isCompleted.compareAndSet(false, true)) {
-                        log.error("大模型流式通信异常，触发熔断与配额回滚: userId=[{}]", userId, t);
-                        compensateQuotaIfNecessary(userId, quotaDeducted);
+                        log.error("用户 [{}] 调用大模型 API 异常 (onFailure): {}", userId, t.getMessage());
+                        cancelAndRollback(userId, isQuotaSettled, isCompensated, eventSource);
                         try {
-                            emitter.send(SseEmitter.event().name("error").data("{\"code\":500,\"message\":\"AI 引擎响应异常，已退还您的使用配额！\"}"));
+                            emitter.send(SseEmitter.event().name("error").data("大模型网络故障，生成已中止，本次配额已自动返还！"));
                             emitter.complete();
-                        } catch (Exception ignored) {}
+                        } catch (IOException ignored) {}
                     }
                 }
             });
 
+            eventSourceRef.set(eventSource);
+
         } catch (Exception e) {
-            log.error("发起大模型请求异常，触发配额补偿: userId=[{}]", userId, e);
-            compensateQuotaIfNecessary(userId, quotaDeducted);
-            emitter.completeWithError(e);
+            log.error("发起大模型请求前发生异常", e);
+            cancelAndRollback(userId, isQuotaSettled, isCompensated, null);
+            try {
+                emitter.send(SseEmitter.event().name("error").data("服务器初始化异常，配额已全额返还！"));
+                emitter.complete();
+            } catch (IOException ignored) {}
         }
     }
 
     /**
-     * 【幂等配额补偿器】：使用 CAS 机制保证全链路中无论遇到多少重异常，配额至多且仅补偿一次 (+1)
+     * 【原子反向补偿方法】：掐断长连接并安全回滚用户配额
      */
-    private void compensateQuotaIfNecessary(Long userId, AtomicBoolean quotaDeducted) {
-        if (userId != null && quotaDeducted.compareAndSet(true, false)) {
+    private void cancelAndRollback(Long userId, AtomicBoolean isQuotaSettled, AtomicBoolean isCompensated, EventSource eventSource) {
+        // 1. 如果大模型长连接尚在推流，立即断开，防止无谓消耗 Token
+        if (eventSource != null) {
             try {
-                userMapper.incrementQuota(userId);
-                log.info("【风控回滚成功】已成功为用户 [{}] 补偿并回滚 1 次 AI 配额", userId);
+                eventSource.cancel();
+            } catch (Exception ignored) {}
+        }
+
+        // 2. 如果配额已最终确认消费，严禁回滚
+        if (isQuotaSettled.get()) {
+            return;
+        }
+
+        // 3. 幂等控制：确保本次调用只回滚一次
+        if (isCompensated.compareAndSet(false, true)) {
+            try {
+                int rows = userMapper.compensateRollbackUserQuota(userId);
+                log.info("【风控回滚触发】用户 [{}] AI配额补偿成功 (+1), 影响行数={}", userId, rows);
             } catch (Exception e) {
-                log.error("【严重系统告警】为用户 [{}] 补偿配额失败，请人工核查！", userId, e);
+                log.error("【严重故障】用户 [{}] 配额补偿回滚失败，需人工运维介入!", userId, e);
             }
         }
     }
 
     /**
-     * 【结构化精准入库 + 智能防空双保险】确保 100% 绝对不会出现空白时间轴！
+     * 【结构化精准落库】：在事务中执行插入，失败抛出异常以触发补偿
      */
     @Transactional(rollbackFor = Exception.class)
-    public Long parseAndSaveStructuredTrip(TripGenerateDTO dto, Long userId, String fullOutput) {
+    public Long parseAndSaveStructuredTrip(TripGenerateDTO dto, Long userId, String fullOutput) throws Exception {
         // 1. 插入路书主表
         TripDetailVO trip = new TripDetailVO();
         trip.setUserId(userId != null ? userId : 1L);
@@ -259,108 +286,49 @@ public class TripAIServiceImpl implements TripAIService {
         squareMapper.insertCloneTrip(trip);
         Long tripId = trip.getId();
 
-        boolean parsedSuccess = false;
-
-        // 2. 尝试从大模型输出中捕获 JSON
+        // 2. 正则提取 JSON
         Pattern pattern = Pattern.compile("```(?:json|JSON)?\\s*([\\s\\S]*?)\\s*```");
         Matcher matcher = pattern.matcher(fullOutput);
 
-        if (matcher.find()) {
-            try {
-                String jsonStr = matcher.group(1).trim();
-                JsonNode root = objectMapper.readTree(jsonStr);
-                JsonNode daysArray = root.path("days");
-
-                if (daysArray.isArray() && !daysArray.isEmpty()) {
-                    for (JsonNode dayNode : daysArray) {
-                        TripDayVO day = new TripDayVO();
-                        day.setTripId(tripId);
-                        day.setDayIndex(dayNode.path("dayIndex").asInt(1));
-                        day.setDayTheme(dayNode.path("dayTheme").asText(dto.getDestination() + " 精彩探索"));
-                        day.setDaySummary("AI 智能定制时间规划");
-                        squareMapper.insertCloneDay(day);
-                        Long dayId = day.getId();
-
-                        JsonNode itemsArray = dayNode.path("items");
-                        if (itemsArray.isArray()) {
-                            int sort = 1;
-                            for (JsonNode itemNode : itemsArray) {
-                                TripItem item = new TripItem();
-                                item.setTripId(tripId);
-                                item.setDayId(dayId);
-                                item.setItemType(itemNode.path("itemType").asText("SCENIC"));
-                                item.setItemName(itemNode.path("itemName").asText(dto.getDestination() + "精选打卡地"));
-                                item.setStartTime(itemNode.path("startTime").asText("09:00"));
-                                item.setCostTimeHours(new BigDecimal(itemNode.path("costTimeHours").asText("2.0")));
-                                item.setCostEstimate(new BigDecimal(itemNode.path("costEstimate").asText("50.0")));
-                                item.setTransportTips(itemNode.path("transportTips").asText("建议公共交通或打车前往"));
-                                item.setAiTips(itemNode.path("aiTips").asText("AI 游玩避坑贴士"));
-                                item.setSortOrder(sort++);
-                                squareMapper.insertCloneItem(item);
-                            }
-                        }
-                    }
-                    parsedSuccess = true;
-                    log.info("🎉 大模型 JSON 结构化时间轴精准落库成功！tripId: {}", tripId);
-                }
-            } catch (Exception e) {
-                log.warn("大模型 JSON 解析微瑕，启动智能自愈引擎");
-            }
+        if (!matcher.find()) {
+            throw new BusinessException("未能在大模型输出中捕获标准的结构化 JSON 数据块");
         }
 
-        // 3. 【绝对防御】：如果大模型没给 JSON 或格式损坏，自动生成全套真实天数和卡片，绝不允许白屏！
-        if (!parsedSuccess) {
-            log.info("启用智能自愈引擎，为目的地 [{}] 自动排布时间轴", dto.getDestination());
-            for (int i = 1; i <= dto.getTotalDays(); i++) {
-                TripDayVO day = new TripDayVO();
-                day.setTripId(tripId);
-                day.setDayIndex(i);
-                day.setDayTheme(dto.getDestination() + " " + dto.getTripStyle() + "深度体验 Day " + i);
-                day.setDaySummary("AI 为您规划的特色路线");
-                squareMapper.insertCloneDay(day);
-                Long dayId = day.getId();
+        String jsonStr = matcher.group(1).trim();
+        JsonNode root = objectMapper.readTree(jsonStr);
+        JsonNode daysArray = root.path("days");
 
-                // 插入上午景点
-                TripItem item1 = new TripItem();
-                item1.setTripId(tripId);
-                item1.setDayId(dayId);
-                item1.setItemType("SCENIC");
-                item1.setItemName(dto.getDestination() + " 标志性核心 5A 景区");
-                item1.setStartTime("09:00");
-                item1.setCostTimeHours(new BigDecimal("3.0"));
-                item1.setCostEstimate(new BigDecimal("60.00"));
-                item1.setTransportTips("建议打车或乘坐景区专线直达");
-                item1.setAiTips("早晨入园光线最佳，避开旅行团人流");
-                item1.setSortOrder(1);
-                squareMapper.insertCloneItem(item1);
+        if (!daysArray.isArray() || daysArray.isEmpty()) {
+            throw new BusinessException("大模型返回的日程数组为空");
+        }
 
-                // 插入中午地道美食
-                TripItem item2 = new TripItem();
-                item2.setTripId(tripId);
-                item2.setDayId(dayId);
-                item2.setItemType("FOOD");
-                item2.setItemName(dto.getDestination() + " 老字号特色招牌美食寻味");
-                item2.setStartTime("12:30");
-                item2.setCostTimeHours(new BigDecimal("1.5"));
-                item2.setCostEstimate(new BigDecimal("80.00"));
-                item2.setTransportTips("步行至周边历史文化街区");
-                item2.setAiTips("品尝地道风味，避开高价网红店");
-                item2.setSortOrder(2);
-                squareMapper.insertCloneItem(item2);
+        for (JsonNode dayNode : daysArray) {
+            TripDayVO day = new TripDayVO();
+            day.setTripId(tripId);
+            day.setDayIndex(dayNode.path("dayIndex").asInt(1));
+            day.setDayTheme(dayNode.path("dayTheme").asText(dto.getDestination() + " 精彩探索"));
+            day.setDaySummary("AI 智能定制时间规划");
+            squareMapper.insertCloneDay(day);
+            Long dayId = day.getId();
 
-                // 插入下午特色街区/夜景
-                TripItem item3 = new TripItem();
-                item3.setTripId(tripId);
-                item3.setDayId(dayId);
-                item3.setItemType("SCENIC");
-                item3.setItemName(dto.getDestination() + " 历史古街漫步与夜景打卡");
-                item3.setStartTime("15:00");
-                item3.setCostTimeHours(new BigDecimal("3.0"));
-                item3.setCostEstimate(new BigDecimal("0.00"));
-                item3.setTransportTips("打车约15分钟");
-                item3.setAiTips("傍晚华灯初上拍照极为出片");
-                item3.setSortOrder(3);
-                squareMapper.insertCloneItem(item3);
+            JsonNode itemsArray = dayNode.path("items");
+            if (itemsArray.isArray()) {
+                int sort = 1;
+                for (JsonNode itemNode : itemsArray) {
+                    TripItem item = new TripItem();
+                    item.setTripId(tripId);
+                    item.setDayId(dayId);
+                    item.setItemType(itemNode.path("itemType").asText("SCENIC"));
+                    item.setItemName(itemNode.path("itemName").asText("推荐景点"));
+                    item.setStartTime(itemNode.path("startTime").asText("09:00"));
+                    item.setCostTimeHours(new BigDecimal(itemNode.path("costTimeHours").asText("2.0")));
+                    item.setCostEstimate(new BigDecimal(itemNode.path("costEstimate").asText("50.0")));
+                    item.setTransportTips(itemNode.path("transportTips").asText("建议公共交通前往"));
+                    item.setAiTips(itemNode.path("aiTips").asText("AI 避坑贴士"));
+                    item.setSortOrder(sort++);
+                    item.setIsDeleted(0);
+                    squareMapper.insertCloneItem(item);
+                }
             }
         }
 
