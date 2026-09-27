@@ -1,36 +1,34 @@
 package com.smarttrip.mapper;
 
 import com.smarttrip.entity.User;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface UserMapper {
 
     @Select("SELECT * FROM sys_user WHERE username = #{username} AND is_deleted = 0 LIMIT 1")
-    User findByUsername(String username);
+    User findByUsername(@Param("username") String username);
 
     @Select("SELECT * FROM sys_user WHERE id = #{id} AND is_deleted = 0 LIMIT 1")
-    User findById(Long id);
-
-    @Select("SELECT id, username, password, nickname, avatar, remaining_quota, is_deleted, create_time " +
-            "FROM user WHERE id = #{id} AND is_deleted = 0")
-    User selectById(Long id);
+    User findById(@Param("id") Long id);
 
     // =========================================================================
-    // 【风控核心 1】：CAS 条件预扣配额（防并发超扣）
-    // 只有当已用次数小于每日总配额时，才允许 +1
+    // 【新增】：用户注册持久化落库（默认每日 10 次 AI 配额，自增主键回填）
     // =========================================================================
+    @Insert("INSERT INTO sys_user (" +
+            "  username, password, nickname, ai_quota_daily, ai_quota_used, status, is_deleted" +
+            ") VALUES (" +
+            "  #{username}, #{password}, #{nickname}, 10, 0, 1, 0" +
+            ")")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertUser(User user);
+
+    // CAS 条件预扣配额
     @Update("UPDATE sys_user SET ai_quota_used = ai_quota_used + 1, update_time = NOW() " +
             "WHERE id = #{userId} AND ai_quota_used < ai_quota_daily AND is_deleted = 0")
     int tryPreDeductUserQuota(@Param("userId") Long userId);
 
-    // =========================================================================
-    // 【风控核心 2】：幂等安全补偿回滚（失败时恢复配额）
-    // 只有在 ai_quota_used > 0 时才允许 -1，防止误回滚导致负数
-    // =========================================================================
+    // 幂等配额回滚补偿
     @Update("UPDATE sys_user SET ai_quota_used = ai_quota_used - 1, update_time = NOW() " +
             "WHERE id = #{userId} AND ai_quota_used > 0 AND is_deleted = 0")
     int compensateRollbackUserQuota(@Param("userId") Long userId);
