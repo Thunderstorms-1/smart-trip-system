@@ -1,16 +1,13 @@
 <template>
   <div class="home-container">
-    <!-- ================================================================= -->
-    <!-- 1. 【核心重构】：三段式现代化 SaaS 导航栏与足迹成就胶囊                -->
-    <!-- ================================================================= -->
+    <!-- 顶部全站导航栏 -->
     <header class="navbar-container">
-      <!-- A. 左侧品牌区 -->
       <div class="nav-brand-left" @click="router.push('/')">
         <span class="logo-icon">✈️</span>
         <span class="logo-text">SmartTrip 智游伴路</span>
       </div>
 
-      <!-- B. 中间足迹成就胶囊（仅在已登录且有行程时展示） -->
+      <!-- 中间足迹成就胶囊 -->
       <div class="nav-footprint-center" v-if="userStore.isLoggedIn && totalTripsCount > 0">
         <div class="footprint-pill" title="您已规划过的旅行目的地城市">
           <span class="pill-icon">🏙️</span>
@@ -23,9 +20,8 @@
         </div>
       </div>
 
-      <!-- C. 右侧用户操作区 -->
+      <!-- 右侧用户操作区 -->
       <div class="nav-user-right">
-        <!-- 未登录访客态 -->
         <button 
           v-if="!userStore.isLoggedIn" 
           class="btn-login-entry" 
@@ -34,14 +30,11 @@
           登录 / 注册
         </button>
 
-        <!-- 已登录态 -->
         <div v-else class="logged-user-group">
-          <!-- AI 配额微型胶囊徽章 -->
           <div class="quota-capsule-badge" title="今日剩余可用 AI 定制次数">
             ⚡ 剩余 AI 配额: <strong>{{ userStore.remainingQuota }}</strong> 次
           </div>
 
-          <!-- 用户头像与下拉菜单容器 -->
           <div class="user-profile-menu-wrap">
             <div class="avatar-trigger" @click.stop="toggleUserMenu">
               <div class="user-avatar-circle">
@@ -51,7 +44,6 @@
               <span class="arrow-icon" :class="{ 'open': isUserMenuOpen }">▾</span>
             </div>
 
-            <!-- 毛玻璃下拉气泡卡片 -->
             <transition name="fade-slide">
               <div class="user-dropdown-popover" v-if="isUserMenuOpen">
                 <div class="popover-header">
@@ -64,7 +56,6 @@
                   </div>
                 </div>
 
-                <!-- 配额消耗进度条 -->
                 <div class="popover-quota-box">
                   <div class="quota-info-row">
                     <span>今日 AI 额度</span>
@@ -92,7 +83,7 @@
 
     <!-- 主体区域 -->
     <main class="main-content">
-      <!-- 2. 类 Perplexity 风格 AI 原生灵感启动台 (Omni Hero) -->
+      <!-- 1. Hero 灵感启动台 -->
       <section class="hero-section">
         <div class="hero-header">
           <div class="hero-badge">✨ AI-POWERED TRAVEL COPILOT</div>
@@ -102,7 +93,6 @@
           </p>
         </div>
 
-        <!-- 大尺寸智能输入框 -->
         <div class="omni-search-box">
           <span class="omni-ai-icon">✨</span>
           <input 
@@ -116,7 +106,6 @@
           </button>
         </div>
 
-        <!-- 热门灵感气泡标签栏 -->
         <div class="preset-inspirations-row">
           <span class="preset-label">🔥 热门灵感：</span>
           <div class="preset-tags-wrap">
@@ -131,7 +120,6 @@
           </div>
         </div>
 
-        <!-- 探索广场跳转入口 -->
         <div class="explore-square-row">
           <button class="square-link-btn" @click="router.push('/square')">
             🌍 前往探索广场浏览全部公开路书 →
@@ -139,7 +127,7 @@
         </div>
       </section>
 
-      <!-- 3. 全网高分热门路线推荐专区 (Top-4 并发拉取 + 极速克隆) -->
+      <!-- 2. 全网高分热门路线推荐专区 -->
       <section class="popular-recommend-section" v-if="popularTrips.length > 0">
         <div class="section-header-row">
           <div class="left-title-box">
@@ -151,7 +139,6 @@
           </button>
         </div>
 
-        <!-- 自适应 4 栏卡片网格 -->
         <div class="popular-cards-grid">
           <div v-for="trip in popularTrips" :key="trip.id" class="popular-trip-card">
             <div class="card-badge-row">
@@ -192,71 +179,85 @@
         </div>
       </section>
 
-      <!-- 4. 个人行程数字资产枢纽 (登录后可见) -->
+      <!-- 3. 【核心模块】：个人资产与足迹控制台 (Tab 切换：列表 vs 大屏) -->
       <section class="my-trips-section" v-if="userStore.isLoggedIn">
-        <div class="section-header">
-          <div class="header-title-box">
-            <h3>📂 我的旅行资产库</h3>
-            <span class="assets-count-badge">共 {{ myTrips.length }} 份行程</span>
-          </div>
-          <button class="refresh-btn" @click="fetchHomePageData" :disabled="isPopularLoading">
-            {{ isPopularLoading ? '刷新中...' : '🔄 刷新列表' }}
-          </button>
-        </div>
-
-        <!-- 资产卡片网格 -->
-        <div class="trips-grid-container" v-if="myTrips.length > 0">
-          <div 
-            v-for="trip in myTrips" 
-            :key="trip.id" 
-            class="trip-asset-card"
-            @click="enterWorkbench(trip.id)"
-          >
-            <div class="card-badge-row">
-              <span class="dest-badge">{{ trip.destination }} · {{ trip.totalDays }} 天</span>
-              <span :class="['status-badge', trip.isPublic === 1 ? 'public' : 'private']">
-                {{ trip.isPublic === 1 ? '🌐 已在广场公开' : '🔒 本地私密草稿' }}
-              </span>
-            </div>
-
-            <h4 class="card-trip-title" :title="trip.title">{{ trip.title }}</h4>
-
-            <div class="card-info-metrics">
-              <div class="metric-item">
-                <span class="metric-label">预估总预算</span>
-                <span class="metric-value price">￥{{ trip.totalBudget }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">风格偏好</span>
-                <span class="metric-value">{{ trip.tripStyle || '自由探索' }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">最近更新</span>
-                <span class="metric-value date">{{ formatDate(trip.updateTime || trip.createTime) }}</span>
-              </div>
-            </div>
-
-            <div class="card-actions-footer">
-              <button class="btn-enter-workbench" @click.stop="enterWorkbench(trip.id)">
-                进入工作台编辑 ➔
-              </button>
-              <button class="btn-delete-trip" @click.stop="handleDeleteTrip(trip.id, trip.title)">
-                🗑️ 删除
-              </button>
-            </div>
+        <!-- 胶囊 Tab 切换栏 -->
+        <div class="asset-tab-bar">
+          <div class="tab-pill-box">
+            <button 
+              :class="['asset-tab-btn', { active: currentAssetTab === 'LIST' }]" 
+              @click="currentAssetTab = 'LIST'"
+            >
+              📂 我的路书资产 ({{ myTrips.length }})
+            </button>
+            <button 
+              :class="['asset-tab-btn', { active: currentAssetTab === 'DASHBOARD' }]" 
+              @click="currentAssetTab = 'DASHBOARD'"
+            >
+              🗺️ 我的足迹与成就大屏
+            </button>
           </div>
         </div>
 
-        <!-- 空数据占位展示 -->
-        <div class="empty-trips-placeholder" v-else-if="!isPopularLoading">
-          <div class="empty-illustration">🗺️</div>
-          <h4>暂无任何历史行程记录</h4>
-          <p>您还没有创建过任何旅行计划，点击上方输入框让 AI 立即为您规划第一份路书吧！</p>
-          <button class="empty-cta-btn" @click="goToCreate">🚀 免费创建第一份行程</button>
+        <!-- Tab 1: 我的路书列表网格 -->
+        <div v-show="currentAssetTab === 'LIST'">
+          <div class="trips-grid-container" v-if="myTrips.length > 0">
+            <div 
+              v-for="trip in myTrips" 
+              :key="trip.id" 
+              class="trip-asset-card"
+              @click="enterWorkbench(trip.id)"
+            >
+              <div class="card-badge-row">
+                <span class="dest-badge">{{ trip.destination }} · {{ trip.totalDays }} 天</span>
+                <span :class="['status-badge', trip.isPublic === 1 ? 'public' : 'private']">
+                  {{ trip.isPublic === 1 ? '🌐 已在广场公开' : '🔒 本地私密草稿' }}
+                </span>
+              </div>
+
+              <h4 class="card-trip-title" :title="trip.title">{{ trip.title }}</h4>
+
+              <div class="card-info-metrics">
+                <div class="metric-item">
+                  <span class="metric-label">预估总预算</span>
+                  <span class="metric-value price">￥{{ trip.totalBudget }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">风格偏好</span>
+                  <span class="metric-value">{{ trip.tripStyle || '自由探索' }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">最近更新</span>
+                  <span class="metric-value date">{{ formatDate(trip.updateTime || trip.createTime) }}</span>
+                </div>
+              </div>
+
+              <div class="card-actions-footer">
+                <button class="btn-enter-workbench" @click.stop="enterWorkbench(trip.id)">
+                  进入工作台编辑 ➔
+                </button>
+                <button class="btn-delete-trip" @click.stop="handleDeleteTrip(trip.id, trip.title)">
+                  🗑️ 删除
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-trips-placeholder" v-else-if="!isPopularLoading">
+            <div class="empty-illustration">🗺️</div>
+            <h4>暂无任何历史行程记录</h4>
+            <p>您还没有创建过任何旅行计划，点击上方输入框让 AI 立即为您规划第一份路书吧！</p>
+            <button class="empty-cta-btn" @click="goToCreate">🚀 免费创建第一份行程</button>
+          </div>
+        </div>
+
+        <!-- Tab 2: 独立足迹与成就大屏组件 -->
+        <div v-show="currentAssetTab === 'DASHBOARD'">
+          <FootprintDashboard />
         </div>
       </section>
 
-      <!-- 5. 未登录访客引导面板 -->
+      <!-- 4. 未登录访客引导面板 -->
       <section class="guest-banner-section" v-else>
         <div class="guest-card">
           <h3>登录解锁个人旅行工作台</h3>
@@ -274,6 +275,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getMyTripsApi, deleteTripApi } from '@/api/trip'
 import { searchSquareTripsApi, cloneTripApi } from '@/api/square'
+import FootprintDashboard from '@/components/FootprintDashboard.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -284,10 +286,9 @@ const isPopularLoading = ref(false)
 const cloningId = ref(null)
 const quickPromptInput = ref('')
 const isUserMenuOpen = ref(false)
+const currentAssetTab = ref('LIST') // 'LIST' | 'DASHBOARD'
 
-// =========================================================================
-// 1. 响应式旅行足迹成就计算引擎 (前端内存聚合统计，零后端开销)
-// =========================================================================
+// 1. 响应式旅行足迹成就计算引擎
 const totalTripsCount = computed(() => myTrips.value.length)
 
 const exploredCitiesCount = computed(() => {
@@ -301,9 +302,6 @@ const accumulatedDaysCount = computed(() => {
   return myTrips.value.reduce((sum, t) => sum + (Number(t.totalDays) || 0), 0)
 })
 
-// =========================================================================
-// 2. 头像下拉菜单状态与 Click-Outside 监听机制
-// =========================================================================
 const toggleUserMenu = () => {
   isUserMenuOpen.value = !isUserMenuOpen.value
 }
@@ -315,7 +313,6 @@ const handleCloseMenuOnClickOutside = (event) => {
   }
 }
 
-// 预设灵感标签矩阵
 const presetInspirations = [
   {
     label: '🔥 成都周末市井寻味',
@@ -351,7 +348,6 @@ const presetInspirations = [
   }
 ]
 
-// 并发拉取首屏数据
 const fetchHomePageData = async () => {
   isPopularLoading.value = true
   try {
@@ -391,7 +387,6 @@ onBeforeUnmount(() => {
   window.removeEventListener('click', handleCloseMenuOnClickOutside)
 })
 
-// 首页极速克隆
 const handleQuickCloneOnHome = async (squarePostId) => {
   if (!userStore.isLoggedIn) {
     alert('请先登录账号，登录后即可一键克隆此路线到您的工作台！')
@@ -513,9 +508,7 @@ const goToCreate = () => {
   color: #1e293b;
 }
 
-/* ========================================================================= */
-/* 1. 三段式现代化毛玻璃导航栏                                                */
-/* ========================================================================= */
+/* 导航栏 */
 .navbar-container {
   position: sticky;
   top: 0;
@@ -549,7 +542,6 @@ const goToCreate = () => {
   letter-spacing: -0.4px;
 }
 
-/* 中间足迹成就胶囊 */
 .nav-footprint-center {
   display: flex;
   align-items: center;
@@ -579,7 +571,6 @@ const goToCreate = () => {
   font-weight: 700;
 }
 
-/* 右侧用户操作区 */
 .nav-user-right {
   display: flex;
   align-items: center;
@@ -668,7 +659,6 @@ const goToCreate = () => {
   transform: rotate(180deg);
 }
 
-/* 下拉 Popover 气泡卡片 */
 .user-dropdown-popover {
   position: absolute;
   right: 0;
@@ -1100,60 +1090,48 @@ const goToCreate = () => {
   cursor: not-allowed;
 }
 
-/* 个人资产枢纽专区 */
+/* ========================================================================= */
+/* 个人资产与足迹控制台 (Tab 切换体系)                                       */
+/* ========================================================================= */
 .my-trips-section {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
-  padding: 28px 32px;
+  padding: 24px 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.section-header {
+/* 胶囊滑动 Tab 切换栏 */
+.asset-tab-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 18px;
+  justify-content: center;
   margin-bottom: 24px;
 }
 
-.header-title-box {
+.tab-pill-box {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-title-box h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.assets-count-badge {
-  font-size: 12px;
   background: #f1f5f9;
-  color: #475569;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-weight: 600;
+  padding: 4px;
+  border-radius: 30px;
+  border: 1px solid #e2e8f0;
 }
 
-.refresh-btn {
+.asset-tab-btn {
+  padding: 8px 22px;
+  border-radius: 24px;
+  border: none;
   background: transparent;
-  border: 1px solid #cbd5e1;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
   color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.refresh-btn:hover {
-  background: #f8fafc;
-  color: #0f172a;
+.asset-tab-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .trips-grid-container {
@@ -1390,7 +1368,7 @@ const goToCreate = () => {
 /* 响应式断点 */
 @media (max-width: 1024px) {
   .nav-footprint-center {
-    display: none; /* 中屏幕隐藏中间足迹胶囊，防止挤压两端 */
+    display: none;
   }
   .popular-cards-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1402,7 +1380,7 @@ const goToCreate = () => {
     padding: 12px 18px;
   }
   .quota-capsule-badge {
-    display: none; /* 小屏隐藏额度徽章，收进下拉菜单内查看 */
+    display: none;
   }
   .hero-title {
     font-size: 26px;

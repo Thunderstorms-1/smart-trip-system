@@ -4,6 +4,7 @@ import com.smarttrip.entity.*;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface TripMapper {
@@ -108,4 +109,26 @@ public interface TripMapper {
 
     @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE day_id = #{dayId} AND is_deleted = 0")
     int softDeleteItemsByDayId(@Param("dayId") Long dayId);
+
+    // =========================================================================
+    // 【足迹大屏聚合 1】：汇总当前用户的总路书数、总天数、总预算
+    // =========================================================================
+    @Select("SELECT COUNT(*) AS totalTrips, COALESCE(SUM(total_days), 0) AS totalDays, " +
+            "COALESCE(SUM(total_budget), 0.00) AS totalBudget " +
+            "FROM trip_plan WHERE user_id = #{userId} AND is_deleted = 0")
+    Map<String, Object> selectUserTripKpis(@Param("userId") Long userId);
+
+    // =========================================================================
+    // 【足迹大屏聚合 2】：按目的地分组统计点亮城市及规划频次
+    // =========================================================================
+    @Select("SELECT destination, COUNT(*) AS count FROM trip_plan " +
+            "WHERE user_id = #{userId} AND is_deleted = 0 GROUP BY destination")
+    List<Map<String, Object>> selectUserCityStats(@Param("userId") Long userId);
+
+    // =========================================================================
+    // 【足迹大屏聚合 3】：按旅行风格偏好分组统计权重
+    // =========================================================================
+    @Select("SELECT trip_style AS style, COUNT(*) AS count FROM trip_plan " +
+            "WHERE user_id = #{userId} AND is_deleted = 0 GROUP BY trip_style")
+    List<Map<String, Object>> selectUserStyleStats(@Param("userId") Long userId);
 }
