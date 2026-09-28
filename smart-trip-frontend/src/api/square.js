@@ -41,3 +41,11 @@ export function cloneTripApi(squarePostId) {
     method: 'POST'
   })
 }
+
+// 获取官方精选主题模板列表
+export function getFeaturedTripsApi() {
+  return request({
+    url: '/api/square/featured',
+    method: 'GET'
+  })
+}

@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,67 @@ public class SquareServiceImpl implements SquareService {
     private final TripService tripService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 获取官方精选四大黄金主题灵感库模板
+     */
+    @Override
+    public List<FeaturedThemeVO> getFeaturedThemedTrips() {
+        List<FeaturedThemeVO> list = new ArrayList<>();
+
+        // 1. 专题 A: 经典自驾
+        FeaturedThemeVO t1 = new FeaturedThemeVO();
+        t1.setId(200501L);
+        t1.setThemeTag("🚘 经典自驾");
+        t1.setTitle("川西大环线 · 7日雪山湖泊自驾朝圣之路");
+        t1.setDestination("康定 · 稻城亚丁");
+        t1.setTotalDays(7);
+        t1.setTotalBudget(new BigDecimal("4500.00"));
+        t1.setCoverImage("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80");
+        t1.setHighlightDesc("翻越折多山，漫步塔公草原，朝圣仙乃日与央迈勇神山");
+        t1.setCloneCount(2430);
+        list.add(t1);
+
+        // 2. 专题 B: 烟雨江南
+        FeaturedThemeVO t2 = new FeaturedThemeVO();
+        t2.setId(200502L);
+        t2.setThemeTag("🌿 烟雨江南");
+        t2.setTitle("苏杭水乡 · 3天2晚古典园林与西湖慢生活");
+        t2.setDestination("苏州 · 杭州");
+        t2.setTotalDays(3);
+        t2.setTotalBudget(new BigDecimal("1800.00"));
+        t2.setCoverImage("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&q=80");
+        t2.setHighlightDesc("漫步平江路听评弹，晨游拙政园，泛舟西湖看断桥残雪");
+        t2.setCloneCount(3890);
+        list.add(t2);
+
+        // 3. 专题 C: 亲子度假
+        FeaturedThemeVO t3 = new FeaturedThemeVO();
+        t3.setId(200503L);
+        t3.setThemeTag("👨‍👩‍👧 亲子度假");
+        t3.setTitle("三亚海岛 · 5天4晚亲子水上乐园奢享假期");
+        t3.setDestination("三亚 · 海棠湾");
+        t3.setTotalDays(5);
+        t3.setTotalBudget(new BigDecimal("6000.00"));
+        t3.setCoverImage("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80");
+        t3.setHighlightDesc("入住亚特兰蒂斯，水族馆探秘，后海冲浪与椰林赶海");
+        t3.setCloneCount(1950);
+        list.add(t3);
+
+        // 4. 专题 D: 丝路人文
+        FeaturedThemeVO t4 = new FeaturedThemeVO();
+        t4.setId(200504L);
+        t4.setThemeTag("🏺 丝路人文");
+        t4.setTitle("古都与丝路 · 4日大唐盛世与敦煌莫高窟");
+        t4.setDestination("西安 · 敦煌");
+        t4.setTotalDays(4);
+        t4.setTotalBudget(new BigDecimal("3200.00"));
+        t4.setCoverImage("https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80");
+        t4.setHighlightDesc("大唐不夜城夜游，探秘千年莫高窟，鸣沙山月牙泉看日落");
+        t4.setCloneCount(1670);
+        list.add(t4);
+
+        return list;
+    }
 
     @Override
     public PageResult<SquareTripVO> searchSquareTrips(SquareQueryDTO query) {

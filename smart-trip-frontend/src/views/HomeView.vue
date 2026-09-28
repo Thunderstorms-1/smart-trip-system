@@ -127,7 +127,58 @@
         </div>
       </section>
 
-      <!-- 2. 全网高分热门路线推荐专区 -->
+      <!-- =============================================================== -->
+      <!-- 2. 【核心新增】：官方精选四大主题路线灵感库 (16:9 横向画廊)          -->
+      <!-- =============================================================== -->
+      <section class="curated-themes-section" v-if="featuredThemes.length > 0">
+        <div class="section-header-row">
+          <div class="left-title-box">
+            <h3>🎯 官方精选主题路线 · 灵感库</h3>
+            <span class="sub-title">精选四大黄金旅行主题，一键套用开启成熟行程</span>
+          </div>
+          <span class="swipe-hint-text">← 横向滑动浏览全部主题 →</span>
+        </div>
+
+        <div class="themes-horizontal-scroll-track">
+          <div 
+            v-for="theme in featuredThemes" 
+            :key="theme.id" 
+            class="theme-hero-card"
+          >
+            <!-- 16:9 高清风景大图 -->
+            <img 
+              :src="theme.coverImage" 
+              :alt="theme.title" 
+              class="theme-cover-bg"
+              loading="lazy" 
+            />
+            <div class="theme-overlay-mask"></div>
+            <span class="theme-category-tag">{{ theme.themeTag }}</span>
+
+            <!-- 底部内容与套用动作 -->
+            <div class="theme-content-box">
+              <h3 class="theme-title" :title="theme.title">{{ theme.title }}</h3>
+              <p class="theme-highlight">{{ theme.highlightDesc }}</p>
+
+              <div class="theme-meta-row">
+                <span>📍 {{ theme.destination }} · {{ theme.totalDays }}天</span>
+                <span>💰 预估 ￥{{ theme.totalBudget }}</span>
+                <span class="clone-count-badge">📑 {{ theme.cloneCount }}+ 人套用</span>
+              </div>
+
+              <button 
+                class="btn-apply-template"
+                :disabled="applyingId === theme.id"
+                @click.stop="handleApplyTemplate(theme)"
+              >
+                {{ applyingId === theme.id ? '正在装配行程...' : '⚡ 一键套用此模板' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 全网高分热门路线推荐专区 -->
       <section class="popular-recommend-section" v-if="popularTrips.length > 0">
         <div class="section-header-row">
           <div class="left-title-box">
@@ -179,9 +230,8 @@
         </div>
       </section>
 
-      <!-- 3. 【核心模块】：个人资产与足迹控制台 (Tab 切换：列表 vs 大屏) -->
+      <!-- 4. 个人资产与足迹控制台 (Tab 切换) -->
       <section class="my-trips-section" v-if="userStore.isLoggedIn">
-        <!-- 胶囊 Tab 切换栏 -->
         <div class="asset-tab-bar">
           <div class="tab-pill-box">
             <button 
@@ -199,7 +249,6 @@
           </div>
         </div>
 
-        <!-- Tab 1: 我的路书列表网格 -->
         <div v-show="currentAssetTab === 'LIST'">
           <div class="trips-grid-container" v-if="myTrips.length > 0">
             <div 
@@ -251,13 +300,12 @@
           </div>
         </div>
 
-        <!-- Tab 2: 独立足迹与成就大屏组件 -->
         <div v-show="currentAssetTab === 'DASHBOARD'">
           <FootprintDashboard />
         </div>
       </section>
 
-      <!-- 4. 未登录访客引导面板 -->
+      <!-- 5. 未登录访客引导面板 -->
       <section class="guest-banner-section" v-else>
         <div class="guest-card">
           <h3>登录解锁个人旅行工作台</h3>
@@ -274,7 +322,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getMyTripsApi, deleteTripApi } from '@/api/trip'
-import { searchSquareTripsApi, cloneTripApi } from '@/api/square'
+import { searchSquareTripsApi, cloneTripApi, getFeaturedTripsApi } from '@/api/square'
 import FootprintDashboard from '@/components/FootprintDashboard.vue'
 
 const router = useRouter()
@@ -282,13 +330,15 @@ const userStore = useUserStore()
 
 const myTrips = ref([])
 const popularTrips = ref([])
+const featuredThemes = ref([])
 const isPopularLoading = ref(false)
 const cloningId = ref(null)
+const applyingId = ref(null)
 const quickPromptInput = ref('')
 const isUserMenuOpen = ref(false)
-const currentAssetTab = ref('LIST') // 'LIST' | 'DASHBOARD'
+const currentAssetTab = ref('LIST')
 
-// 1. 响应式旅行足迹成就计算引擎
+// 足迹统计
 const totalTripsCount = computed(() => myTrips.value.length)
 
 const exploredCitiesCount = computed(() => {
@@ -348,6 +398,7 @@ const presetInspirations = [
   }
 ]
 
+// 并发拉取首屏全量数据 (热门推荐 + 精选主题 + 个人资产)
 const fetchHomePageData = async () => {
   isPopularLoading.value = true
   try {
@@ -358,18 +409,22 @@ const fetchHomePageData = async () => {
       travelStyle: '全部'
     })
 
+    const featuredPromise = getFeaturedTripsApi()
     const myTripsPromise = userStore.isLoggedIn ? getMyTripsApi() : Promise.resolve({ data: [] })
 
-    const [popRes, myRes] = await Promise.allSettled([popularPromise, myTripsPromise])
+    const [popRes, featRes, myRes] = await Promise.allSettled([popularPromise, featuredPromise, myTripsPromise])
 
     if (popRes.status === 'fulfilled') {
       popularTrips.value = popRes.value.data?.list || []
+    }
+    if (featRes.status === 'fulfilled') {
+      featuredThemes.value = featRes.value.data || []
     }
     if (myRes.status === 'fulfilled') {
       myTrips.value = myRes.value.data || []
     }
   } catch (err) {
-    console.error('首页并发数据初始化异常:', err)
+    console.error('首页数据初始化异常:', err)
   } finally {
     isPopularLoading.value = false
   }
@@ -387,6 +442,28 @@ onBeforeUnmount(() => {
   window.removeEventListener('click', handleCloseMenuOnClickOutside)
 })
 
+// 一键套用官方主题路线模板
+const handleApplyTemplate = async (theme) => {
+  if (!userStore.isLoggedIn) {
+    alert('请先登录账号，登录后即可一键套用此官方路线模板！')
+    router.push({ name: 'login', query: { redirect: '/' } })
+    return
+  }
+
+  applyingId.value = theme.id
+  try {
+    const res = await cloneTripApi(theme.id)
+    const newTripId = res.data.newTripId
+    alert(`🎉 成功套用【${theme.title}】！已为您生成专属副本！`)
+    router.push({ name: 'trip-edit', params: { tripId: newTripId } })
+  } catch (err) {
+    console.error('套用模板失败:', err)
+  } finally {
+    applyingId.value = null
+  }
+}
+
+// 首页一键克隆
 const handleQuickCloneOnHome = async (squarePostId) => {
   if (!userStore.isLoggedIn) {
     alert('请先登录账号，登录后即可一键克隆此路线到您的工作台！')
@@ -775,7 +852,7 @@ const goToCreate = () => {
 /* Hero 灵感启动台 */
 .hero-section {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
 }
 
 .hero-badge {
@@ -923,6 +1000,140 @@ const goToCreate = () => {
 .square-link-btn:hover {
   color: #2563eb;
   text-decoration: underline;
+}
+
+/* ========================================================================= */
+/* 【核心新增】：官方精选四大主题路线灵感库 (16:9 横向平滑画廊)               */
+/* ========================================================================= */
+.curated-themes-section {
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+.swipe-hint-text {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.themes-horizontal-scroll-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 10px 4px 20px 4px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.themes-horizontal-scroll-track::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-hero-card {
+  flex: 0 0 320px;
+  height: 380px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  scroll-snap-align: start;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.theme-hero-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+}
+
+.theme-cover-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.theme-overlay-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.75) 65%, #0f172a 100%);
+}
+
+.theme-category-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-content-box {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.theme-highlight {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.theme-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.clone-count-badge {
+  color: #38bdf8;
+  margin-left: auto;
+}
+
+.btn-apply-template {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transition: opacity 0.2s;
+}
+
+.btn-apply-template:hover {
+  opacity: 0.95;
+}
+
+.btn-apply-template:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 全网热门高分推荐专区 */
@@ -1090,9 +1301,7 @@ const goToCreate = () => {
   cursor: not-allowed;
 }
 
-/* ========================================================================= */
-/* 个人资产与足迹控制台 (Tab 切换体系)                                       */
-/* ========================================================================= */
+/* 个人资产与足迹控制台 */
 .my-trips-section {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -1101,7 +1310,6 @@ const goToCreate = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-/* 胶囊滑动 Tab 切换栏 */
 .asset-tab-bar {
   display: flex;
   justify-content: center;
