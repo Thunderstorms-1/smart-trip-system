@@ -47,6 +47,35 @@
       </div>
     </header>
 
+     <div class="workbench-container" v-if="tripStore.currentTrip">
+    <!-- ... 顶部导航保持不变 ... -->
+
+    <div class="workbench-layout">
+      <!-- 1. 左侧栏：天数选择、AI寄语与气象感知 -->
+      <aside class="sidebar-card">
+        <div class="summary-box">
+          <h4>💡 AI 行程寄语</h4>
+          <p>{{ tripStore.currentTrip.summary }}</p>
+        </div>
+
+        <!-- 【核心挂载】：目的地气象感知与出行预警看板 -->
+        <WeatherWidget 
+          :destination="tripStore.currentTrip.destination" 
+          :startDate="tripStore.currentTrip.startDate" 
+        />
+
+        <div class="days-menu">
+          <h4>📅 行程天数日程 (共 {{ tripStore.currentTrip.days ? tripStore.currentTrip.days.length : 0 }} 天)</h4>
+          <!-- ... 保持原有天数列表与添加按钮不变 ... -->
+        </div>
+      </aside>
+
+      <!-- ... 中间时间轴与右侧地图保持完全不变 ... -->
+    </div>
+
+    <!-- ... 弹窗区域保持完全不变 ... -->
+  </div>
+
     <div class="workbench-layout">
       <!-- 1. 左侧栏：天数选择与行程概览 -->
       <aside class="sidebar-card">
@@ -307,6 +336,7 @@
 </template>
 
 <script setup>
+import WeatherWidget from '@/components/WeatherWidget.vue'
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '@/stores/trip'
