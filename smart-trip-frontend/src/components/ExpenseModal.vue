@@ -4,7 +4,6 @@
       <div class="modal-header">
         <div class="header-left">
           <h3>💰 旅行记账与预算看板</h3>
-          <!-- 【核心新增】：一键批量导入行程预估 -->
           <button class="batch-import-btn" @click="handleBatchImport" :disabled="isImporting">
             {{ isImporting ? '导入中...' : '⚡ 一键导入行程预估' }}
           </button>
@@ -12,9 +11,9 @@
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
-      <!-- 预算进度大屏 -->
+      <!-- 预算进度大屏 (升级为 4 栏，含 AA 制人均应付) -->
       <div class="budget-dashboard" v-if="summary">
-        <div class="dashboard-cards">
+        <div class="dashboard-cards four-cols">
           <div class="d-card">
             <span class="label">预设总预算</span>
             <span class="val">￥{{ summary.totalBudget }}</span>
@@ -29,10 +28,15 @@
               ￥{{ summary.remaining }}
             </span>
           </div>
+          <!-- 【核心新增】：AA 制人均分摊 -->
+          <div class="d-card aa-card">
+            <span class="label">👥 AA制人均应付 ({{ safeMembersCount }}人)</span>
+            <span class="val aa-val">￥{{ perCapitaAmount }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- 记账表单 (支持自动预填) -->
+      <!-- 记账表单 -->
       <form @submit.prevent="handleAddExpense" class="expense-form">
         <div class="form-title-row">
           <h4>➕ {{ isPrefilled ? '💳 快捷转记账 (已自动填入)' : '快速记一笔' }}</h4>
@@ -74,13 +78,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, watch, computed, nextTick } from 'vue'
 import { getExpenseSummaryApi, addExpenseApi, importExpensesFromTripApi } from '@/api/tool'
 
 const props = defineProps({
   tripId: { type: [Number, String], required: true },
   visible: { type: Boolean, default: false },
-  prefillData: { type: Object, default: null } // 外部预填入参
+  prefillData: { type: Object, default: null },
+  membersCount: { type: Number, default: 1 } // 接收外部传入的同行成员数
 })
 const emit = defineEmits(['close', 'expense-updated'])
 
@@ -96,13 +101,21 @@ const form = reactive({
   expenseDate: new Date().toISOString().split('T')[0]
 })
 
+// 保证分母至少为 1
+const safeMembersCount = computed(() => props.membersCount > 0 ? props.membersCount : 1)
+
+// AA 制人均应付金额计算
+const perCapitaAmount = computed(() => {
+  if (!summary.value || !summary.value.totalSpent) return '0.00'
+  return (Number(summary.value.totalSpent) / safeMembersCount.value).toFixed(2)
+})
+
 const fetchSummary = async () => {
   const res = await getExpenseSummaryApi(props.tripId)
   summary.value = res.data
   emit('expense-updated')
 }
 
-// 监听预填充数据变化
 const applyPrefill = () => {
   if (props.prefillData) {
     form.category = props.prefillData.category || 'CATERING'
@@ -144,7 +157,6 @@ const handleAddExpense = async () => {
   await fetchSummary()
 }
 
-// 批量从行程导入
 const handleBatchImport = async () => {
   if (!confirm('是否将当前行程中所有预估花费（> 0元）自动导入为待核对流水？')) return
   isImporting.value = true
@@ -170,15 +182,11 @@ const getCatLabel = (cat) => {
 
 <style scoped>
 .modal-mask {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 9999;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;
 }
 .modal-box {
-  background: white; border-radius: 12px;
-  width: 90%; max-width: 680px; padding: 24px; max-height: 85vh; overflow-y: auto;
+  background: white; border-radius: 12px; width: 90%; max-width: 720px; padding: 24px; max-height: 85vh; overflow-y: auto;
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
@@ -194,23 +202,33 @@ const getCatLabel = (cat) => {
   padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;
   transition: all 0.2s;
 }
-.batch-import-btn:hover {
-  background: #dbeafe;
-}
-.close-btn {
-  background: transparent; border: none; font-size: 18px; cursor: pointer; color: #94a3b8;
-}
+.batch-import-btn:hover { background: #dbeafe; }
+.close-btn { background: transparent; border: none; font-size: 18px; cursor: pointer; color: #94a3b8; }
+
 .dashboard-cards {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;
+  display: grid; gap: 12px; margin-bottom: 20px;
+}
+.dashboard-cards.four-cols {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 640px) {
+  .dashboard-cards.four-cols {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 .d-card {
   background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;
 }
-.d-card .label { font-size: 12px; color: #64748b; display: block; margin-bottom: 4px; }
-.d-card .val { font-size: 18px; font-weight: bold; color: #0f172a; }
+.d-card .label { font-size: 11px; color: #64748b; display: block; margin-bottom: 4px; }
+.d-card .val { font-size: 17px; font-weight: bold; color: #0f172a; }
 .d-card .val.spent { color: #ea580c; }
 .d-card .val.remain { color: #16a34a; }
 .d-card .val.over { color: #dc2626; }
+.aa-card {
+  background: #f0fdf4 !important; border-color: #86efac !important;
+}
+.aa-val { color: #15803d !important; }
+
 .expense-form {
   background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 20px;
 }

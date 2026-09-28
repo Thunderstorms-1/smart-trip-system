@@ -8,6 +8,7 @@ import com.smarttrip.config.AiProperties;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.SquareMapper;
 import com.smarttrip.mapper.TripMapper;
+import com.smarttrip.mapper.TripMemberMapper;
 import com.smarttrip.service.TripService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class TripServiceImpl implements TripService {
     private final TripMapper tripMapper;
     private final SquareMapper squareMapper;
     private final AiProperties aiProperties;
+    private final TripMemberMapper tripMemberMapper;
 
     private final OkHttpClient okHttpClient = new OkHttpClient.Builder()
             .connectTimeout(60, TimeUnit.SECONDS)
@@ -88,14 +90,28 @@ public class TripServiceImpl implements TripService {
     }
 
     private TripDetailVO assertTripWritePermission(Long tripId, Long currentUserId) {
-        if (tripId == null) throw new BusinessException(400, "行程ID不能为空");
-        TripDetailVO trip = tripMapper.selectTripById(tripId);
-        if (trip == null) throw new BusinessException(404, "目标行程不存在或已被删除");
-        if (currentUserId == null || !trip.getUserId().equals(currentUserId)) {
-            log.warn("【水平越权拦截-写操作】用户 [{}] 试图非法修改行程 [{}]", currentUserId, tripId);
-            throw new BusinessException(403, "无权修改或操作他人行程！");
+        if (tripId == null) {
+            throw new BusinessException(400, "行程ID不能为空");
         }
-        return trip;
+        TripDetailVO trip = tripMapper.selectTripById(tripId);
+        if (trip == null) {
+            throw new BusinessException(404, "目标行程不存在或已被删除");
+        }
+
+        // 1. 如果是创建者本人，直接放行
+        if (currentUserId != null && trip.getUserId().equals(currentUserId)) {
+            return trip;
+        }
+
+        // 2. 如果不是创建者，检查是否为拥有编辑权限的合法协作者 (RBAC 放行)
+        boolean isEditor = currentUserId != null && tripMemberMapper.checkUserIsEditor(tripId, currentUserId) > 0;
+        if (isEditor) {
+            log.debug("【协同编辑放行】协作者 [{}] 正在操作行程 [{}]", currentUserId, tripId);
+            return trip; // 协作者放行！
+        }
+
+        log.warn("【水平越权拦截】用户 [{}] 既非创建者也非协作者，试图非法修改行程 [{}]", currentUserId, tripId);
+        throw new BusinessException(403, "您不是该行程的协作者，无权修改！");
     }
 
     private TripDetailVO assertTripReadPermission(Long tripId, Long currentUserId) {

@@ -7,20 +7,34 @@
         <h2>{{ tripStore.currentTrip.title }}</h2>
         <span class="badge">{{ tripStore.currentTrip.destination }} · {{ tripStore.currentTrip.totalDays }}天</span>
       </div>
+
       <div class="nav-right">
-        <!-- 广场发布状态指示器 -->
+        <!-- 【核心新增】：同行好友协同头像堆叠栏 -->
+        <div class="collaborator-avatar-stack" @click="isInviteModalOpen = true" title="点击管理或邀请同行好友">
+          <div class="avatar-stack-imgs" v-if="membersList.length > 0">
+            <div 
+              v-for="(member, idx) in membersList.slice(0, 4)" 
+              :key="member.userId" 
+              class="avatar-circle"
+              :style="{ zIndex: 10 - idx, marginLeft: idx > 0 ? '-8px' : '0' }"
+            >
+              <img :src="member.avatarSnapshot || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + member.userId" />
+            </div>
+          </div>
+          <span class="member-count-tag">👥 {{ membersList.length }}人同行</span>
+          <button class="invite-trigger-btn">+ 邀请</button>
+        </div>
+
         <span v-if="tripStore.currentTrip.isPublic === 1" class="public-status-badge">
           🌐 [已在广场公开]
         </span>
 
-        <span class="budget-tag">💰 总预估花费：￥{{ tripStore.currentTrip.totalBudget }}</span>
+        <span class="budget-tag">💰 预估: ￥{{ tripStore.currentTrip.totalBudget }}</span>
 
-        <!-- 按钮分流控制 -->
         <button 
           v-if="tripStore.currentTrip.isPublic === 1" 
           class="tool-btn sync-btn" 
           @click="handlePublishOrSync"
-          title="将本地最新的修改覆盖更新至广场公开快照"
         >
           🔄 同步至广场
         </button>
@@ -28,7 +42,6 @@
           v-if="tripStore.currentTrip.isPublic === 1" 
           class="tool-btn unpublish-btn" 
           @click="handleUnpublish"
-          title="从广场下架，仅自己可见"
         >
           🔒 设为私密
         </button>
@@ -47,9 +60,6 @@
       </div>
     </header>
 
-     <div class="workbench-container" v-if="tripStore.currentTrip">
-    <!-- ... 顶部导航保持不变 ... -->
-
     <div class="workbench-layout">
       <!-- 1. 左侧栏：天数选择、AI寄语与气象感知 -->
       <aside class="sidebar-card">
@@ -58,31 +68,10 @@
           <p>{{ tripStore.currentTrip.summary }}</p>
         </div>
 
-        <!-- 【核心挂载】：目的地气象感知与出行预警看板 -->
         <WeatherWidget 
           :destination="tripStore.currentTrip.destination" 
           :startDate="tripStore.currentTrip.startDate" 
         />
-
-        <div class="days-menu">
-          <h4>📅 行程天数日程 (共 {{ tripStore.currentTrip.days ? tripStore.currentTrip.days.length : 0 }} 天)</h4>
-          <!-- ... 保持原有天数列表与添加按钮不变 ... -->
-        </div>
-      </aside>
-
-      <!-- ... 中间时间轴与右侧地图保持完全不变 ... -->
-    </div>
-
-    <!-- ... 弹窗区域保持完全不变 ... -->
-  </div>
-
-    <div class="workbench-layout">
-      <!-- 1. 左侧栏：天数选择与行程概览 -->
-      <aside class="sidebar-card">
-        <div class="summary-box">
-          <h4>💡 AI 行程寄语</h4>
-          <p>{{ tripStore.currentTrip.summary }}</p>
-        </div>
 
         <div class="days-menu">
           <h4>📅 行程天数日程 (共 {{ tripStore.currentTrip.days ? tripStore.currentTrip.days.length : 0 }} 天)</h4>
@@ -145,30 +134,49 @@
               <div class="dot-indicator"></div>
             </div>
 
-            <div class="node-card">
-              <div class="card-top">
-                <div class="name-box">
-                  <span class="drag-handle" title="按住拖拽调整顺序">⠿</span>
-                  <span class="index-badge">#{{ index + 1 }}</span>
-                  <span :class="['type-tag', (item.itemType || 'scenic').toLowerCase()]">
-                    {{ getItemTypeLabel(item.itemType) }}
-                  </span>
-                  <h4>{{ item.itemName }}</h4>
-                </div>
-                <div class="card-actions">
-                  <button class="edit-btn" @click.stop="openEditModal(item)">✏️ 编辑</button>
-                  <button class="del-btn" @click.stop="handleDeleteItem(item.id)">🗑️ 删除</button>
-                </div>
+            <!-- 图文复合卡片 -->
+            <div class="node-rich-card">
+              <div class="card-cover-wrapper">
+                <img 
+                  :src="item.coverImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80'" 
+                  :alt="item.itemName" 
+                  class="cover-thumb"
+                  loading="lazy"
+                  @error="$event.target.src = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80'"
+                />
+                <span class="rating-overlay-badge">
+                  ⭐ {{ item.rating || 4.8 }}
+                </span>
               </div>
 
-              <div class="card-meta">
-                <span>⏱️ 建议耗时: {{ item.costTimeHours }} 小时</span>
-                <span>💵 预估花费: ￥{{ item.costEstimate }}</span>
-                <span v-if="item.transportTips">🚗 {{ item.transportTips }}</span>
-              </div>
+              <div class="card-body-content">
+                <div class="card-top">
+                  <div class="name-box">
+                    <span class="drag-handle" title="按住拖拽调整顺序">⠿</span>
+                    <span class="index-badge">#{{ index + 1 }}</span>
+                    <span :class="['type-tag', (item.itemType || 'scenic').toLowerCase()]">
+                      {{ getItemTypeLabel(item.itemType) }}
+                    </span>
+                    <h4 :title="item.itemName">{{ item.itemName }}</h4>
+                  </div>
+                  <div class="card-actions">
+                    <button class="quick-expense-btn" @click.stop="handleQuickExpense(item)" title="快捷录入为实际开销">
+                      💳 转记账
+                    </button>
+                    <button class="edit-btn" @click.stop="openEditModal(item)">✏️ 编辑</button>
+                    <button class="del-btn" @click.stop="handleDeleteItem(item.id)">🗑️ 删除</button>
+                  </div>
+                </div>
 
-              <div class="ai-tip-box" v-if="item.aiTips">
-                <strong>💡 游玩/避坑小贴士：</strong>{{ item.aiTips }}
+                <div class="card-meta">
+                  <span>⏱️ 游玩: {{ item.costTimeHours }}h</span>
+                  <span>💵 预估: ￥{{ item.costEstimate }}</span>
+                  <span v-if="item.transportTips" class="transport-text">🚗 {{ item.transportTips }}</span>
+                </div>
+
+                <div class="ai-tip-box" v-if="item.aiTips">
+                  <strong>💡 避坑贴士：</strong>{{ item.aiTips }}
+                </div>
               </div>
             </div>
           </div>
@@ -185,7 +193,7 @@
         </div>
       </main>
 
-      <!-- 3. 【核心新增】：右侧分栏交互式可视化地图 -->
+      <!-- 3. 右侧分栏交互式地图 -->
       <section class="map-section" v-if="tripStore.currentDayData">
         <TripMapView 
           :items="tripStore.currentDayData.items || []" 
@@ -195,15 +203,29 @@
         />
       </section>
     </div>
-    
-<ExportModal 
-  :tripId="tripStore.currentTrip.id" 
-  :visible="isExportOpen" 
-  @close="isExportOpen = false" 
-  v-if="isExportOpen" 
-/>
 
-    <!-- 弹窗 1：手动新增节点卡片 -->
+    <!-- 弹窗组 -->
+    <MemberInviteModal 
+      :tripId="tripStore.currentTrip.id" 
+      :visible="isInviteModalOpen" 
+      @close="isInviteModalOpen = false" 
+      @member-changed="handleMemberChanged"
+      v-if="isInviteModalOpen" 
+    />
+
+    <ExpenseModal 
+      :tripId="tripStore.currentTrip.id" 
+      :visible="isExpenseOpen" 
+      :prefillData="expensePrefill"
+      :membersCount="membersList.length"
+      @close="handleCloseExpense" 
+      v-if="isExpenseOpen" 
+    />
+
+    <PackingModal :tripId="tripStore.currentTrip.id" :visible="isPackingOpen" @close="isPackingOpen = false" v-if="isPackingOpen" />
+    <ExportModal :tripId="tripStore.currentTrip.id" :visible="isExportOpen" @close="isExportOpen = false" v-if="isExportOpen" />
+
+    <!-- 模态表单 -->
     <div class="modal-mask" v-if="isAddModalOpen">
       <div class="modal-box">
         <h3>➕ 添加日程活动卡片 (Day {{ tripStore.activeDayIndex }})</h3>
@@ -246,7 +268,7 @@
 
           <div class="form-group">
             <label>游玩/避坑小贴士</label>
-            <textarea rows="2" v-model="addForm.aiTips" placeholder="如：提前在公众号实名预约，避开周末排队高峰..."></textarea>
+            <textarea rows="2" v-model="addForm.aiTips" placeholder="如：提前在公众号实名预约..."></textarea>
           </div>
 
           <div class="modal-actions">
@@ -255,19 +277,10 @@
               {{ isSubmitting ? '正在保存...' : '立即添加' }}
             </button>
           </div>
-          <div class="card-actions">
-                  <!-- 【新增】：单卡片快捷转记账按钮 -->
-                  <button class="quick-expense-btn" @click.stop="handleQuickExpense(item)" title="快捷录入为实际开销">
-                    💳 转记账
-                  </button>
-                  <button class="edit-btn" @click.stop="openEditModal(item)">✏️ 编辑</button>
-                  <button class="del-btn" @click.stop="handleDeleteItem(item.id)">🗑️ 删除</button>
-                </div>
         </form>
       </div>
     </div>
 
-    <!-- 弹窗 2：编辑节点卡片 -->
     <div class="modal-mask" v-if="isEditModalOpen">
       <div class="modal-box">
         <h3>✏️ 编辑行程节点</h3>
@@ -302,13 +315,12 @@
       </div>
     </div>
 
-    <!-- 弹窗 3：AI 智能二次调整 -->
     <div class="modal-mask" v-if="isAIModalOpen">
       <div class="modal-box ai-box">
         <h3>✨ 告诉 AI 你想如何调整 Day {{ tripStore.activeDayIndex }}</h3>
         <p class="sub-tip">AI 将在当前行程基础上进行增量微调并自动重新计算时间线</p>
         <div class="ai-input-group">
-          <textarea rows="4" v-model="modifyRequirement" placeholder="如：起晚一点，11点再出发；把下午换成特色茶馆；或者晚上加个夜景观光..."></textarea>
+          <textarea rows="4" v-model="modifyRequirement" placeholder="如：起晚一点，11点再出发；把下午换成特色茶馆..."></textarea>
         </div>
         <div class="modal-actions">
           <button class="cancel-btn" @click="isAIModalOpen = false">取消</button>
@@ -318,16 +330,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 工具箱弹窗挂载 -->
-<ExpenseModal 
-  :tripId="tripStore.currentTrip.id" 
-  :visible="isExpenseOpen" 
-  :prefillData="expensePrefill"
-  @close="handleCloseExpense" 
-  v-if="isExpenseOpen" 
-/>
-    <PackingModal :tripId="tripStore.currentTrip.id" :visible="isPackingOpen" @close="isPackingOpen = false" v-if="isPackingOpen" />
   </div>
 
   <div class="loading-state" v-else>
@@ -336,7 +338,6 @@
 </template>
 
 <script setup>
-import WeatherWidget from '@/components/WeatherWidget.vue'
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTripStore } from '@/stores/trip'
@@ -348,66 +349,16 @@ import {
   deleteTripDayApi,
   reorderTripItemsApi 
 } from '@/api/trip'
+import { publishTripApi, unpublishTripApi } from '@/api/square'
+import { getTripMembersApi } from '@/api/member'
 import request from '@/utils/request'
 import ExpenseModal from '@/components/ExpenseModal.vue'
 import PackingModal from '@/components/PackingModal.vue'
-import TripMapView from '@/components/TripMapView.vue'
 import ExportModal from '@/components/ExportModal.vue'
-import { publishTripApi, unpublishTripApi } from '@/api/square'
+import TripMapView from '@/components/TripMapView.vue'
+import WeatherWidget from '@/components/WeatherWidget.vue'
+import MemberInviteModal from '@/components/MemberInviteModal.vue'
 
-// 发布或同步最新快照到广场
-const handlePublishOrSync = async () => {
-  const isSync = tripStore.currentTrip.isPublic === 1
-  const actionText = isSync ? '覆盖同步最新修改至广场公开快照' : '发布当前行程至探索广场'
-  
-  if (!confirm(`确定要将当前行程【${actionText}】吗？`)) return
-
-  try {
-    await publishTripApi(tripStore.currentTrip.id)
-    tripStore.currentTrip.isPublic = 1
-    alert(`🎉 ${isSync ? '同步成功！广场公开展示已更新为最新版本！' : '发布成功！已在探索广场公开展示！'}`)
-  } catch (err) {
-    console.error('发布/同步失败:', err)
-  }
-}
-
-// 设为私密 (下架)
-const handleUnpublish = async () => {
-  if (!confirm('确定要将该行程从广场下架设为私密吗？下架后其他用户将无法在广场看到或克隆此行程。')) return
-  try {
-    await unpublishTripApi(tripStore.currentTrip.id)
-    tripStore.currentTrip.isPublic = 0
-    alert('🔒 已成功从广场下架，当前行程已转为私密状态！')
-  } catch (err) {
-    console.error('下架失败:', err)
-  }
-}
-
-const expensePrefill = ref(null)
-
-const handleQuickExpense = (item) => {
-  // 类型映射
-  const catMap = {
-    SCENIC: 'TICKET',
-    FOOD: 'CATERING',
-    HOTEL: 'HOTEL',
-    TRAFFIC: 'TRAFFIC'
-  }
-  
-  expensePrefill.value = {
-    category: catMap[item.itemType] || 'OTHER',
-    amount: item.costEstimate || 0,
-    expenseName: item.itemName
-  }
-  isExpenseOpen.value = true
-}
-
-const handleCloseExpense = () => {
-  isExpenseOpen.value = false
-  expensePrefill.value = null // 清空预填缓存
-}
-
-const isExportOpen = ref(false)
 const route = useRoute()
 const router = useRouter()
 const tripStore = useTripStore()
@@ -418,10 +369,14 @@ const isEditModalOpen = ref(false)
 const isAIModalOpen = ref(false)
 const isExpenseOpen = ref(false)
 const isPackingOpen = ref(false)
+const isExportOpen = ref(false)
+const isInviteModalOpen = ref(false)
 const isSubmitting = ref(false)
 const isModifying = ref(false)
 const isDayOperating = ref(false)
 const modifyRequirement = ref('')
+const expensePrefill = ref(null)
+const membersList = ref([])
 
 // 地图联动高亮 ID
 const activeMapItemId = ref(null)
@@ -450,46 +405,87 @@ const editForm = reactive({
   aiTips: ''
 })
 
+const fetchMembers = async () => {
+  const tripId = route.params.tripId || 200501
+  try {
+    const res = await getTripMembersApi(tripId)
+    membersList.value = res.data || []
+  } catch (e) {
+    console.error('拉取成员失败:', e)
+  }
+}
+
 onMounted(async () => {
   const tripId = route.params.tripId || 200501
   try {
     await tripStore.fetchTripDetail(tripId)
+    await fetchMembers()
   } catch (err) {
     console.error('加载路书失败或被权限拦截:', err)
-    // 403 或 404 越权访问时，平滑重定向回首页
     router.replace('/')
   }
 })
 
+const handleMemberChanged = (newList) => {
+  membersList.value = newList
+}
+
 const getItemTypeLabel = (type) => {
-  const map = {
-    SCENIC: '🏞️ 景点',
-    FOOD: '🍜 美食',
-    HOTEL: '🏨 住宿',
-    TRAFFIC: '✈️ 交通'
-  }
+  const map = { SCENIC: '🏞️ 景点', FOOD: '🍜 美食', HOTEL: '🏨 住宿', TRAFFIC: '✈️ 交通' }
   return map[type] || '📍 活动'
 }
 
-// -----------------------------------------------------------------------------
-// 地图与时间轴双向联动
-// -----------------------------------------------------------------------------
 const handleCardClick = (itemId) => {
   activeMapItemId.value = itemId
 }
 
 const handleMapItemSelect = (itemId) => {
   activeMapItemId.value = itemId
-  // 顺滑滚动到左侧对应的卡片节点
   const el = document.getElementById('timeline-node-' + itemId)
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 }
 
-// -----------------------------------------------------------------------------
-// HTML5 拖拽排序
-// -----------------------------------------------------------------------------
+const handleQuickExpense = (item) => {
+  const catMap = { SCENIC: 'TICKET', FOOD: 'CATERING', HOTEL: 'HOTEL', TRAFFIC: 'TRAFFIC' }
+  expensePrefill.value = {
+    category: catMap[item.itemType] || 'OTHER',
+    amount: item.costEstimate || 0,
+    expenseName: item.itemName
+  }
+  isExpenseOpen.value = true
+}
+
+const handleCloseExpense = () => {
+  isExpenseOpen.value = false
+  expensePrefill.value = null
+}
+
+const handlePublishOrSync = async () => {
+  const isSync = tripStore.currentTrip.isPublic === 1
+  const actionText = isSync ? '覆盖同步最新修改至广场公开快照' : '发布当前行程至探索广场'
+  if (!confirm(`确定要将当前行程【${actionText}】吗？`)) return
+  try {
+    await publishTripApi(tripStore.currentTrip.id)
+    tripStore.currentTrip.isPublic = 1
+    alert(`🎉 ${isSync ? '同步成功！' : '发布成功！'}`)
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const handleUnpublish = async () => {
+  if (!confirm('确定要将该行程从广场下架设为私密吗？')) return
+  try {
+    await unpublishTripApi(tripStore.currentTrip.id)
+    tripStore.currentTrip.isPublic = 0
+    alert('🔒 已成功从广场下架！')
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 const handleDragStart = (index, event) => {
   draggedIndex.value = index
   event.dataTransfer.effectAllowed = 'move'
@@ -503,16 +499,12 @@ const handleDragOver = (index) => {
 }
 
 const handleDragLeave = (index) => {
-  if (dragOverIndex.value === index) {
-    dragOverIndex.value = null
-  }
+  if (dragOverIndex.value === index) dragOverIndex.value = null
 }
 
 const handleDrop = async (targetIndex) => {
   const sourceIndex = draggedIndex.value
-  if (sourceIndex === null || sourceIndex === targetIndex) {
-    return handleDragEnd()
-  }
+  if (sourceIndex === null || sourceIndex === targetIndex) return handleDragEnd()
 
   const items = tripStore.currentDayData.items
   const [movedItem] = items.splice(sourceIndex, 1)
@@ -520,16 +512,13 @@ const handleDrop = async (targetIndex) => {
 
   const sortPayload = items.map((item, idx) => {
     item.sortOrder = idx + 1
-    return {
-      itemId: item.id,
-      sortOrder: idx + 1
-    }
+    return { itemId: item.id, sortOrder: idx + 1 }
   })
 
   try {
     await reorderTripItemsApi(sortPayload)
   } catch (error) {
-    console.error('保存拖拽排序失败:', error)
+    console.error('排序失败:', error)
   } finally {
     handleDragEnd()
   }
@@ -540,18 +529,12 @@ const handleDragEnd = () => {
   dragOverIndex.value = null
 }
 
-// -----------------------------------------------------------------------------
-// 天数动态管理
-// -----------------------------------------------------------------------------
 const handleAddDay = async () => {
   isDayOperating.value = true
   try {
     const res = await addTripDayApi({ tripId: tripStore.currentTrip.id })
     const newDay = res.data
-
-    if (!tripStore.currentTrip.days) {
-      tripStore.currentTrip.days = []
-    }
+    if (!tripStore.currentTrip.days) tripStore.currentTrip.days = []
     tripStore.currentTrip.days.push({
       id: newDay.id,
       tripId: newDay.tripId,
@@ -562,7 +545,7 @@ const handleAddDay = async () => {
     tripStore.currentTrip.totalDays = tripStore.currentTrip.days.length
     tripStore.activeDayIndex = newDay.dayIndex
   } catch (error) {
-    console.error('增加天数失败:', error)
+    console.error(error)
   } finally {
     isDayOperating.value = false
   }
@@ -571,10 +554,7 @@ const handleAddDay = async () => {
 const handleDeleteCurrentDay = async () => {
   const currentDay = tripStore.currentDayData
   if (!currentDay) return
-
-  const confirmMsg = `⚠️ 确定要删除【Day ${currentDay.dayIndex}：${currentDay.dayTheme}】吗？\n当天的所有景点活动卡片也将被一并清除！`
-  if (!confirm(confirmMsg)) return
-
+  if (!confirm(`⚠️ 确定要删除【Day ${currentDay.dayIndex}】吗？`)) return
   isDayOperating.value = true
   try {
     await deleteTripDayApi(currentDay.id)
@@ -582,17 +562,13 @@ const handleDeleteCurrentDay = async () => {
     if (tripStore.activeDayIndex > tripStore.currentTrip.days.length) {
       tripStore.activeDayIndex = tripStore.currentTrip.days.length
     }
-    alert('已成功删除当天日程！')
   } catch (error) {
-    console.error('删除天数失败:', error)
+    console.error(error)
   } finally {
     isDayOperating.value = false
   }
 }
 
-// -----------------------------------------------------------------------------
-// 卡片增/删/改/AI微调
-// -----------------------------------------------------------------------------
 const openAddModal = () => {
   addForm.itemName = ''
   addForm.itemType = 'SCENIC'
@@ -606,7 +582,6 @@ const openAddModal = () => {
 
 const handleSaveNewItem = async () => {
   if (!addForm.itemName) return alert('请输入活动或地点名称！')
-
   isSubmitting.value = true
   try {
     const payload = {
@@ -620,22 +595,16 @@ const handleSaveNewItem = async () => {
       transportTips: addForm.transportTips,
       aiTips: addForm.aiTips
     }
-
     const res = await addTripItemApi(payload)
     const newItem = res.data
-
-    if (!tripStore.currentDayData.items) {
-      tripStore.currentDayData.items = []
-    }
+    if (!tripStore.currentDayData.items) tripStore.currentDayData.items = []
     tripStore.currentDayData.items.push(newItem)
-
     tripStore.currentTrip.totalBudget = (
       Number(tripStore.currentTrip.totalBudget || 0) + Number(newItem.costEstimate || 0)
     ).toFixed(2)
-
     isAddModalOpen.value = false
   } catch (error) {
-    console.error('新增卡片失败:', error)
+    console.error(error)
   } finally {
     isSubmitting.value = false
   }
@@ -658,24 +627,19 @@ const handleSaveEditItem = async () => {
     await tripStore.fetchTripDetail(tripStore.currentTrip.id)
     isEditModalOpen.value = false
   } catch (error) {
-    console.error('更新失败:', error)
+    console.error(error)
   }
 }
 
 const handleDeleteItem = async (itemId) => {
   if (!confirm('确定要删除该日程卡片吗？')) return
   try {
-    await request({
-      url: `/api/trip/item/${itemId}`,
-      method: 'DELETE'
-    })
+    await request({ url: `/api/trip/item/${itemId}`, method: 'DELETE' })
     const idx = tripStore.currentDayData.items.findIndex(i => i.id === itemId)
-    if (idx !== -1) {
-      tripStore.currentDayData.items.splice(idx, 1)
-    }
+    if (idx !== -1) tripStore.currentDayData.items.splice(idx, 1)
     await tripStore.fetchTripDetail(tripStore.currentTrip.id)
   } catch (error) {
-    console.error('删除失败:', error)
+    console.error(error)
   }
 }
 
@@ -691,7 +655,6 @@ const handleAIModify = async () => {
     isAIModalOpen.value = false
     modifyRequirement.value = ''
     await tripStore.fetchTripDetail(tripStore.currentTrip.id)
-    alert('🎉 AI 增量微调完成！时间轴已更新！')
   } catch (e) {
     console.error(e)
   } finally {
@@ -701,63 +664,6 @@ const handleAIModify = async () => {
 </script>
 
 <style scoped>
-
-.public-status-badge {
-  font-size: 11px;
-  color: #059669;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.publish-btn {
-  background: #059669;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.publish-btn:hover {
-  background: #047857;
-}
-
-.sync-btn {
-  background: #eff6ff;
-  color: #2563eb;
-  border-color: #bfdbfe;
-}
-.sync-btn:hover {
-  background: #dbeafe;
-}
-
-.unpublish-btn {
-  background: #fff1f2;
-  color: #e11d48;
-  border-color: #fecdd3;
-}
-.unpublish-btn:hover {
-  background: #ffe4e6;
-}
-
-.quick-expense-btn {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.quick-expense-btn:hover {
-  background: #dcfce7;
-}
-
 .workbench-container {
   min-height: 100vh;
   background-color: #f1f5f9;
@@ -769,9 +675,9 @@ const handleAIModify = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 32px;
+  padding: 14px 32px;
   background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .nav-left {
@@ -805,11 +711,78 @@ const handleAIModify = async () => {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+/* 协作者头像重叠堆叠栏 (Avatar Stack) */
+.collaborator-avatar-stack {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.collaborator-avatar-stack:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.avatar-stack-imgs {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid white;
+  overflow: hidden;
+  background: #cbd5e1;
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-count-tag {
+  font-size: 11px;
+  color: #475569;
+  font-weight: bold;
+  margin-left: 6px;
+}
+
+.invite-trigger-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+.public-status-badge {
+  font-size: 11px;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
 }
 
 .budget-tag {
-  font-size: 14px;
+  font-size: 13px;
   color: #059669;
   font-weight: bold;
 }
@@ -818,23 +791,47 @@ const handleAIModify = async () => {
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
   color: #334155;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
+  font-size: 12px;
+}
+
+.publish-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.sync-btn {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.unpublish-btn {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fecdd3;
 }
 
 .ai-modify-btn {
   background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
+  font-size: 12px;
 }
 
-/* 三栏/自适应响应式布局 */
 .workbench-layout {
   display: grid;
   grid-template-columns: 260px 1fr 420px;
@@ -970,7 +967,7 @@ const handleAIModify = async () => {
   cursor: pointer;
 }
 
-.timeline-node.active-node .node-card {
+.timeline-node.active-node .node-rich-card {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
   background: #f8faff;
@@ -980,7 +977,7 @@ const handleAIModify = async () => {
   opacity: 0.4;
 }
 
-.timeline-node.drag-over .node-card {
+.timeline-node.drag-over .node-rich-card {
   border: 2px dashed #3b82f6;
   background-color: #eff6ff;
   transform: scale(1.01);
@@ -1009,25 +1006,87 @@ const handleAIModify = async () => {
   box-shadow: 0 0 0 3px #bfdbfe;
 }
 
-.node-card {
-  background: #f8fafc;
+.node-rich-card {
+  display: flex;
+  gap: 14px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.timeline-node:hover .node-rich-card {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+.card-cover-wrapper {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  flex-shrink: 0;
   border-radius: 8px;
-  padding: 14px;
-  transition: all 0.2s;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.cover-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.timeline-node:hover .cover-thumb {
+  transform: scale(1.08);
+}
+
+.rating-overlay-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.card-body-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
 }
 
 .card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .name-box {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.name-box h4 {
+  font-size: 14px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
 }
 
 .drag-handle {
@@ -1062,6 +1121,16 @@ const handleAIModify = async () => {
   gap: 6px;
 }
 
+.quick-expense-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .edit-btn, .del-btn {
   background: transparent;
   border: none;
@@ -1073,16 +1142,24 @@ const handleAIModify = async () => {
 
 .card-meta {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: 11px;
   color: #64748b;
   margin-bottom: 6px;
 }
 
+.transport-text {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ai-tip-box {
   background: #eff6ff;
   border-radius: 6px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   font-size: 11px;
   color: #1e40af;
   line-height: 1.4;
@@ -1115,7 +1192,6 @@ const handleAIModify = async () => {
   cursor: pointer;
 }
 
-/* 地图区域样式 */
 .map-section {
   position: relative;
 }
@@ -1135,7 +1211,7 @@ const handleAIModify = async () => {
   background: white;
   padding: 24px;
   border-radius: 12px;
-  width: 100%;
+  width: 90%;
   max-width: 520px;
 }
 
@@ -1155,9 +1231,7 @@ const handleAIModify = async () => {
   grid-column: span 2;
 }
 
-.required {
-  color: #ef4444;
-}
+.required { color: #ef4444; }
 
 .modal-form label {
   font-size: 12px;
