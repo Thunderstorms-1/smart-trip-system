@@ -124,12 +124,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, nextTick, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useUserStore } from '@/stores/user'
 import { useAIStore } from '@/stores/ai'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const aiStore = useAIStore()
@@ -139,21 +140,40 @@ const terminalBodyRef = ref(null)
 const styles = ['美食探索', '人文古迹', '自然风光', '特种兵打卡', '休闲度假']
 
 const form = reactive({
-  destination: '大理',
-  totalDays: 1,
+  destination: '成都',
+  totalDays: 3,
   startDate: new Date().toISOString().split('T')[0],
-  totalBudget: 500,
-  travelGroup: '独自一人',
-  tripStyle: '自然风光',
-  customRequirements: '想看洱海日落，骑行慢游'
+  totalBudget: 1500,
+  travelGroup: '情侣出行',
+  tripStyle: '美食探索',
+  customRequirements: '想看大熊猫，不想早起，多吃地道辣味'
 })
 
-// 过滤掉给程序看的数据结构，只给用户看优美的自然语言攻略！
+// =========================================================================
+// 【核心新增】：挂载时解析 URL Query 参数并自动回填表单
+// =========================================================================
+onMounted(() => {
+  const query = route.query
+  if (query && Object.keys(query).length > 0) {
+    if (query.destination) form.destination = String(query.destination)
+    if (query.totalDays) form.totalDays = Number(query.totalDays)
+    if (query.tripStyle) form.tripStyle = String(query.tripStyle)
+    if (query.travelGroup) form.travelGroup = String(query.travelGroup)
+    if (query.customRequirements) form.customRequirements = String(query.customRequirements)
+
+    // 若带有 autoStart='true' 且有目的地，可直接自动触发流式生成
+    if (query.autoStart === 'true' && form.destination) {
+      startStreamGenerate()
+    }
+  }
+})
+
+// 纯净文本展示（过滤 json 数据块）
 const cleanMarkdown = (rawText) => {
   if (!rawText) return ''
-  // 正则把 ```json 及其后面的所有内容在展示层剔除
-  return rawText.replace(/```json[\s\S]*$/, '').trim()
+  return rawText.replace(/```(?:json|JSON)?[\s\S]*$/, '').trim()
 }
+
 const startStreamGenerate = async () => {
   aiStore.startGenerating()
   const token = localStorage.getItem('AUTH_TOKEN')
@@ -194,6 +214,10 @@ const startStreamGenerate = async () => {
               aiStore.finishGenerating(finishObj.tripId)
             } catch (e) {}
           } else {
+            // 防污拦截
+            if (rawData.includes('```json') || rawData.includes('itemType') || rawData.includes('costEstimate')) {
+              continue
+            }
             aiStore.appendChunk(rawData)
             nextTick(() => {
               if (terminalBodyRef.value) {
