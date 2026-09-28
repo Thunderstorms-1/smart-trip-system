@@ -16,4 +16,7 @@ public interface TripService {
     // 【新增】：天数动态管理
     TripDayVO addTripDay(Long tripId);
     void deleteTripDay(Long dayId);
+
+    List<TripDetailVO> getMyTrips(Long userId);
+    void deleteTrip(Long tripId, Long currentUserId);
 }

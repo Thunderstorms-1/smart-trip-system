@@ -2,6 +2,7 @@ package com.smarttrip.controller;
 
 import com.smarttrip.common.BusinessException;
 import com.smarttrip.common.Result;
+import com.smarttrip.common.UserContext;
 import com.smarttrip.entity.*;
 import com.smarttrip.service.TripService;
 import lombok.RequiredArgsConstructor;
@@ -81,6 +82,21 @@ public class TripController {
     @PutMapping("/item/reorder")
     public Result<Void> reorderItems(@RequestBody List<ItemSortDTO> sortList) {
         tripService.reorderItems(sortList);
+        return Result.success();
+    }
+
+    // 10. 获取当前登录用户的所有个人行程资产
+    @GetMapping("/my-trips")
+    public Result<List<TripDetailVO>> getMyTrips() {
+        Long currentUserId = UserContext.getUserId();
+        return Result.success(tripService.getMyTrips(currentUserId));
+    }
+
+    // 11. 彻底删除整份行程（级联软删除）
+    @DeleteMapping("/{tripId}")
+    public Result<Void> deleteTrip(@PathVariable Long tripId) {
+        Long currentUserId = UserContext.getUserId();
+        tripService.deleteTrip(tripId, currentUserId);
         return Result.success();
     }
 }

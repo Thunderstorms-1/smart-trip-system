@@ -1,8 +1,6 @@
 package com.smarttrip.mapper;
 
-import com.smarttrip.entity.TripDayVO;
-import com.smarttrip.entity.TripDetailVO;
-import com.smarttrip.entity.TripItem;
+import com.smarttrip.entity.*;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -10,11 +8,38 @@ import java.util.List;
 @Mapper
 public interface TripMapper {
 
-    // 1. 查询路书主表
+    // =========================================================================
+    // 【核心新增 1】：查询指定用户的所有有效个人行程（限定 is_deleted=0，按更新时间倒序）
+    // =========================================================================
+    @Select("SELECT id, user_id AS userId, title, destination, total_days AS totalDays, " +
+            "total_budget AS totalBudget, trip_style AS tripStyle, is_public AS isPublic, " +
+            "create_time AS createTime, update_time AS updateTime " +
+            "FROM trip_plan WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY update_time DESC")
+    List<TripDetailVO> selectTripsByUserId(@Param("userId") Long userId);
+
+    // =========================================================================
+    // 【核心新增 2】：软删除整份路书主表（携带 user_id 双重防越权）
+    // =========================================================================
+    @Update("UPDATE trip_plan SET is_deleted = 1, update_time = NOW() " +
+            "WHERE id = #{tripId} AND user_id = #{userId} AND is_deleted = 0")
+    int softDeleteTripByIdAndUserId(@Param("tripId") Long tripId, @Param("userId") Long userId);
+
+    // =========================================================================
+    // 【核心新增 3】：级联软删除该路书下的所有日程天数
+    // =========================================================================
+    @Update("UPDATE trip_day SET is_deleted = 1, update_time = NOW() WHERE trip_id = #{tripId} AND is_deleted = 0")
+    int softDeleteDaysByTripId(@Param("tripId") Long tripId);
+
+    // =========================================================================
+    // 【核心新增 4】：级联软删除该路书下的所有卡片节点
+    // =========================================================================
+    @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE trip_id = #{tripId} AND is_deleted = 0")
+    int softDeleteItemsByTripId(@Param("tripId") Long tripId);
+
+    // --- 保留已有基础查询与管理方法 ---
     @Select("SELECT * FROM trip_plan WHERE id = #{tripId} AND is_deleted = 0 LIMIT 1")
     TripDetailVO selectTripById(@Param("tripId") Long tripId);
 
-    // 2. 查询未删除的天数列表
     @Select("SELECT * FROM trip_day WHERE trip_id = #{tripId} AND is_deleted = 0 ORDER BY day_index ASC")
     List<TripDayVO> selectDaysByTripId(@Param("tripId") Long tripId);
 
@@ -35,21 +60,20 @@ public interface TripMapper {
     @Update("UPDATE trip_day SET is_deleted = 1, update_time = NOW() WHERE id = #{dayId} AND is_deleted = 0")
     int softDeleteDayById(@Param("dayId") Long dayId);
 
-    @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE day_id = #{dayId} AND is_deleted = 0")
-    int softDeleteItemsByDayId(@Param("dayId") Long dayId);
-
     @Update("UPDATE trip_day SET day_index = #{dayIndex}, update_time = NOW() WHERE id = #{dayId}")
     int updateDayIndex(@Param("dayId") Long dayId, @Param("dayIndex") Integer dayIndex);
 
     @Update("UPDATE trip_plan SET total_days = #{totalDays}, update_time = NOW() WHERE id = #{tripId}")
     int updateTripTotalDays(@Param("tripId") Long tripId, @Param("totalDays") Integer totalDays);
 
-    // 3. 严格按排序号升序排布卡片
     @Select("SELECT * FROM trip_item WHERE day_id = #{dayId} AND is_deleted = 0 ORDER BY sort_order ASC, start_time ASC")
     List<TripItem> selectItemsByDayId(@Param("dayId") Long dayId);
 
     @Select("SELECT * FROM trip_item WHERE id = #{itemId} LIMIT 1")
     TripItem selectItemById(@Param("itemId") Long itemId);
+
+    @Select("SELECT * FROM trip_item WHERE trip_id = #{tripId} AND is_deleted = 0 AND cost_estimate > 0 ORDER BY sort_order ASC")
+    List<TripItem> selectCostItemsByTripId(@Param("tripId") Long tripId);
 
     @Select("SELECT COALESCE(MAX(sort_order), 0) FROM trip_item WHERE day_id = #{dayId} AND is_deleted = 0")
     int selectMaxSortOrderByDayId(@Param("dayId") Long dayId);
@@ -69,8 +93,7 @@ public interface TripMapper {
     @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE id = #{itemId} AND is_deleted = 0")
     int softDeleteItemById(@Param("itemId") Long itemId);
 
-    // 4. 【排序核心】：更新单个卡片的 sort_order
-    @Update("UPDATE trip_item SET sort_order = #{sortOrder}, update_time = NOW() WHERE id = #{itemId} AND is_deleted = 0")
+    @Update("UPDATE trip_item SET sort_order = #{sortOrder}, update_time = NOW() WHERE id = #{itemId}")
     int updateItemSortOrder(@Param("itemId") Long itemId, @Param("sortOrder") Integer sortOrder);
 
     @Delete("DELETE FROM trip_item WHERE day_id = #{dayId}")
@@ -83,7 +106,6 @@ public interface TripMapper {
             "), update_time = NOW() WHERE id = #{tripId} AND is_deleted = 0")
     int recalculateAndSyncTotalCost(@Param("tripId") Long tripId);
 
-    // 查询某行程下所有未删除且有预估花费 (> 0) 的卡片
-    @Select("SELECT * FROM trip_item WHERE trip_id = #{tripId} AND is_deleted = 0 AND cost_estimate > 0 ORDER BY sort_order ASC")
-    List<TripItem> selectCostItemsByTripId(@Param("tripId") Long tripId);
+    @Update("UPDATE trip_item SET is_deleted = 1, update_time = NOW() WHERE day_id = #{dayId} AND is_deleted = 0")
+    int softDeleteItemsByDayId(@Param("dayId") Long dayId);
 }

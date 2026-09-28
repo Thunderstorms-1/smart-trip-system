@@ -99,6 +99,45 @@ public class TripServiceImpl implements TripService {
     /**
      * 查询行程详情（已加固：私密行程防偷窥）
      */
+
+    /**
+     * 查询指定登录用户的所有个人行程资产
+     */
+    @Override
+    public List<TripDetailVO> getMyTrips(Long userId) {
+        if (userId == null) {
+            return new ArrayList<>();
+        }
+        List<TripDetailVO> list = tripMapper.selectTripsByUserId(userId);
+        log.info("查询用户 [{}] 个人行程资产完成, 数量={}", userId, list != null ? list.size() : 0);
+        return list != null ? list : new ArrayList<>();
+    }
+
+    /**
+     * 级联软删除整份路书（双重防越权 + 事务原子级联清理）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteTrip(Long tripId, Long currentUserId) {
+        if (tripId == null || currentUserId == null) {
+            throw new BusinessException(400, "参数错误，无法删除行程");
+        }
+        log.info("用户 [{}] 执行级联删除整份行程: tripId={}", currentUserId, tripId);
+
+        // 1. 软删除主表（携带 user_id 防越权）
+        int affectedRows = tripMapper.softDeleteTripByIdAndUserId(tripId, currentUserId);
+        if (affectedRows == 0) {
+            log.warn("【删除行程拦截】用户 [{}] 试图删除不存在或非本人的行程 [{}]", currentUserId, tripId);
+            throw new BusinessException(403, "无权删除该行程或该行程不存在");
+        }
+
+        // 2. 级联软删除天数表与卡片节点表
+        tripMapper.softDeleteDaysByTripId(tripId);
+        tripMapper.softDeleteItemsByTripId(tripId);
+
+        log.info("用户 [{}] 成功级联软删除整份行程 [{}] 及其关联天数和卡片", currentUserId, tripId);
+    }
+
     @Override
     public TripDetailVO getTripDetail(Long tripId) {
         Long currentUserId = UserContext.getUserId();

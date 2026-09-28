@@ -61,6 +61,22 @@ export function reorderTripItemsApi(sortList) {
   })
 }
 
+// 8. 获取当前登录用户的所有个人行程资产
+export function getMyTripsApi() {
+  return request({
+    url: '/api/trip/my-trips',
+    method: 'GET'
+  })
+}
+
+// 9. 级联删除整份行程
+export function deleteTripApi(tripId) {
+  return request({
+    url: `/api/trip/${tripId}`,
+    method: 'DELETE'
+  })
+}
+
 // AI 智能二次微调路书
 export function modifyTripByAIApi(data) {
   return request({
