@@ -1,19 +1,5 @@
-<template>
-  <RouterView />
-</template>
-
-<script setup>
-import { RouterView } from 'vue-router'
+<script setup lang="ts">
+import Shell from "./features/Shell.vue";
+import "./features/design.css";
 </script>
-
-<style>
-/* 全局重置样式 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-body {
-  margin: 0;
-}
-</style>
+<template><Shell /></template>
