@@ -1,9 +1,11 @@
 {
-  "dependencies": {
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.1",
-    "leaflet": "^1.9.4",
-    "marked": "^18.0.11",
-    "qrcode.vue": "^3.11.0"
+  "name": "smarttrip",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix smart-trip-frontend run dev",
+    "build": "npm --prefix smart-trip-frontend run build",
+    "typecheck": "npm --prefix smart-trip-frontend run typecheck",
+    "test": "npm --prefix smart-trip-frontend run test",
+    "e2e": "npm --prefix smart-trip-frontend run e2e"
   }
 }
