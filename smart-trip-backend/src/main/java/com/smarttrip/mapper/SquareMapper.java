@@ -9,8 +9,25 @@ import java.util.List;
 public interface SquareMapper {
 
     // =========================================================================
-    // 1. 广场检索与分页（全面切换至 square_post 独立快照表，解耦草稿数据）
+    // 【核心新增】：从数据库动态拉取官方精选推荐路线 (命中 idx_featured_del 联合索引)
     // =========================================================================
+    @Select("SELECT " +
+            "   p.id, " +
+            "   p.title, " +
+            "   p.destination, " +
+            "   p.total_days AS totalDays, " +
+            "   p.total_budget AS totalBudget, " +
+            "   p.trip_style AS tripStyle, " +
+            "   p.cover_image AS coverImage, " +
+            "   p.summary AS highlightDesc, " +
+            "   p.clone_count AS cloneCount, " +
+            "   CONCAT('🎯 ', p.trip_style) AS themeTag " +
+            "FROM trip_plan p " +
+            "WHERE p.is_featured = 1 AND p.is_deleted = 0 " +
+            "ORDER BY p.like_count DESC, p.create_time DESC")
+    List<FeaturedThemeVO> selectFeaturedThemedTrips();
+
+    // --- 保留已有广场快照检索与克隆核心方法 ---
     @Select("<script>" +
             "SELECT COUNT(*) FROM square_post p " +
             "WHERE p.is_deleted = 0 " +
@@ -63,9 +80,6 @@ public interface SquareMapper {
             "</script>")
     List<SquareTripVO> selectSquareTripsPaged(@Param("q") SquareQueryDTO query, @Param("offset") int offset);
 
-    // =========================================================================
-    // 2. 快照持久化、覆盖同步与下架
-    // =========================================================================
     @Select("SELECT * FROM square_post WHERE trip_id = #{tripId} LIMIT 1")
     SquarePost selectPostByTripId(@Param("tripId") Long tripId);
 
@@ -95,9 +109,6 @@ public interface SquareMapper {
     @Update("UPDATE square_post SET clone_count = clone_count + 1 WHERE id = #{postId}")
     int incrementPostCloneCount(@Param("postId") Long postId);
 
-    // =========================================================================
-    // 3. 克隆与基础写入方法（保留）
-    // =========================================================================
     @Insert("INSERT INTO trip_plan (user_id, title, destination, total_days, total_budget, trip_style, travel_group, summary, is_public, is_ai_generated) " +
             "VALUES (#{userId}, #{title}, #{destination}, #{totalDays}, #{totalBudget}, #{tripStyle}, #{travelGroup}, #{summary}, 0, 0)")
     @Options(useGeneratedKeys = true, keyProperty = "id")

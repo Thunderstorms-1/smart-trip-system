@@ -3,12 +3,14 @@ package com.smarttrip.controller;
 import com.smarttrip.common.PageResult;
 import com.smarttrip.common.Result;
 import com.smarttrip.common.UserContext;
+import com.smarttrip.entity.FeaturedThemeVO;
 import com.smarttrip.entity.SquareQueryDTO;
 import com.smarttrip.entity.SquareTripVO;
 import com.smarttrip.service.SquareService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,5 +49,17 @@ public class SquareController {
         Long currentUserId = UserContext.getUserId();
         Long newTripId = squareService.cloneFromSnapshot(squarePostId, currentUserId);
         return Result.success(Map.of("newTripId", newTripId, "message", "克隆成功"));
+    }
+
+    // 5. 【核心端点】：获取官方精选主题模板库 (动态查库，支持运营热更新)
+    @GetMapping("/featured-templates")
+    public Result<List<FeaturedThemeVO>> getFeaturedTemplates() {
+        return Result.success(squareService.getFeaturedThemedTrips());
+    }
+
+    // 兼容老路径别名
+    @GetMapping("/featured")
+    public Result<List<FeaturedThemeVO>> getFeaturedThemesLegacy() {
+        return Result.success(squareService.getFeaturedThemedTrips());
     }
 }

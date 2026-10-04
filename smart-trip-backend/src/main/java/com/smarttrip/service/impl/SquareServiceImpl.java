@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -28,6 +28,15 @@ public class SquareServiceImpl implements SquareService {
     private final TripService tripService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 【彻底去硬编码重构】：直接从 MySQL 动态拉取 is_featured=1 的官方精选路线
+     */
+    @Override
+    public List<FeaturedThemeVO> getFeaturedThemedTrips() {
+        log.info("【动态精选模板拉取】正在从 MySQL 查询 is_featured=1 的官方精选路线资产");
+        List<FeaturedThemeVO> list = squareMapper.selectFeaturedThemedTrips();
+        return list != null ? list : Collections.emptyList();
+    }
 
     @Override
     public PageResult<SquareTripVO> searchSquareTrips(SquareQueryDTO query) {
@@ -42,15 +51,10 @@ public class SquareServiceImpl implements SquareService {
         return new PageResult<>(total, query.getPageNum(), query.getPageSize(), list);
     }
 
-    /**
-     * 【核心实现 1】：发布/同步当前行程至广场（生成不可变快照）
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long publishOrSyncTrip(Long tripId, Long currentUserId) {
         log.info("用户 [{}] 执行发布/同步快照至广场: tripId={}", currentUserId, tripId);
-
-        // 1. 权限校验
         TripDetailVO currentTripTree = tripService.getTripDetail(tripId);
         if (!currentTripTree.getUserId().equals(currentUserId)) {
             throw new BusinessException(403, "只能发布或同步属于您自己的行程！");
@@ -60,7 +64,6 @@ public class SquareServiceImpl implements SquareService {
         String authorName = author != null ? author.getNickname() : "旅行探险家";
         String authorAvatar = author != null ? author.getAvatar() : null;
 
-        // 2. 将当前父子数据树（包含天数和全部卡片）序列化为不可变 JSON 快照
         String snapshotJson;
         try {
             snapshotJson = objectMapper.writeValueAsString(currentTripTree);
@@ -69,7 +72,6 @@ public class SquareServiceImpl implements SquareService {
             throw new BusinessException(500, "生成路书快照失败");
         }
 
-        // 3. 构建/更新快照记录
         SquarePost existingPost = squareMapper.selectPostByTripId(tripId);
         SquarePost post = new SquarePost();
         post.setTripId(tripId);
@@ -90,15 +92,11 @@ public class SquareServiceImpl implements SquareService {
             squareMapper.updatePostSnapshot(post);
         }
 
-        // 4. 将源行程标记为公开状态
         squareMapper.updateTripPublicStatus(tripId, 1);
         log.info("路书快照发布/同步成功: tripId={}", tripId);
         return tripId;
     }
 
-    /**
-     * 【核心实现 2】：将行程设为私密（从广场下架快照）
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void unpublishTrip(Long tripId, Long currentUserId) {
@@ -112,22 +110,22 @@ public class SquareServiceImpl implements SquareService {
         log.info("路书已成功从广场下架: tripId={}", tripId);
     }
 
-    /**
-     * 【核心实现 3】：从不可变快照反序列化并一键克隆（彻底解耦源数据）
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long cloneFromSnapshot(Long squarePostId, Long currentUserId) {
         if (currentUserId == null) currentUserId = 1L;
         log.info("用户 [{}] 从广场快照 [{}] 执行一键克隆", currentUserId, squarePostId);
 
-        // 1. 读取快照实体
         SquarePost post = squareMapper.selectPostById(squarePostId);
         if (post == null || post.getSnapshotJson() == null) {
+            // 如果在 square_post 没找到，尝试从 trip_plan 种子库直接克隆
+            TripDetailVO seedTrip = tripMapper.selectTripById(squarePostId);
+            if (seedTrip != null) {
+                return cloneFromPrivateTrip(seedTrip, currentUserId);
+            }
             throw new BusinessException(404, "该公开路书已下架或快照不存在");
         }
 
-        // 2. 反序列化快照为完整的路书树状对象
         TripDetailVO snapshotTree;
         try {
             snapshotTree = objectMapper.readValue(post.getSnapshotJson(), TripDetailVO.class);
@@ -136,14 +134,12 @@ public class SquareServiceImpl implements SquareService {
             throw new BusinessException(500, "解析路书快照失败");
         }
 
-        // 3. 克隆主表
         snapshotTree.setUserId(currentUserId);
         snapshotTree.setTitle(snapshotTree.getTitle() + " (克隆副本)");
-        snapshotTree.setIsPublic(0); // 克隆出的副本默认私有
+        snapshotTree.setIsPublic(0);
         squareMapper.insertCloneTrip(snapshotTree);
         Long newTripId = snapshotTree.getId();
 
-        // 4. 克隆所有天数与卡片
         if (snapshotTree.getDays() != null) {
             for (TripDayVO day : snapshotTree.getDays()) {
                 day.setTripId(newTripId);
@@ -160,9 +156,15 @@ public class SquareServiceImpl implements SquareService {
             }
         }
 
-        // 5. 原发布帖克隆量 +1
         squareMapper.incrementPostCloneCount(squarePostId);
-        log.info("从快照克隆全新路书成功！新 TripId: {}", newTripId);
         return newTripId;
+    }
+
+    private Long cloneFromPrivateTrip(TripDetailVO sourceTrip, Long currentUserId) {
+        sourceTrip.setUserId(currentUserId);
+        sourceTrip.setTitle(sourceTrip.getTitle() + " (克隆副本)");
+        sourceTrip.setIsPublic(0);
+        squareMapper.insertCloneTrip(sourceTrip);
+        return sourceTrip.getId();
     }
 }

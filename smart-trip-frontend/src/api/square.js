@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// 1. 多条件检索与分页查询（新版）
+// 1. 多条件检索与分页查询公开路书
 export function searchSquareTripsApi(data) {
   return request({
     url: '/api/square/search',
@@ -9,7 +9,7 @@ export function searchSquareTripsApi(data) {
   })
 }
 
-// 2. 首页兼容拉取方法（保留 getSquareTripsApi 别名，彻底解决报错！）
+// 2. 兼容老方法
 export function getSquareTripsApi() {
   return request({
     url: '/api/square/search',
@@ -18,7 +18,15 @@ export function getSquareTripsApi() {
   })
 }
 
-// 3. 发布或同步最新快照
+// 3. 【核心更新】：获取官方精选主题模板列表 (动态数据库源)
+export function getFeaturedTripsApi() {
+  return request({
+    url: '/api/square/featured-templates',
+    method: 'GET'
+  })
+}
+
+// 4. 发布或同步最新快照
 export function publishTripApi(tripId) {
   return request({
     url: `/api/square/publish/${tripId}`,
@@ -26,7 +34,7 @@ export function publishTripApi(tripId) {
   })
 }
 
-// 4. 设为私密 (下架)
+// 5. 设为私密 (下架)
 export function unpublishTripApi(tripId) {
   return request({
     url: `/api/square/unpublish/${tripId}`,
@@ -34,7 +42,7 @@ export function unpublishTripApi(tripId) {
   })
 }
 
-// 5. 从快照一键克隆
+// 6. 从快照一键克隆
 export function cloneTripApi(squarePostId) {
   return request({
     url: `/api/square/clone/${squarePostId}`,
