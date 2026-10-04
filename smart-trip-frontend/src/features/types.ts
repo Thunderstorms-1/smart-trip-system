@@ -1,3 +1,16 @@
+export type ItemType = "SCENIC" | "FOOD" | "HOTEL" | "TRAFFIC" | "OTHER";
+export interface PublicAuthor {
+  id: number;
+  nickname: string;
+  avatar?: string;
+  bio?: string;
+  homeCity?: string;
+}
+export interface PostPage {
+  items: Post[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
 export interface Profile {
   id: number;
   username?: string;
@@ -14,7 +27,7 @@ export interface Item {
   id?: number;
   dayId?: number;
   tripId?: number;
-  itemType: string;
+  itemType: ItemType;
   itemName: string;
   startTime?: string;
   costTimeHours?: number;
@@ -85,7 +98,7 @@ export interface Capabilities {
 }
 export interface Task {
   id: string;
-  type: string;
+  type: "GENERATE" | "MODIFY";
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "PREVIEW" | "APPLIED" | "FAILED";
   tripId?: number;
   result?: Trip;

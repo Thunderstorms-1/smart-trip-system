@@ -1,25 +1,37 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import type { Profile, Post } from "./types";
 import { api } from "./api";
-import { useAction } from "./ui";
+import { useLatestQuery } from "./useLatestQuery";
+import type { PublicAuthor, Post, PostPage } from "./types";
 import PostCards from "./PostCards.vue";
 const route = useRoute(),
-  author = ref<Profile>(),
-  posts = ref<Post[]>([]),
-  { busy, error, run } = useAction();
+  author = ref<PublicAuthor>(),
+  posts = ref<Post[]>([]);
+const { loading: busy, error, query } = useLatestQuery();
 watch(
   () => route.params.id,
-  () =>
-    run(async () => {
-      const [a, p] = await Promise.all([
-        api<Profile>("/user/public/" + route.params.id),
-        api<Post[]>("/community/posts?author=" + route.params.id),
-      ]);
-      author.value = a;
-      posts.value = p;
-    }),
+  () => {
+    const id = String(route.params.id);
+    author.value = undefined;
+    posts.value = [];
+    void query(
+      async (signal) =>
+        Promise.all([
+          api<PublicAuthor>("/user/public/" + id, "GET", undefined, signal),
+          api<PostPage>(
+            "/community/posts?author=" + id,
+            "GET",
+            undefined,
+            signal,
+          ),
+        ]),
+      ([a, p]) => {
+        author.value = a;
+        posts.value = p.items;
+      },
+    );
+  },
   { immediate: true },
 );
 </script>

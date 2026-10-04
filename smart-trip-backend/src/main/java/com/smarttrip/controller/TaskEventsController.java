@@ -14,18 +14,26 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class TaskEventsController {
   private final AiTaskStore store;
   private final WorkbenchService trips;
-  private final ScheduledExecutorService events =
-      Executors.newSingleThreadScheduledExecutor(
-          r -> {
-            Thread t = new Thread(r, "task-events");
-            t.setDaemon(true);
-            return t;
-          });
+  private final ScheduledExecutorService events;
   private final AtomicInteger active = new AtomicInteger();
 
+  @org.springframework.beans.factory.annotation.Autowired
   public TaskEventsController(AiTaskStore store, WorkbenchService trips) {
+    this(
+        store,
+        trips,
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "task-events");
+              t.setDaemon(true);
+              return t;
+            }));
+  }
+
+  TaskEventsController(AiTaskStore store, WorkbenchService trips, ScheduledExecutorService events) {
     this.store = store;
     this.trips = trips;
+    this.events = events;
   }
 
   @PreDestroy
@@ -85,6 +93,7 @@ public class TaskEventsController {
             0,
             1,
             TimeUnit.SECONDS));
+    if (closed.get()) future.get().cancel(false);
     return emitter;
   }
 }

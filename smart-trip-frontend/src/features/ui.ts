@@ -1,5 +1,4 @@
 import { ref } from "vue";
-import { ApiError } from "./api";
 export const message = ref("");
 export const severity = ref<"success" | "error">("success");
 let timer: ReturnType<typeof setTimeout>;
@@ -25,11 +24,7 @@ export function useAction() {
       return result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "操作失败，请重试";
-      if (e instanceof ApiError && e.status === 401) {
-        localStorage.removeItem("AUTH_TOKEN");
-        window.dispatchEvent(new Event("smarttrip-session-expired"));
-        notify("登录已过期，请重新登录", "error");
-      } else notify(error.value, "error");
+      notify(error.value, "error");
       return undefined;
     } finally {
       busy.value = false;

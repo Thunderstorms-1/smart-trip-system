@@ -24,7 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     // 配置全局跨域，方便前端 Vue 联调
     registry
         .addMapping("/**")
-        .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        .allowedOriginPatterns("http://localhost:[*]", "http://127.0.0.1:[*]")
         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         .allowedHeaders("*")
         .allowCredentials(false)

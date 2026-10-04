@@ -57,7 +57,10 @@ public class AiTaskStore {
       db.update("UPDATE ai_task SET status='FAILED',error_message='今日免费调用配额已用完' WHERE id=?", id);
       return false;
     }
-    db.update("UPDATE ai_task SET status='RUNNING',quota_reserved=1 WHERE id=?", id);
+    db.update(
+        "UPDATE ai_task SET status='RUNNING',quota_reserved=1,quota_reserved_date=CURRENT_DATE"
+            + " WHERE id=?",
+        id);
     return true;
   }
 
@@ -91,14 +94,18 @@ public class AiTaskStore {
   public void fail(String id, String message) {
     var rows =
         db.queryForList(
-            "SELECT user_id,quota_reserved,status FROM ai_task WHERE id=? FOR UPDATE", id);
+            "SELECT user_id,quota_reserved,quota_reserved_date,status FROM ai_task WHERE id=? FOR"
+                + " UPDATE",
+            id);
     if (rows.isEmpty()) return;
     var t = rows.get(0);
     if (!Set.of("QUEUED", "RUNNING").contains(t.get("status"))) return;
     if (((Number) t.get("quota_reserved")).intValue() == 1)
       db.update(
-          "UPDATE sys_user SET ai_quota_used=GREATEST(ai_quota_used-1,0) WHERE id=?",
-          t.get("user_id"));
+          "UPDATE sys_user SET ai_quota_used=GREATEST(ai_quota_used-1,0) WHERE id=? AND"
+              + " quota_reset_date=?",
+          t.get("user_id"),
+          t.get("quota_reserved_date"));
     db.update(
         "UPDATE ai_task SET status='FAILED',quota_reserved=0,error_message=? WHERE id=?",
         message,

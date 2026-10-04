@@ -6,6 +6,8 @@ import { useAction } from "./ui";
 import { useSession } from "./session";
 import type { Trip, Post, Comment } from "./types";
 import TripRead from "./TripRead.vue";
+import { useLatestQuery } from "./useLatestQuery";
+const queryState = useLatestQuery();
 const route = useRoute(),
   router = useRouter(),
   s = useSession(),
@@ -16,19 +18,48 @@ const route = useRoute(),
 const { busy, error, run } = useAction();
 const shared = () => Boolean(route.params.token);
 async function load() {
-  if (shared()) {
-    trip.value = await api<Trip>("/community/share/" + route.params.token);
-  } else {
-    post.value = await api<Post>("/community/posts/" + route.params.id);
-    trip.value = post.value.trip;
-    comments.value = await api<Comment[]>(
-      "/community/posts/" + route.params.id + "/comments",
-    );
-  }
+  const token = String(route.params.token || ""),
+    id = String(route.params.id || "");
+  await queryState.query(
+    async (signal) => {
+      if (token)
+        return {
+          trip: await api<Trip>(
+            "/community/share/" + token,
+            "GET",
+            undefined,
+            signal,
+          ),
+          post: undefined,
+          comments: [] as Comment[],
+        };
+      const [p, c] = await Promise.all([
+        api<Post>("/community/posts/" + id, "GET", undefined, signal),
+        api<Comment[]>(
+          "/community/posts/" + id + "/comments",
+          "GET",
+          undefined,
+          signal,
+        ),
+      ]);
+      return { trip: p.trip, post: p, comments: c };
+    },
+    (value) => {
+      trip.value = value.trip;
+      post.value = value.post;
+      comments.value = value.comments;
+    },
+  );
 }
 watch(
   () => route.fullPath,
-  () => run(load),
+  () => {
+    trip.value = undefined;
+    post.value = undefined;
+    comments.value = [];
+    content.value = "";
+    void load();
+  },
   { immediate: true },
 );
 function loginRequired() {
@@ -39,7 +70,8 @@ function loginRequired() {
 function interact(type: string) {
   if (loginRequired() || !post.value) return;
   run(async () => {
-    post.value = await api<Post>(
+    const id = post.value!.id;
+    const result = await api<Post>(
       "/community/posts/" + post.value!.id + "/interaction",
       "PUT",
       {
@@ -47,41 +79,51 @@ function interact(type: string) {
         enabled: !(type === "LIKE" ? post.value!.liked : post.value!.favorited),
       },
     );
+    if (post.value?.id === id) post.value = result;
   });
 }
 function clone() {
   if (loginRequired() || !post.value) return;
   run(async () => {
+    const currentPath = route.fullPath;
     const t = await api<Trip>(
       "/community/posts/" + post.value!.id + "/clone",
       "POST",
       {},
     );
-    router.push("/trip/edit/" + t.id);
+    if (route.fullPath === currentPath) router.push("/trip/edit/" + t.id);
   }, "已保存为你的私密路书");
 }
 function comment() {
   if (loginRequired() || !post.value) return;
   run(async () => {
+    const currentPath = route.fullPath;
     await api("/community/posts/" + post.value!.id + "/comments", "POST", {
       content: content.value,
     });
+    if (route.fullPath !== currentPath) return;
     content.value = "";
     await load();
   });
 }
 function remove(id: number) {
   run(async () => {
+    const currentPath = route.fullPath;
     await api("/community/comments/" + id, "DELETE");
-    await load();
+    if (route.fullPath === currentPath) await load();
   });
 }
 </script>
 <template>
-  <p v-if="busy && !trip" class="empty">正在打开旅行故事…</p>
-  <div v-else-if="error && !trip" class="empty paper">
+  <p v-if="(busy || queryState.loading.value) && !trip" class="empty">
+    正在打开旅行故事…
+  </p>
+  <div
+    v-else-if="(error || queryState.error.value) && !trip"
+    class="empty paper"
+  >
     <h2>暂时无法打开</h2>
-    <p>{{ error }}</p>
+    <p>{{ error || queryState.error.value }}</p>
     <RouterLink to="/square" class="button secondary">返回旅行广场</RouterLink>
   </div>
   <template v-if="trip"

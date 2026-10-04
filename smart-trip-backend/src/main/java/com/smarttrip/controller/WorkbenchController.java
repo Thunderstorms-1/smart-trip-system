@@ -2,6 +2,7 @@ package com.smarttrip.controller;
 
 import com.smarttrip.common.Result;
 import com.smarttrip.entity.TripDetailVO;
+import com.smarttrip.entity.TripWriteDTO;
 import com.smarttrip.service.WorkbenchService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +20,8 @@ public class WorkbenchController {
   }
 
   @PostMapping
-  public Result<?> create(@RequestBody TripDetailVO t) {
-    return Result.success(trips.create(t));
+  public Result<TripDetailVO> create(@RequestBody TripWriteDTO t) {
+    return Result.success(trips.create(t.toTrip()));
   }
 
   @GetMapping("/{id}")
@@ -29,8 +30,8 @@ public class WorkbenchController {
   }
 
   @PutMapping("/{id}")
-  public Result<?> save(@PathVariable Long id, @RequestBody TripDetailVO t) {
-    return Result.success(trips.save(id, t));
+  public Result<TripDetailVO> save(@PathVariable Long id, @RequestBody TripWriteDTO t) {
+    return Result.success(trips.save(id, t.toTrip()));
   }
 
   @DeleteMapping("/{id}")

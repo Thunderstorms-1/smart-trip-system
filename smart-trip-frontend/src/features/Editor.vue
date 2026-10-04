@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
-import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
-import { api, money, requestKey } from "./api";
-import { followTask } from "./task-stream";
+import {
+  useRoute,
+  useRouter,
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+} from "vue-router";
+import { api, money } from "./api";
 import { useAction, notify } from "./ui";
 import { useSession } from "./session";
-import type { Trip, Item, Poi, Revision, Share, Task, Weather } from "./types";
+import type { Trip, Item, Poi, Revision, Share } from "./types";
 import TripRead from "./TripRead.vue";
 import TravelTools from "./TravelTools.vue";
 import MapWeather from "./MapWeather.vue";
 import Members from "./Members.vue";
-import QrcodeVue from "qrcode.vue";
+import HistoryDialog from "./workbench/HistoryDialog.vue";
+import ShareDialog from "./workbench/ShareDialog.vue";
+import PoiDialog from "./workbench/PoiDialog.vue";
+import { useAiTask } from "./useAiTask";
+import DayNavigation from "./workbench/DayNavigation.vue";
+import PlanEditor from "./workbench/PlanEditor.vue";
+import AiProposal from "./workbench/AiProposal.vue";
+import { useTripDraft } from "./useTripDraft";
 const route = useRoute(),
   router = useRouter(),
   s = useSession(),
-  trip = ref<Trip>(),
-  saved = ref(""),
   dayIndex = ref(0),
   tab = ref("plan"),
   tools = ref<InstanceType<typeof TravelTools>>(),
@@ -25,54 +34,58 @@ const route = useRoute(),
   shareUrl = ref(""),
   poi = ref<Poi[]>([]),
   search = ref(""),
-  selected = ref<Item>(),
-  prompt = ref(""),
-  task = ref<Task>(),
-  preview = ref<Trip>(),
-  role = ref("VIEWER");
+  selected = ref<Item>();
+const {
+  trip,
+  saved,
+  role,
+  dirty,
+  loading,
+  loadError,
+  load,
+  save: saveDraft,
+  reset,
+} = useTripDraft(() => String(route.params.tripId));
 const { busy, error, run } = useAction();
-let timer: ReturnType<typeof setTimeout>;
-const stream = new AbortController();
-const dirty = computed(() =>
-    Boolean(trip.value && JSON.stringify(trip.value) !== saved.value),
-  ),
-  owner = computed(() => trip.value?.userId === s.profile?.id),
+const { prompt, task, preview, aiAdjust, requestAi, applyAi, resetTask } =
+  useAiTask(trip, saved, dayIndex, dirty, modal, guardSaved, run);
+const owner = computed(() => trip.value?.userId === s.profile?.id),
   editable = computed(() => owner.value || role.value === "EDITOR"),
   day = computed(() => trip.value?.days[dayIndex.value]);
-async function load() {
-  trip.value = await api<Trip>("/workbench/" + route.params.tripId);
-  saved.value = JSON.stringify(trip.value);
-  dayIndex.value = Math.min(dayIndex.value, trip.value.days.length - 1);
-  const members = await api<{ userId: number; role: string }[]>(
-    "/membership/trips/" + route.params.tripId,
-  );
-  role.value =
-    members.find((m) => m.userId === s.profile?.id)?.role || "VIEWER";
-}
 watch(
   () => route.params.tripId,
-  () =>
-    run(async () => {
-      await s.refresh();
-      await load();
-    }),
+  () => {
+    resetTask();
+    reset();
+    dayIndex.value = 0;
+    modal.value = "";
+    // Queries must not be dropped by the mutation busy guard.
+    void load().catch((e) => {
+      if (!loading.value)
+        notify(e instanceof Error ? e.message : "无法打开路书", "error");
+    });
+  },
   { immediate: true },
 );
+watch(
+  () => trip.value?.days.length,
+  (count) => {
+    if (count) dayIndex.value = Math.min(dayIndex.value, count - 1);
+  },
+);
 function save() {
-  return run(async () => {
-    if (!trip.value) return;
-    trip.value = await api<Trip>(
-      "/workbench/" + trip.value.id,
-      "PUT",
-      trip.value,
-    );
-    saved.value = JSON.stringify(trip.value);
-  }, "路书已保存");
+  return run(saveDraft, "路书已保存");
 }
 function leave() {
+  if (!s.token) return true;
+  if (busy.value) {
+    notify("正在处理，请完成后再离开", "error");
+    return false;
+  }
   return !dirty.value || confirm("还有未保存的修改，确定离开？");
 }
 onBeforeRouteLeave(() => leave());
+onBeforeRouteUpdate(() => leave());
 function unload(e: BeforeUnloadEvent) {
   if (dirty.value) {
     e.preventDefault();
@@ -81,8 +94,6 @@ function unload(e: BeforeUnloadEvent) {
 }
 window.addEventListener("beforeunload", unload);
 onBeforeUnmount(() => {
-  clearTimeout(timer);
-  stream.abort();
   window.removeEventListener("beforeunload", unload);
 });
 function addDay() {
@@ -99,30 +110,6 @@ function removeDay() {
   trip.value.days.splice(dayIndex.value, 1);
   dayIndex.value = Math.max(0, dayIndex.value - 1);
 }
-function addItem() {
-  day.value?.items.push({
-    itemType: "SCENIC",
-    itemName: "",
-    startTime: "09:00",
-    costTimeHours: 2,
-    costEstimate: 0,
-    aiTips: "",
-  });
-}
-function move(index: number, delta: number) {
-  if (!day.value) return;
-  const target = index + delta;
-  if (target < 0 || target >= day.value.items.length) return;
-  const [item] = day.value.items.splice(index, 1);
-  day.value.items.splice(target, 0, item!);
-}
-function transfer(index: number, e: Event) {
-  if (!trip.value || !day.value) return;
-  const target = Number((e.target as HTMLSelectElement).value);
-  if (target === dayIndex.value) return;
-  const [item] = day.value.items.splice(index, 1);
-  trip.value.days[target]?.items.push(item!);
-}
 async function guardSaved() {
   if (dirty.value) {
     notify("请先保存当前修改", "error");
@@ -138,6 +125,10 @@ function publish() {
   }, "公开快照已更新");
 }
 function unpublish() {
+  if (dirty.value) {
+    notify("请先保存当前修改", "error");
+    return;
+  }
   if (!confirm("从旅行广场下架？已有分享链接仍独立有效。")) return;
   run(async () => {
     await api("/community/trips/" + trip.value!.id + "/publish", "DELETE");
@@ -233,74 +224,6 @@ function choose(p: Poi) {
   modal.value = "";
   notify("地点已关联，保存后可以查询路线");
 }
-function aiAdjust(weather?: Weather) {
-  if (dirty.value) {
-    notify("请先保存路书再发起AI调整", "error");
-    return;
-  }
-  const pending = localStorage.getItem("SMARTTRIP_PROPOSAL_" + trip.value?.id);
-  if (pending && !weather) {
-    modal.value = "ai";
-    poll(pending);
-    return;
-  }
-  prompt.value = weather
-    ? "依据以下天气预报调整第" +
-      (dayIndex.value + 1) +
-      "天，保留其他天数和已有节点ID：" +
-      JSON.stringify(weather)
-    : "";
-  task.value = undefined;
-  preview.value = undefined;
-  modal.value = "ai";
-}
-async function poll(id: string) {
-  try {
-    task.value = await api<Task>("/ai/tasks/" + id);
-    if (task.value.status === "PREVIEW") {
-      preview.value = task.value.result;
-    } else if (["QUEUED", "RUNNING"].includes(task.value.status))
-      timer = setTimeout(() => poll(id), 1500);
-  } catch (e) {
-    notify(e instanceof Error ? e.message : "无法查询任务", "error");
-  }
-}
-function requestAi() {
-  run(async () => {
-    if (!(await guardSaved())) return;
-    task.value = await api<Task>("/ai/tasks", "POST", {
-      requestKey: requestKey(),
-      type: "MODIFY",
-      tripId: trip.value!.id,
-      prompt: prompt.value,
-    });
-    const id = task.value.id;
-    localStorage.setItem("SMARTTRIP_PROPOSAL_" + trip.value!.id, id);
-    followTask(
-      id,
-      (t) => {
-        task.value = t;
-        if (t.status === "PREVIEW") preview.value = t.result;
-      },
-      stream.signal,
-    ).catch(() => {
-      if (!stream.signal.aborted) poll(id);
-    });
-  });
-}
-function applyAi() {
-  run(async () => {
-    trip.value = await api<Trip>(
-      "/ai/tasks/" + task.value!.id + "/apply",
-      "POST",
-      {},
-    );
-    saved.value = JSON.stringify(trip.value);
-    dayIndex.value = 0;
-    modal.value = "";
-    localStorage.removeItem("SMARTTRIP_PROPOSAL_" + trip.value!.id);
-  }, "AI修改已确认保存");
-}
 async function record(item: Item) {
   if (!item.id || dirty.value) {
     notify("请先保存节点再记账", "error");
@@ -338,9 +261,9 @@ function print() {
 }
 </script>
 <template>
-  <p v-if="busy && !trip" class="empty">正在打开你的路书…</p>
-  <div v-if="error && !trip" class="empty paper">
-    <p>{{ error }}</p>
+  <p v-if="loading && !trip" class="empty">正在打开你的路书…</p>
+  <div v-if="(loadError || error) && !trip" class="empty paper">
+    <p>{{ loadError || error }}</p>
     <RouterLink to="/my-trips" class="button secondary"
       >返回我的路书</RouterLink
     >
@@ -359,7 +282,7 @@ function print() {
       </div>
       <input
         v-model="trip.title"
-        :readonly="!editable"
+        :readonly="!editable || busy || loading"
         maxlength="100"
         aria-label="路书标题"
       />
@@ -447,183 +370,27 @@ function print() {
       </button>
     </div>
     <div v-if="tab === 'plan' || tab === 'map'" class="editor-layout">
-      <aside class="paper editor-sidebar">
-        <button
-          v-for="(d, n) in trip.days"
-          :key="d.id || n"
-          class="day-nav"
-          :class="{ active: dayIndex === n }"
-          @click="dayIndex = n"
-        >
-          <strong>{{ String(n + 1).padStart(2, "0") }}</strong
-          ><span>{{ d.dayTheme || "自由探索" }}</span></button
-        ><button
-          v-if="editable"
-          class="button secondary small full"
-          :disabled="trip.days.length >= 30"
-          @click="addDay"
-        >
-          ＋ 添加一天
-        </button>
-      </aside>
-      <div v-if="tab === 'plan'" class="panel-stack">
-        <section class="paper editor-panel">
-          <div class="form-grid">
-            <label
-              >目的地<input
-                v-model="trip.destination"
-                :readonly="!editable"
-                maxlength="100"
-                required /></label
-            ><label
-              >出发日期<input
-                v-model="trip.startDate"
-                :readonly="!editable"
-                type="date" /></label
-            ><label class="wide"
-              >行程简介<textarea
-                v-model="trip.summary"
-                :readonly="!editable"
-                maxlength="500"
-                rows="2"
-              ></textarea>
-            </label>
-          </div>
-          <div class="row">
-            <h2>第 {{ dayIndex + 1 }} 天</h2>
-            <button v-if="editable" class="text-button" @click="removeDay">
-              删除这一天
-            </button>
-          </div>
-          <label
-            >当日主题<input
-              v-model="day.dayTheme"
-              :readonly="!editable"
-              maxlength="100"
-          /></label>
-          <article
-            v-for="(item, n) in day.items"
-            :key="item.id || 'new-' + n"
-            class="item-editor"
-          >
-            <div class="row">
-              <h3>{{ n + 1 }} / {{ item.itemName || "新地点" }}</h3>
-              <div v-if="editable" class="mini-actions">
-                <button
-                  :disabled="n === 0"
-                  @click="move(n, -1)"
-                  aria-label="向上移动节点"
-                >
-                  ↑</button
-                ><button
-                  :disabled="n === day.items.length - 1"
-                  @click="move(n, 1)"
-                  aria-label="向下移动节点"
-                >
-                  ↓</button
-                ><button @click="day.items.splice(n, 1)">删除</button>
-              </div>
-            </div>
-            <div class="form-grid">
-              <label class="wide"
-                >地点 / 活动<input
-                  v-model="item.itemName"
-                  @input="
-                    item.poiId = undefined;
-                    item.latitude = undefined;
-                    item.longitude = undefined;
-                    item.coordinateSystem = undefined;
-                  "
-                  :readonly="!editable"
-                  maxlength="100"
-                  required /></label
-              ><label
-                >类型<select v-model="item.itemType" :disabled="!editable">
-                  <option value="SCENIC">景点</option>
-                  <option value="FOOD">美食</option>
-                  <option value="HOTEL">住宿</option>
-                  <option value="TRAFFIC">交通</option>
-                  <option value="OTHER">活动</option>
-                </select></label
-              ><label
-                >开始时间<input
-                  v-model="item.startTime"
-                  :readonly="!editable"
-                  type="time" /></label
-              ><label
-                >停留时长（小时）<input
-                  v-model.number="item.costTimeHours"
-                  :readonly="!editable"
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5" /></label
-              ><label
-                >预估花费（元）<input
-                  v-model.number="item.costEstimate"
-                  :readonly="!editable"
-                  type="number"
-                  min="0"
-                  max="9999999"
-                  step="0.01" /></label
-              ><label class="wide"
-                >旅行备注<textarea
-                  v-model="item.aiTips"
-                  :readonly="!editable"
-                  maxlength="5000"
-                  rows="2"
-                ></textarea></label
-              ><label class="wide"
-                >交通提示<input
-                  v-model="item.transportTips"
-                  :readonly="!editable"
-                  maxlength="5000"
-              /></label>
-            </div>
-            <div v-if="editable" class="button-row">
-              <button
-                class="button secondary small"
-                :disabled="!s.capabilities.geo"
-                @click="selectPoi(item)"
-              >
-                {{ item.poiId ? "重新选择地点" : "关联真实地点" }}</button
-              ><button
-                class="text-button"
-                :disabled="dirty || !item.id"
-                @click="record(item)"
-              >
-                记录这笔花费</button
-              ><select
-                :value="dayIndex"
-                style="width: auto; font-size: 12px; margin: 0"
-                aria-label="移动节点到另一天"
-                @change="transfer(n, $event)"
-              >
-                <option v-for="(_, idx) in trip.days" :key="idx" :value="idx">
-                  移动到第 {{ idx + 1 }} 天
-                </option>
-              </select>
-            </div>
-            <p v-if="item.poiId" class="muted">
-              已关联地点 ID：{{ item.poiId }}
-            </p>
-          </article>
-          <div v-if="!day.items.length" class="empty">
-            这一天还没有安排，添加第一个地点吧。
-          </div>
-          <button
-            v-if="editable"
-            class="button secondary full"
-            style="margin-top: 20px"
-            @click="addItem"
-          >
-            ＋ 添加行程节点
-          </button>
-        </section>
-        <div v-if="!s.capabilities.geo" class="notice">
-          地点搜索暂未启用。你仍可先写下地点名称，之后再关联真实位置。
-        </div>
-      </div>
+      <DayNavigation
+        v-model="dayIndex"
+        :trip="trip"
+        :editable="editable"
+        :busy="busy || loading"
+        @add-day="addDay"
+      />
+
+      <PlanEditor
+        v-if="tab === 'plan'"
+        :trip="trip"
+        :day-index="dayIndex"
+        :editable="editable"
+        :busy="busy || loading"
+        :dirty="dirty"
+        :geo="s.capabilities.geo"
+        @remove-day="removeDay"
+        @poi="selectPoi"
+        @record="record"
+      />
+
       <MapWeather
         v-else
         :trip="trip"
@@ -636,7 +403,7 @@ function print() {
       v-if="tab === 'tools'"
       ref="tools"
       :trip="trip"
-      :readonly="!editable"
+      :readonly="!editable || busy || loading"
     /><Members
       v-if="tab === 'members'"
       :trip-id="trip.id!"
@@ -674,138 +441,40 @@ function print() {
             </h2>
             <button class="text-button" @click="modal = ''">关闭</button>
           </header>
-          <template v-if="modal === 'history'"
-            ><p class="muted">
-              恢复时会保留当前已保存版本，历史记录展示最近50次修改。
-            </p>
-            <div v-for="r in revisions" :key="r.id" class="packing-row">
-              <span>版本 {{ r.version }} · {{ r.create_time }}</span
-              ><button
-                v-if="editable"
-                class="text-button"
-                :disabled="busy || dirty"
-                @click="restore(r.id)"
-              >
-                恢复
-              </button>
-            </div>
-            <p v-if="!revisions.length" class="empty">
-              还没有历史记录。
-            </p></template
-          ><template v-else-if="modal === 'shares'"
-            ><p>分享的是此刻的路书快照。之后的私密修改不会同步到链接。</p>
-            <button class="button" :disabled="busy" @click="createShare">
-              创建分享链接</button
-            ><template v-if="shareUrl"
-              ><a
-                class="share-url"
-                :href="shareUrl"
-                target="_blank"
-                rel="noopener"
-                >{{ shareUrl }}</a
-              ><QrcodeVue :value="shareUrl" :size="140" level="M"
-            /></template>
-            <div v-for="i in shares" :key="i.id" class="packing-row">
-              <small>分享 #{{ i.id }} · {{ i.createdAt }}</small
-              ><button
-                v-if="!i.revoked"
-                class="text-button"
-                :disabled="busy"
-                @click="revoke(i.id)"
-              >
-                撤销</button
-              ><small v-else>已撤销</small>
-            </div></template
-          ><template v-else-if="modal === 'poi'"
-            ><form class="search-bar" @submit.prevent="findPoi">
-              <input
-                v-model="search"
-                required
-                maxlength="100"
-                aria-label="地点名称"
-                :placeholder="trip.destination + '的地点'"
-              /><button class="button" :disabled="busy">搜索</button>
-            </form>
-            <p class="muted">请核对城市与地点名称，选择后才会关联到节点。</p>
-            <div class="poi-list">
-              <button
-                v-for="p in poi"
-                :key="p.poiId"
-                class="poi-option"
-                @click="choose(p)"
-              >
-                <strong>{{ p.name }}</strong
-                ><small>{{ p.address }} · 高德</small>
-              </button>
-            </div>
-            <p v-if="!poi.length" class="empty">
-              输入名称搜索候选地点。
-            </p></template
-          ><template v-else
-            ><label
-              >你想怎么调整？<textarea
-                v-model="prompt"
-                maxlength="3000"
-                rows="4"
-                placeholder="例如第二天减少步行，增加一个室内景点"
-              ></textarea></label
-            ><button
-              class="button"
-              :disabled="
-                busy ||
-                Boolean(task && ['QUEUED', 'RUNNING'].includes(task.status))
-              "
-              @click="requestAi"
-            >
-              生成修改预览
-            </button>
-            <p
-              v-if="task && ['QUEUED', 'RUNNING'].includes(task.status)"
-              class="notice"
-            >
-              <span class="status-pulse"></span>正在生成预览，原路书尚未改变。
-            </p>
-            <p v-if="task?.errorMessage" class="form-error">
-              {{ task.errorMessage }}
-            </p>
-            <template v-if="preview"
-              ><div class="preview-columns">
-                <div>
-                  <h3>当前安排</h3>
-                  <template v-for="(d, i) in trip.days" :key="i"
-                    ><strong>第 {{ i + 1 }} 天 · {{ d.dayTheme }}</strong>
-                    <ol>
-                      <li v-for="x in d.items" :key="x.id">
-                        {{ x.itemName }} · {{ money(x.costEstimate) }}
-                      </li>
-                    </ol></template
-                  >
-                </div>
-                <div>
-                  <h3>AI 建议</h3>
-                  <template v-for="(d, i) in preview.days" :key="i"
-                    ><strong>第 {{ i + 1 }} 天 · {{ d.dayTheme }}</strong>
-                    <ol>
-                      <li v-for="(x, n) in d.items" :key="n">
-                        {{ x.itemName }} · {{ money(x.costEstimate) }}
-                      </li>
-                    </ol></template
-                  >
-                </div>
-              </div>
-              <details>
-                <summary>查看完整修改建议（日期、备注与时间）</summary>
-                <TripRead :trip="preview" />
-              </details>
-              <div class="button-row">
-                <button class="button" :disabled="busy" @click="applyAi">
-                  确认保存修改</button
-                ><button class="button secondary" @click="modal = ''">
-                  暂不采用
-                </button>
-              </div></template
-            ></template
-          >
+          <HistoryDialog
+            v-if="modal === 'history'"
+            :revisions="revisions"
+            :editable="editable"
+            :busy="busy"
+            :dirty="dirty"
+            @restore="restore"
+          /><ShareDialog
+            v-else-if="modal === 'shares'"
+            :shares="shares"
+            :share-url="shareUrl"
+            :busy="busy"
+            @create="createShare"
+            @revoke="revoke"
+          /><PoiDialog
+            v-else-if="modal === 'poi'"
+            v-model="search"
+            :poi="poi"
+            :destination="trip.destination"
+            :busy="busy"
+            @search="findPoi"
+            @choose="choose"
+          /><AiProposal
+            v-else
+            v-model="prompt"
+            :current="trip"
+            :preview="preview"
+            :task="task"
+            :busy="busy"
+            :dirty="dirty"
+            @generate="requestAi"
+            @apply="applyAi"
+            @close="modal = ''"
+          />
           <p v-if="error" class="form-error">{{ error }}</p>
         </div>
       </div></Teleport

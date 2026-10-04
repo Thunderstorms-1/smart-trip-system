@@ -70,24 +70,22 @@ public class AiTaskService {
         || prompt.length() > 3000) throw new BusinessException(400, "请求标识或规划要求无效");
     if (!Set.of("GENERATE", "MODIFY").contains(type == null ? "" : type))
       throw new BusinessException(400, "任务类型无效");
+    if ("GENERATE".equals(type) && trip != null) throw new BusinessException(400, "生成任务不应指定已有路书");
+    if ("MODIFY".equals(type)) access.write(trip);
+    String fingerprint = CommunityService.hash(type + "\n" + trip + "\n" + prompt);
+    var previous =
+        db.queryForList(
+            "SELECT id,input_json,task_type,trip_id,request_hash FROM ai_task WHERE user_id=? AND"
+                + " request_key=?",
+            user,
+            key);
+    if (!previous.isEmpty()) return existing(previous.get(0), fingerprint, type, trip, prompt);
     Long version = null;
     String input = prompt;
     if ("MODIFY".equals(type)) {
-      access.write(trip);
       var current = trips.load(trip);
       version = current.getVersion();
       input = "修改要求：" + prompt + "\n当前路书：" + trips.encode(current);
-    }
-    var previous =
-        db.queryForList(
-            "SELECT id,input_json,task_type,trip_id FROM ai_task WHERE user_id=? AND request_key=?",
-            user,
-            key);
-    if (!previous.isEmpty()) {
-      var p = previous.get(0);
-      if (!Objects.equals(p.get("input_json"), input) || !Objects.equals(p.get("task_type"), type))
-        throw new BusinessException(409, "同一请求标识不能用于不同任务");
-      return store.get((String) p.get("id"));
     }
     if (!provider.available()) throw new BusinessException(503, "AI免费额度尚未确认，暂未启用");
     try {
@@ -103,20 +101,25 @@ public class AiTaskService {
           status ->
               db.update(
                   "INSERT INTO"
-                      + " ai_task(id,user_id,request_key,task_type,status,trip_id,base_version,input_json)"
-                      + " VALUES(?,?,?,?,'QUEUED',?,?,?)",
+                      + " ai_task(id,user_id,request_key,task_type,status,trip_id,base_version,input_json,request_hash)"
+                      + " VALUES(?,?,?,?,'QUEUED',?,?,?,?)",
                   id,
                   user,
                   key,
                   type,
                   trip,
                   base,
-                  request));
+                  request,
+                  fingerprint));
     } catch (org.springframework.dao.DuplicateKeyException e) {
-      var existing =
-          db.queryForObject(
-              "SELECT id FROM ai_task WHERE user_id=? AND request_key=?", String.class, user, key);
-      return store.get(existing);
+      var rows =
+          db.queryForList(
+              "SELECT id,input_json,task_type,trip_id,request_hash FROM ai_task WHERE user_id=? AND"
+                  + " request_key=?",
+              user,
+              key);
+      if (rows.isEmpty()) throw e;
+      return existing(rows.get(0), fingerprint, type, trip, prompt);
     }
     try {
       pool.execute(() -> run(id, user, request));
@@ -124,6 +127,25 @@ public class AiTaskService {
       store.fail(id, "任务繁忙，请稍后重试");
     }
     return store.get(id);
+  }
+
+  private Map<String, Object> existing(
+      Map<String, Object> row, String fingerprint, String type, Long trip, String prompt) {
+    Object previousHash = row.get("request_hash");
+    boolean matches = Objects.equals(previousHash, fingerprint);
+    if (previousHash == null) {
+      String previousInput = String.valueOf(row.get("input_json"));
+      Long previousTrip =
+          row.get("trip_id") == null ? null : ((Number) row.get("trip_id")).longValue();
+      matches =
+          Objects.equals(row.get("task_type"), type)
+              && Objects.equals(previousTrip, trip)
+              && ("MODIFY".equals(type)
+                  ? previousInput.startsWith("修改要求：" + prompt + "\n当前路书：")
+                  : previousInput.equals(prompt));
+    }
+    if (!matches) throw new BusinessException(409, "同一请求标识不能用于不同任务");
+    return store.get((String) row.get("id"));
   }
 
   private void run(String id, Long user, String input) {

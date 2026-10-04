@@ -8,8 +8,8 @@ import com.smarttrip.common.UserContext;
 import com.smarttrip.entity.TripDetailVO;
 import com.smarttrip.entity.TripItem;
 import com.smarttrip.entity.TripMember;
-import com.smarttrip.mapper.TripMapper;
 import com.smarttrip.mapper.TripMemberMapper;
+import com.smarttrip.repository.TripRepository;
 import com.smarttrip.service.ResourceAccess;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -17,19 +17,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ResourceAccessTests {
-  TripMapper trips;
+  TripRepository trips;
   TripMemberMapper members;
   ResourceAccess access;
 
   @BeforeEach
   void setup() {
-    trips = mock(TripMapper.class);
+    trips = mock(TripRepository.class);
     members = mock(TripMemberMapper.class);
     access = new ResourceAccess(trips, members);
     TripDetailVO trip = new TripDetailVO();
     trip.setId(10L);
     trip.setUserId(1L);
-    when(trips.selectTripById(10L)).thenReturn(trip);
+    when(trips.find(10L)).thenReturn(trip);
     UserContext.setUserId(1L);
   }
 
@@ -74,7 +74,7 @@ class ResourceAccessTests {
     item.setId(3L);
     item.setTripId(10L);
     item.setIsDeleted(1);
-    when(trips.selectItemById(3L)).thenReturn(item);
+    when(trips.item(3L)).thenReturn(item);
     assertEquals(404, assertThrows(BusinessException.class, () -> access.item(3L)).getCode());
   }
 }

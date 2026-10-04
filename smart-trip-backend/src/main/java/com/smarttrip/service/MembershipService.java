@@ -91,8 +91,9 @@ public class MembershipService {
     return trip;
   }
 
+  @Transactional
   public void remove(Long trip, Long target) {
-    var t = access.read(trip);
+    var t = access.readLocked(trip);
     Long user = access.userId();
     if (Objects.equals(t.getUserId(), target)) throw new BusinessException(400, "不能移除所有者");
     if (!Objects.equals(t.getUserId(), user) && !Objects.equals(user, target))

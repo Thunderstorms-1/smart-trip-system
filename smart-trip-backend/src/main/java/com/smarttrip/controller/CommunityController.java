@@ -19,8 +19,8 @@ public class CommunityController {
   public Result<?> feed(
       @RequestParam(defaultValue = "") String q,
       @RequestParam(required = false) Long author,
-      @RequestParam(defaultValue = "1") int page) {
-    return Result.success(social.feed(q, author, page));
+      @RequestParam(required = false) String cursor) {
+    return Result.success(social.feed(q, author, cursor));
   }
 
   @GetMapping("/posts/{id}")

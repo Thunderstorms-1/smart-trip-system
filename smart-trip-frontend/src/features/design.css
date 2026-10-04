@@ -1412,3 +1412,10 @@ form .form-error {
     max-width: none;
   }
 }
+
+.draft-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}

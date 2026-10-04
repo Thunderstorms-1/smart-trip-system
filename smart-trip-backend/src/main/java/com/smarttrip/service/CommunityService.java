@@ -4,7 +4,9 @@ import com.smarttrip.common.*;
 import com.smarttrip.entity.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.time.LocalDateTime;
 import java.util.*;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +28,7 @@ public class CommunityService {
   }
 
   private void owner(Long id) {
-    if (!Objects.equals(access.write(id).getUserId(), user()))
+    if (!Objects.equals(access.writeLocked(id).getUserId(), user()))
       throw new BusinessException(403, "仅所有者可发布或分享");
   }
 
@@ -72,19 +74,19 @@ public class CommunityService {
 
   private String columns() {
     return "p.id,p.user_id AS authorId,u.nickname AS authorName,u.avatar AS"
-               + " authorAvatar,p.title,p.destination,p.total_days AS totalDays,p.total_budget AS"
-               + " totalBudget,p.summary,p.trip_style AS tripStyle,p.update_time AS"
-               + " publishedAt,(SELECT COUNT(*) FROM post_interaction i WHERE i.post_id=p.id AND"
-               + " i.action_type='LIKE') AS likeCount,(SELECT COUNT(*) FROM post_interaction i"
-               + " WHERE i.post_id=p.id AND i.action_type='FAVORITE') AS favoriteCount,(SELECT"
-               + " COUNT(*) FROM post_comment c WHERE c.post_id=p.id AND c.is_deleted=0) AS"
-               + " commentCount,p.clone_count AS cloneCount";
+        + " authorAvatar,p.title,p.destination,p.total_days AS totalDays,p.total_budget AS"
+        + " totalBudget,p.summary,p.trip_style AS tripStyle,p.update_time AS"
+        + " publishedAt,(SELECT COUNT(*) FROM post_interaction i WHERE i.post_id=p.id AND"
+        + " i.action_type='LIKE') AS likeCount,(SELECT COUNT(*) FROM post_interaction i"
+        + " WHERE i.post_id=p.id AND i.action_type='FAVORITE') AS favoriteCount,(SELECT"
+        + " COUNT(*) FROM post_comment c WHERE c.post_id=p.id AND c.is_deleted=0) AS"
+        + " commentCount,p.clone_count AS cloneCount";
   }
 
-  public List<Map<String, Object>> feed(String q, Long author, int page) {
-    if (page < 1 || page > 10000) throw new BusinessException(400, "页码无效");
+  public PostPageDTO feed(String q, Long author, String cursor) {
     String search = q == null ? "" : q.trim();
     if (search.length() > 100) throw new BusinessException(400, "搜索词过长");
+    String scope = hash(search + "\n" + author);
     String sql =
         "SELECT "
             + columns()
@@ -95,9 +97,40 @@ public class CommunityService {
       sql += " AND p.user_id=?";
       args.add(author);
     }
-    sql += " ORDER BY p.update_time DESC,p.id DESC LIMIT 20 OFFSET ?";
-    args.add((page - 1) * 20);
-    return db.queryForList(sql, args.toArray());
+    if (cursor != null && !cursor.isBlank()) {
+      try {
+        if (cursor.length() > 300) throw new IllegalArgumentException();
+        String[] fields =
+            new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8)
+                .split("\n", -1);
+        if (fields.length != 3 || !scope.equals(fields[2])) throw new IllegalArgumentException();
+        LocalDateTime time = LocalDateTime.parse(fields[0]);
+        Long id = Long.parseLong(fields[1]);
+        if (id < 1) throw new IllegalArgumentException();
+        sql += " AND (p.update_time<? OR (p.update_time=? AND p.id<?))";
+        args.add(time);
+        args.add(time);
+        args.add(id);
+      } catch (Exception e) {
+        throw new BusinessException(400, "翻页游标无效，请重新搜索");
+      }
+    }
+    sql += " ORDER BY p.update_time DESC,p.id DESC LIMIT 21";
+    var rows =
+        db.query(sql, BeanPropertyRowMapper.newInstance(PostSummaryDTO.class), args.toArray());
+    boolean more = rows.size() > 20;
+    var items = new ArrayList<>(rows.subList(0, Math.min(20, rows.size())));
+    String next = null;
+    if (more) {
+      var last = items.get(items.size() - 1);
+      next =
+          Base64.getUrlEncoder()
+              .withoutPadding()
+              .encodeToString(
+                  (last.getPublishedAt() + "\n" + last.getId() + "\n" + scope)
+                      .getBytes(StandardCharsets.UTF_8));
+    }
+    return new PostPageDTO(items, next, more);
   }
 
   private void active(Long id) {
@@ -109,19 +142,23 @@ public class CommunityService {
         == 0) throw new BusinessException(404, "作品不存在或已下架");
   }
 
-  public Map<String, Object> detail(Long id) {
+  public PostDetailDTO detail(Long id) {
     active(id);
     var v =
-        db.queryForMap(
+        db.queryForObject(
             "SELECT "
                 + columns()
                 + ",p.snapshot_json FROM square_post p JOIN sys_user u ON u.id=p.user_id WHERE"
                 + " p.id=?",
+            (rs, n) -> {
+              var value = BeanPropertyRowMapper.newInstance(PostDetailDTO.class).mapRow(rs, n);
+              value.setTrip(trips.decode(rs.getString("snapshot_json")));
+              return value;
+            },
             id);
-    v.put("trip", trips.decode((String) v.remove("snapshot_json")));
     Long uid = UserContext.getUserId();
-    v.put("liked", uid != null && interaction(uid, id, "LIKE"));
-    v.put("favorited", uid != null && interaction(uid, id, "FAVORITE"));
+    v.setLiked(uid != null && interaction(uid, id, "LIKE"));
+    v.setFavorited(uid != null && interaction(uid, id, "FAVORITE"));
     return v;
   }
 
@@ -136,7 +173,7 @@ public class CommunityService {
   }
 
   @Transactional
-  public Map<String, Object> interact(Long id, String type, boolean enabled) {
+  public PostDetailDTO interact(Long id, String type, boolean enabled) {
     user();
     if (!Set.of("LIKE", "FAVORITE").contains(type)) throw new BusinessException(400, "互动类型无效");
     db.queryForObject(
@@ -256,7 +293,8 @@ public class CommunityService {
   }
 
   public List<Map<String, Object>> shares(Long id) {
-    owner(id);
+    if (!Objects.equals(access.read(id).getUserId(), user()))
+      throw new BusinessException(403, "仅所有者可查看分享记录");
     return db.queryForList(
         "SELECT id,revoked,create_time AS createdAt FROM trip_share WHERE trip_id=? ORDER BY id"
             + " DESC LIMIT 100",

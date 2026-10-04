@@ -5,21 +5,17 @@ import static org.mockito.Mockito.*;
 
 import com.smarttrip.common.BusinessException;
 import com.smarttrip.entity.*;
-import com.smarttrip.mapper.TripMapper;
+import com.smarttrip.repository.TripRepository;
 import com.smarttrip.service.*;
 import java.math.BigDecimal;
 import java.util.*;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 class WorkbenchValidationTests {
   WorkbenchService service =
       new WorkbenchService(
-          mock(JdbcTemplate.class),
-          mock(TripMapper.class),
-          mock(ResourceAccess.class),
-          mock(SqlSessionTemplate.class));
+          mock(JdbcTemplate.class), mock(TripRepository.class), mock(ResourceAccess.class));
 
   TripDetailVO trip() {
     var t = new TripDetailVO();

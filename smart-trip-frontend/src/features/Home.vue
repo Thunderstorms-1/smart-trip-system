@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { api } from "./api";
-import type { Post } from "./types";
+import type { Post, PostPage } from "./types";
 import PostCards from "./PostCards.vue";
 import { useAction } from "./ui";
 const posts = ref<Post[]>([]),
@@ -9,7 +9,10 @@ const posts = ref<Post[]>([]),
 onMounted(() =>
   run(
     async () =>
-      (posts.value = (await api<Post[]>("/community/posts")).slice(0, 3)),
+      (posts.value = (await api<PostPage>("/community/posts")).items.slice(
+        0,
+        3,
+      )),
   ),
 );
 </script>
