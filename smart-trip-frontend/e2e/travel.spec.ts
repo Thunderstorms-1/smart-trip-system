@@ -15,7 +15,7 @@ test("visitor can browse mobile without overflow", async ({ page }) => {
     page.getByRole("heading", { name: "旅行灵感广场" }),
   ).toBeVisible();
 });
-test("register, create, edit and save a private itinerary", async ({
+test("register, create, save and delete a private itinerary", async ({
   page,
 }) => {
   await page.goto("/login");
@@ -39,4 +39,7 @@ test("register, create, edit and save a private itinerary", async ({
   await expect(page.getByLabel("地点 / 活动", { exact: true })).toHaveValue(
     "西湖散步",
   );
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "删除这份路书" }).click();
+  await page.waitForURL("**/my-trips");
 });

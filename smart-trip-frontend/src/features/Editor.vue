@@ -189,13 +189,14 @@ function restore(id: number) {
     modal.value = "";
   }, "已恢复历史版本");
 }
-function removeTrip() {
+async function removeTrip() {
   if (!confirm("删除整份路书？公开作品和分享链接也会失效。")) return;
-  run(async () => {
+  const removed = await run(async () => {
     await api("/workbench/" + trip.value!.id, "DELETE");
     saved.value = JSON.stringify(trip.value);
-    router.push("/my-trips");
+    return true;
   });
+  if (removed) await router.push("/my-trips");
 }
 function selectPoi(item: Item) {
   selected.value = item;
