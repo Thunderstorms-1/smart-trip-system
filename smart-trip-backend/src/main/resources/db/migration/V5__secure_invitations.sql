@@ -1,0 +1,1 @@
+CREATE TABLE trip_invite(id bigint unsigned PRIMARY KEY AUTO_INCREMENT,trip_id bigint unsigned NOT NULL,token_hash char(64) NOT NULL,role varchar(20) NOT NULL,expires_at datetime NOT NULL,revoked tinyint NOT NULL DEFAULT 0,create_time datetime DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uk_invite_token(token_hash));

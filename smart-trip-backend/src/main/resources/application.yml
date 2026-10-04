@@ -1,34 +1,43 @@
 server:
-  port: 8080
-
+  port: ${SMARTTRIP_PORT:8080}
 spring:
+  config:
+    import: optional:file:${SMARTTRIP_CONFIG:../.local/application-local.yml}
   application:
     name: smart-trip-backend
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/smart_trip?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root          # ???? MySQL ???
-    password: 1234 # ???? MySQL ??
-  mvc:
-    async:
-      request-timeout: 300000 # 设置异步长连接超时为 5 分钟 (300秒)
-
-# MyBatis ??
+    url: ${SMARTTRIP_DB_URL:jdbc:mysql://localhost:3306/smart_trip_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${SMARTTRIP_DB_USER:root}
+    password: ${SMARTTRIP_DB_PASSWORD:}
+  data:
+    redis:
+      host: ${SMARTTRIP_REDIS_HOST:localhost}
+      port: ${SMARTTRIP_REDIS_PORT:6379}
+  flyway:
+    enabled: true
+    clean-disabled: true
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
 mybatis:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.smarttrip.entity
   configuration:
-    map-underscore-to-camel-case: true # ?????????? (? user_id -> userId)
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # ????????? SQL?????
-
-# ??????
-logging:
-  level:
-    com.smarttrip: debug
-
-# 大模型配置
+    map-underscore-to-camel-case: true
+security:
+  jwt-secret: ${SMARTTRIP_JWT_SECRET:}
 ai:
   llm:
-    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api-key: sk-ws-H.EXLMRDI.xHyr.MEUCIQCYhbJlv_4fshU78kX266nknKFcDgg9Ha_DpWpg5wG8PQIgPDNZOjN-YDr536iV07STqbOBlcJ9dxBE3qLN2vC35nA # 务必换成你的真实 sk-xxx
-    model: qwen3.8-flash
+    enabled: ${SMARTTRIP_AI_ENABLED:false}
+    free-quota-verified: ${SMARTTRIP_AI_FREE_QUOTA_VERIFIED:false}
+    base-url: ${SMARTTRIP_AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${SMARTTRIP_AI_KEY:}
+    model: ${SMARTTRIP_AI_MODEL:qwen3.8-flash}
+geo:
+  enabled: ${SMARTTRIP_GEO_ENABLED:false}
+  free-quota-verified: ${SMARTTRIP_GEO_FREE_QUOTA_VERIFIED:false}
+  amap-key: ${SMARTTRIP_AMAP_KEY:}
+  amap-js-key: ${SMARTTRIP_AMAP_JS_KEY:}
+  amap-security-key: ${SMARTTRIP_AMAP_SECURITY_KEY:}
+storage:
+  upload-dir: ${SMARTTRIP_UPLOAD_DIR:../.local/uploads}

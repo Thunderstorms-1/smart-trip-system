@@ -14,3 +14,13 @@
 # 3. 忽略临时日志文件
 *.log
 .DS_Store
+# Local credentials, uploads and developer caches
+.local/
+.env
+.env.*
+!.env.example
+*.sql.backup
+
+# Browser test output
+smart-trip-frontend/test-results/
+smart-trip-frontend/playwright-report/

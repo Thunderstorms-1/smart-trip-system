@@ -1,31 +1,49 @@
 package com.smarttrip.common;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.*;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<Result<?>> business(BusinessException e) {
+    int status = e.getCode();
+    if (status < 400 || status > 599) status = 400;
+    return ResponseEntity.status(status)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(Result.error(status, e.getMessage()));
+  }
 
-    // 1. 忽略异步 SSE 超时异常（由 SseEmitter 自身机制管理生命周期）
-    @ExceptionHandler(AsyncRequestTimeoutException.class)
-    public void handleAsyncTimeout(AsyncRequestTimeoutException e) {
-        log.warn("SSE 异步长连接到达正常心跳超时或客户端主动断开");
-    }
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<Result<?>> validation(MethodArgumentNotValidException e) {
+    return ResponseEntity.badRequest().body(Result.error(400, "输入字段格式或长度不符合要求"));
+  }
 
-    // 2. 捕获自定义业务异常
-    @ExceptionHandler(BusinessException.class)
-    public Result<?> handleBusinessException(BusinessException e) {
-        log.warn("业务异常: code={}, msg={}", e.getCode(), e.getMessage());
-        return Result.error(e.getCode(), e.getMessage());
-    }
+  @ExceptionHandler({
+    org.springframework.http.converter.HttpMessageNotReadableException.class,
+    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+  })
+  public ResponseEntity<Result<?>> malformed(Exception e) {
+    return ResponseEntity.badRequest().body(Result.error(400, "请求格式错误"));
+  }
 
-    // 3. 捕获系统未知异常
-    @ExceptionHandler(Exception.class)
-    public Result<?> handleException(Exception e) {
-        log.error("系统未知异常: ", e);
-        return Result.error(500, "服务器开小差了，请稍后再试");
-    }
+  @ExceptionHandler(DuplicateKeyException.class)
+  public ResponseEntity<Result<?>> duplicate(Exception e) {
+    return ResponseEntity.status(409).body(Result.error(409, "记录已经存在，请刷新后重试"));
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<Result<?>> size(Exception e) {
+    return ResponseEntity.status(413).body(Result.error(413, "图片不能超过2MB"));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Result<?>> other(Exception e) {
+    org.slf4j.LoggerFactory.getLogger(getClass())
+        .error("Request failed: {}", e.getClass().getSimpleName());
+    return ResponseEntity.internalServerError().body(Result.error(500, "服务暂时不可用，请稍后重试"));
+  }
 }

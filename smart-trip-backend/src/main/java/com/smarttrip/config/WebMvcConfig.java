@@ -9,29 +9,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Autowired
-    private JwtAuthInterceptor jwtAuthInterceptor;
+  @Autowired private JwtAuthInterceptor jwtAuthInterceptor;
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtAuthInterceptor)
-                .addPathPatterns("/api/**")
-                .excludePathPatterns(
-                        "/api/auth/**",
-                        "/api/square/search",
-                        "/api/square/trips",
-                        "/api/weather/**" // 放行气象预警查询
-                );
-    }
+  @Override
+  public void addInterceptors(InterceptorRegistry registry) {
+    registry
+        .addInterceptor(jwtAuthInterceptor)
+        .addPathPatterns("/api/**")
+        .excludePathPatterns("/api/auth/**", "/api/user/avatars/*");
+  }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        // 配置全局跨域，方便前端 Vue 联调
-        registry.addMapping("/**")
-                .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
-    }
+  @Override
+  public void addCorsMappings(CorsRegistry registry) {
+    // 配置全局跨域，方便前端 Vue 联调
+    registry
+        .addMapping("/**")
+        .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+        .allowedHeaders("*")
+        .allowCredentials(false)
+        .maxAge(3600);
+  }
 }
