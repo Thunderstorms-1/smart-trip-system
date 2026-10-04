@@ -90,3 +90,11 @@ JWT密钥来自本机配置/环境，BCrypt存储密码，tokenVersion使改密/
 编辑器草稿位于 useTripDraft，AI 监听/轮询/清理由 useAiTask 管理；DayNavigation、PlanEditor、HistoryDialog、ShareDialog、PoiDialog、AiProposal 承担对应界面。useLatestQuery 使搜索与公共页路由读取只接收最新响应。Pinia 继续只管理会话、资料和能力开关。
 
 AI 幂等以 type/tripId/prompt 的稳定摘要判断，包括唯一键竞争后重新查询的路径；预扣保存 quota_reserved_date，失败退款不会扣减新的每日计数。SSE 安装调度句柄后再次检查关闭状态，即时终态也能释放调度。部署仍为单实例，未宣称跨实例调度。
+
+## 2.5 轮地理查询与会话收尾
+
+GeoService 保持 POI 引用优先、无引用时才使用有效已有 GCJ02 坐标。请求上下文只复用同一 POI 的解析坐标/未找到结果，不包含节点身份，也不跨请求缓存。单调时钟控制路线 30 秒总期限，单次调用最多 15 秒且受剩余时间约束，超时返回 504。
+
+useGeoQueries 在路由组件内分别管理路线/天气请求、35 秒超时、取消与代次判断；当前页面路线可复用，显式刷新重新请求。地图 SDK 共享一次配置/脚本加载 Promise，10 秒期限；失败移除自己创建的脚本，重新加载可重试。取消或卸载后旧响应/错误/绘图不会覆盖新页面。
+
+api.ts 在 401 时比较当前令牌与请求令牌，防止旧会话请求退出随后新登录的会话。DTO/数据库不迁移，外部在线能力继续关闭。
