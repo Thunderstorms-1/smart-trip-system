@@ -15,9 +15,74 @@ public class GeoService {
   private final WorkbenchService trips;
   private final ObjectMapper json = new ObjectMapper();
   private final OkHttpClient client;
+  private final java.util.function.LongSupplier nanoTime;
+  private static final long ROUTE_NANOS = TimeUnit.SECONDS.toNanos(30);
+
   @org.springframework.beans.factory.annotation.Autowired
-  public GeoService(GeoProperties config, WorkbenchService trips) {this(config,trips,new OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(10,TimeUnit.SECONDS).callTimeout(15,TimeUnit.SECONDS).build());}
-  GeoService(GeoProperties config,WorkbenchService trips,OkHttpClient client){this.config=config;this.trips=trips;this.client=client;}
+  public GeoService(GeoProperties config, WorkbenchService trips) {
+    this(
+        config,
+        trips,
+        new OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .callTimeout(15, TimeUnit.SECONDS)
+            .build());
+  }
+
+  GeoService(GeoProperties config, WorkbenchService trips, OkHttpClient client) {
+    this(config, trips, client, System::nanoTime);
+  }
+
+  GeoService(
+      GeoProperties config,
+      WorkbenchService trips,
+      OkHttpClient client,
+      java.util.function.LongSupplier nanoTime) {
+    this.config = config;
+    this.trips = trips;
+    this.client =
+        client
+            .newBuilder()
+            .retryOnConnectionFailure(false)
+            .followRedirects(false)
+            .followSslRedirects(false)
+            .callTimeout(15, TimeUnit.SECONDS)
+            .build();
+    this.nanoTime = nanoTime;
+  }
+
+  private final class RouteContext {
+    final long started = nanoTime.getAsLong();
+    final Map<String, Optional<String>> points = new HashMap<>();
+
+    long remaining() {
+      long n = ROUTE_NANOS - (nanoTime.getAsLong() - started);
+      if (n <= 0) throw new BusinessException(504, "路线查询超时，请稍后重试");
+      return n;
+    }
+  }
+
+  private Optional<String> location(String value) {
+    if (value == null || value.length() > 128) return Optional.empty();
+    String[] parts = value.split(",", -1);
+    if (parts.length != 2) return Optional.empty();
+    try {
+      var lon = new java.math.BigDecimal(parts[0].trim());
+      var lat = new java.math.BigDecimal(parts[1].trim());
+      if (Math.abs((long) lon.scale()) > 128 || Math.abs((long) lat.scale()) > 128)
+        return Optional.empty();
+      if (lon.abs().compareTo(new java.math.BigDecimal("180")) > 0
+          || lat.abs().compareTo(new java.math.BigDecimal("90")) > 0) return Optional.empty();
+      return Optional.of(
+          lon.stripTrailingZeros().toPlainString()
+              + ","
+              + lat.stripTrailingZeros().toPlainString());
+    } catch (NumberFormatException e) {
+      return Optional.empty();
+    }
+  }
+
   public boolean available() {
     return config.isEnabled() && config.isFreeQuotaVerified() && !config.getAmapKey().isBlank();
   }
@@ -42,22 +107,34 @@ public class GeoService {
   }
 
   private JsonNode call(String path, Map<String, String> args) {
+    return call(path, args, null);
+  }
+
+  private JsonNode call(String path, Map<String, String> args, RouteContext context) {
     if (!available()) throw new BusinessException(503, "地图和天气免费权限尚未确认，暂未启用");
     HttpUrl.Builder url =
         Objects.requireNonNull(HttpUrl.parse("https://restapi.amap.com" + path))
             .newBuilder()
             .addQueryParameter("key", config.getAmapKey());
     args.forEach(url::addQueryParameter);
-    try (Response r =
-        client.newCall(new Request.Builder().url(url.build()).get().build()).execute()) {
+    Call request = client.newCall(new Request.Builder().url(url.build()).get().build());
+    if (context != null)
+      request
+          .timeout()
+          .timeout(
+              Math.min(TimeUnit.SECONDS.toNanos(15), context.remaining()), TimeUnit.NANOSECONDS);
+    try (Response r = request.execute()) {
+      if (context != null) context.remaining();
       if (!r.isSuccessful() || r.body() == null) throw new BusinessException(502, "地理服务暂不可用");
       JsonNode n = json.readTree(r.body().string());
+      if (context != null) context.remaining();
       if (!"1".equals(n.path("status").asText()))
         throw new BusinessException(502, "地理服务拒绝请求，请检查免费权限或配额");
       return n;
     } catch (BusinessException e) {
       throw e;
     } catch (Exception e) {
+      if (context != null) context.remaining();
       throw new BusinessException(502, "地理服务连接失败，请稍后重试");
     }
   }
@@ -85,8 +162,9 @@ public class GeoService {
                 "business"));
     List<Map<String, Object>> result = new ArrayList<>();
     for (var p : n.path("pois")) {
-      String location = p.path("location").asText();
-      if (!location.matches("-?[0-9.]+,-?[0-9.]+")) continue;
+      var parsed = location(p.path("location").asText());
+      if (parsed.isEmpty()) continue;
+      String location = parsed.get();
       result.add(
           Map.of(
               "poiId",
@@ -107,50 +185,45 @@ public class GeoService {
     return result;
   }
 
-  private Map<String, Object> point(com.smarttrip.entity.TripItem item) {
+  private Map<String, Object> point(com.smarttrip.entity.TripItem item, RouteContext context) {
+    context.remaining();
+    Optional<String> loc = Optional.empty();
     if (item.getPoiId() != null && !item.getPoiId().isBlank()) {
-      if (!item.getPoiId().matches("[A-Za-z0-9]{5,80}"))
-        throw new BusinessException(400, "POI标识无效");
-      var n = call("/v3/place/detail", Map.of("id", item.getPoiId(), "extensions", "base"));
-      var p = n.path("pois");
-      if (!p.isArray() || p.isEmpty())
-        return Map.of("itemId", item.getId(), "name", item.getItemName(), "resolved", false);
-      String loc = p.get(0).path("location").asText();
-      if (!loc.matches("-?[0-9.]+,-?[0-9.]+"))
-        return Map.of("itemId", item.getId(), "name", item.getItemName(), "resolved", false);
-      return Map.of(
-          "itemId",
-          item.getId(),
-          "name",
-          item.getItemName(),
-          "resolved",
-          true,
-          "location",
-          loc,
-          "coordinateSystem",
-          "GCJ02");
-    }
-    if (item.getLongitude() != null
+      String id = item.getPoiId();
+      if (!id.matches("[A-Za-z0-9]{5,80}")) throw new BusinessException(400, "POI标识无效");
+      if (!context.points.containsKey(id)) {
+        var pois =
+            call("/v3/place/detail", Map.of("id", id, "extensions", "base"), context).path("pois");
+        context.points.put(
+            id,
+            pois.isArray() && !pois.isEmpty()
+                ? location(pois.get(0).path("location").asText())
+                : Optional.empty());
+      }
+      loc = context.points.get(id);
+    } else if (item.getLongitude() != null
         && item.getLatitude() != null
-        && "GCJ02".equals(item.getCoordinateSystem()))
-      return Map.of(
-          "itemId",
-          item.getId(),
-          "name",
-          item.getItemName(),
-          "resolved",
-          true,
-          "location",
-          item.getLongitude() + "," + item.getLatitude(),
-          "coordinateSystem",
-          "GCJ02");
-    return Map.of("itemId", item.getId(), "name", item.getItemName(), "resolved", false);
+        && "GCJ02".equals(item.getCoordinateSystem())) {
+      loc = location(item.getLongitude() + "," + item.getLatitude());
+    }
+    Map<String, Object> value = new LinkedHashMap<>();
+    value.put("itemId", item.getId());
+    value.put("name", item.getItemName());
+    value.put("resolved", loc.isPresent());
+    loc.ifPresent(
+        l -> {
+          value.put("location", l);
+          value.put("coordinateSystem", "GCJ02");
+        });
+    return value;
   }
 
   public Map<String, Object> route(Long tripId, Long dayId, String mode) {
     if (!available()) throw new BusinessException(503, "路径服务免费权限尚未确认");
     if (!Set.of("walking", "driving").contains(mode)) throw new BusinessException(400, "目前支持步行或驾车");
+    RouteContext context = new RouteContext();
     var t = trips.load(tripId);
+    context.remaining();
     var day =
         t.getDays().stream()
             .filter(d -> Objects.equals(d.getId(), dayId))
@@ -158,7 +231,7 @@ public class GeoService {
             .orElseThrow(() -> new BusinessException(404, "日程不存在"));
     if (day.getItems().size() > 20) throw new BusinessException(400, "单次路线最多20个节点，请精简当日路线");
     List<Map<String, Object>> points = new ArrayList<>(), legs = new ArrayList<>();
-    for (var item : day.getItems()) points.add(point(item));
+    for (var item : day.getItems()) points.add(point(item, context));
     for (int i = 1; i < points.size(); i++) {
       var a = points.get(i - 1);
       var b = points.get(i);
@@ -184,7 +257,8 @@ public class GeoService {
                   "destination",
                   b.get("location").toString(),
                   "show_fields",
-                  "cost,polyline"));
+                  "cost,polyline"),
+              context);
       var paths = n.path("route").path("paths");
       if (!paths.isArray() || paths.isEmpty()) {
         legs.add(
@@ -219,6 +293,7 @@ public class GeoService {
               "polylines",
               polylines));
     }
+    context.remaining();
     return Map.of(
         "provider",
         "AMAP",

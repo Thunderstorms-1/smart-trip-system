@@ -157,6 +157,7 @@ export interface RouteLeg {
   polylines?: string[];
 }
 export interface RouteData {
+  retrievedAt: string;
   points: RoutePoint[];
   legs: RouteLeg[];
   tripVersion: number;

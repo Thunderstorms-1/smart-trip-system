@@ -30,7 +30,12 @@ export async function api<T>(
     throw new ApiError(0, "连接失败，请检查网络后重试");
   }
   const v = await r.json().catch(() => null);
-  if (r.status === 401 && token && !path.startsWith("/auth/")) {
+  if (
+    r.status === 401 &&
+    token &&
+    localStorage.getItem("AUTH_TOKEN") === token &&
+    !path.startsWith("/auth/")
+  ) {
     localStorage.removeItem("AUTH_TOKEN");
     if (typeof window !== "undefined")
       window.dispatchEvent(new Event("smarttrip-session-expired"));

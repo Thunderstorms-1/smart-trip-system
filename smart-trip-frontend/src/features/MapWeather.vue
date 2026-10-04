@@ -1,60 +1,32 @@
 <script setup lang="ts">
 import { ref, watch, onBeforeUnmount, nextTick } from "vue";
-import { api } from "./api";
-import { useAction } from "./ui";
 import { useSession } from "./session";
-import type { Trip, Day, RouteData, Weather } from "./types";
+import type { Trip, Day, Weather } from "./types";
+import { loadAmapSdk, type MapInstance } from "./amap-sdk";
+import { useGeoQueries } from "./useGeoQueries";
 const props = defineProps<{ trip: Trip; day: Day; dirty: boolean }>(),
-  emit = defineEmits<{ adjust: [weather: Weather] }>(),
-  s = useSession(),
+  emit = defineEmits<{ adjust: [weather: Weather] }>();
+const s = useSession(),
   mode = ref("walking"),
-  route = ref<RouteData>(),
-  weather = ref<Weather>(),
   mapHost = ref<HTMLElement>(),
-  { busy, error, run } = useAction();
-interface MapInstance {
-  destroy(): void;
-  add(overlay: object): void;
-  setFitView(overlays: object[]): void;
-}
-interface AMapSDK {
-  Map: new (host: HTMLElement, options: { zoom: number }) => MapInstance;
-  Marker: new (options: { position: number[]; title: string }) => object;
-  Polyline: new (options: {
-    path: number[][];
-    strokeColor: string;
-    strokeWeight: number;
-  }) => object;
-}
+  mapError = ref("");
+const {
+  route,
+  weather,
+  routeBusy,
+  weatherBusy,
+  routeError,
+  weatherError,
+  epoch,
+  refresh,
+  getWeather,
+} = useGeoQueries(() => ({ ...props, mode: mode.value }));
 let map: MapInstance | undefined;
-let epoch = 0;
-const win = window as unknown as {
-  AMap?: AMapSDK;
-  _AMapSecurityConfig: unknown;
-};
-async function sdk() {
-  if (win.AMap) return win.AMap;
-  const config = await api<{ key: string; securityJsCode: string }>(
-    "/geo/config",
-  );
-  win._AMapSecurityConfig = { securityJsCode: config.securityJsCode };
-  await new Promise<void>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src =
-      "https://webapi.amap.com/maps?v=2.0&key=" +
-      encodeURIComponent(config.key);
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("地图底图加载失败"));
-    document.head.appendChild(script);
-  });
-  if (!win.AMap) throw new Error("地图底图初始化失败");
-  return win.AMap;
-}
 async function draw(requestEpoch: number) {
   if (!s.capabilities.map || !route.value) return;
-  const A = await sdk();
+  const A = await loadAmapSdk();
   await nextTick();
-  if (!mapHost.value || requestEpoch !== epoch || !route.value) return;
+  if (!mapHost.value || requestEpoch !== epoch.value || !route.value) return;
   map?.destroy();
   map = new A.Map(mapHost.value, { zoom: 12 });
   const overlays = [];
@@ -80,53 +52,35 @@ async function draw(requestEpoch: number) {
   }
   if (overlays.length) map.setFitView(overlays);
 }
-function refresh() {
-  run(async () => {
-    if (props.dirty) throw new Error("请先保存路书，再查询最新路线");
-    if (!props.day.id) return;
-    const requestEpoch = epoch;
-    const version = props.trip.version;
-    const data = await api<RouteData>(
-      "/geo/trips/" +
-        props.trip.id +
-        "/days/" +
-        props.day.id +
-        "/route?mode=" +
-        mode.value,
-    );
-    if (requestEpoch !== epoch || props.dirty) return;
-    if (data.tripVersion !== version)
-      throw new Error("路书已变更，请刷新后重新查询路线");
-    route.value = data;
-    await draw(requestEpoch);
-  });
-}
-function getWeather() {
-  run(async () => {
-    if (!props.day.dayDate) throw new Error("请先设置出发日期并保存路书");
-    const requestEpoch = epoch;
-    const data = await api<Weather>(
-      "/geo/weather?city=" +
-        encodeURIComponent(props.trip.destination) +
-        "&date=" +
-        props.day.dayDate,
-    );
-    if (requestEpoch === epoch && !props.dirty) weather.value = data;
-  });
-}
+
 watch(
-  () => [props.trip.version, props.day.id, props.dirty, mode.value],
+  epoch,
   () => {
-    epoch++;
-    route.value = undefined;
-    weather.value = undefined;
     map?.destroy();
     map = undefined;
+    mapError.value = "";
   },
+  { flush: "sync" },
 );
+watch(route, () => {
+  const current = epoch.value;
+  mapError.value = "";
+  void draw(current).catch((e) => {
+    if (current === epoch.value)
+      mapError.value = e instanceof Error ? e.message : "地图绘制失败，请重试";
+  });
+});
+function redraw() {
+  const current = epoch.value;
+  mapError.value = "";
+  void draw(current).catch((e) => {
+    if (current === epoch.value)
+      mapError.value = e instanceof Error ? e.message : "地图加载失败，请重试";
+  });
+}
 onBeforeUnmount(() => {
-  epoch++;
   map?.destroy();
+  map = undefined;
 });
 </script>
 <template>
@@ -147,10 +101,17 @@ onBeforeUnmount(() => {
             <option value="driving">驾车</option></select
           ><button
             class="button small"
-            :disabled="busy || !s.capabilities.geo || dirty"
-            @click="refresh"
+            :disabled="routeBusy || !s.capabilities.geo || dirty"
+            @click="refresh(false)"
           >
-            查询路线
+            查询路线</button
+          ><button
+            v-if="route"
+            class="text-button"
+            :disabled="routeBusy || dirty"
+            @click="refresh(true)"
+          >
+            重新查询
           </button>
         </div>
       </div>
@@ -164,7 +125,7 @@ onBeforeUnmount(() => {
       <template v-if="route"
         ><p class="muted">
           数据来源：高德 · {{ mode === "walking" ? "步行" : "驾车" }} · 路书版本
-          {{ route.tripVersion }}
+          {{ route.tripVersion }} · 查询时间 {{ route.retrievedAt }}
         </p>
         <div v-for="p in route.points" :key="p.itemId" class="packing-row">
           <span class="pill">{{ p.resolved ? "已确认" : "待确认" }}</span
@@ -181,13 +142,18 @@ onBeforeUnmount(() => {
           ><span v-else class="muted">{{ l.reason }}</span>
         </div></template
       >
+      <p v-if="routeError" class="form-error" role="alert">{{ routeError }}</p>
+      <p v-if="mapError" class="form-error" role="alert">
+        {{ mapError }}
+        <button class="text-button" @click="redraw">重试地图加载</button>
+      </p>
     </section>
     <section class="paper editor-panel">
       <div class="row">
         <h2>出行天气</h2>
         <button
           class="button secondary small"
-          :disabled="busy || !s.capabilities.geo || dirty"
+          :disabled="weatherBusy || !s.capabilities.geo || dirty"
           @click="getWeather"
         >
           查看 {{ day.dayDate || "当日" }} 天气
@@ -216,7 +182,9 @@ onBeforeUnmount(() => {
       >
         依据天气预览行程调整
       </button>
+      <p v-if="weatherError" class="form-error" role="alert">
+        {{ weatherError }}
+      </p>
     </section>
-    <p v-if="error" class="form-error">{{ error }}</p>
   </div>
 </template>
