@@ -1419,3 +1419,49 @@ form .form-error {
   margin: 0;
   min-width: 0;
 }
+
+.analysis-panel {
+  max-width: 1050px;
+  margin: 0 auto;
+}
+.analysis-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.analysis-days label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.analysis-days input[type="checkbox"],
+.item-editor input[type="checkbox"] {
+  width: auto;
+}
+.analysis-card {
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid var(--line, #dedfd6);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.analysis-source + .analysis-source {
+  margin-top: 16px;
+}
+.analysis-panel small {
+  color: var(--muted, #66736b);
+  overflow-wrap: anywhere;
+}
+.analysis-panel details {
+  margin: 16px 0;
+}
+
+.analysis-panel {
+  padding: 24px;
+}
+@media (max-width: 600px) {
+  .analysis-panel {
+    padding: 16px;
+  }
+}

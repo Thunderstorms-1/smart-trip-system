@@ -5,7 +5,7 @@ import type { Trip, Day, Weather } from "./types";
 import { loadAmapSdk, type MapInstance } from "./amap-sdk";
 import { useGeoQueries } from "./useGeoQueries";
 const props = defineProps<{ trip: Trip; day: Day; dirty: boolean }>(),
-  emit = defineEmits<{ adjust: [weather: Weather] }>();
+  emit = defineEmits<{ adjust: [] }>();
 const s = useSession(),
   mode = ref("walking"),
   mapHost = ref<HTMLElement>(),
@@ -175,12 +175,12 @@ onBeforeUnmount(() => {
       </div>
       <p v-else-if="weather" class="notice">{{ weather.reason }}</p>
       <button
-        v-if="weather?.available && s.capabilities.ai"
+        v-if="weather?.available"
         class="button secondary small"
         :disabled="dirty"
-        @click="emit('adjust', weather)"
+        @click="emit('adjust')"
       >
-        依据天气预览行程调整
+        查看天气与行程诊断
       </button>
       <p v-if="weatherError" class="form-error" role="alert">
         {{ weatherError }}

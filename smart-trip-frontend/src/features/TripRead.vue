@@ -48,7 +48,15 @@ const labels: Record<string, string> = {
             <span v-if="item.costTimeHours"
               >约 {{ item.costTimeHours }} 小时</span
             ><span>预估 {{ money(item.costEstimate) }}</span
-            ><span v-if="item.poiId">已关联地点</span>
+            ><span v-if="item.poiId">已关联地点</span
+            ><span
+              v-if="item.environmentType && item.environmentType !== 'UNKNOWN'"
+              >{{
+                item.environmentType === "INDOOR"
+                  ? "室内（用户标记）"
+                  : "室外（用户标记）"
+              }}</span
+            ><span v-if="item.scheduleLocked">智能调整时固定</span>
           </div>
         </div>
       </article>

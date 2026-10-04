@@ -250,6 +250,7 @@ public class CommunityService {
         t.getTitle().length() > 94
             ? t.getTitle().substring(0, 94) + " · 副本"
             : t.getTitle() + " · 副本");
+    for (var day : t.getDays()) for (var item : day.getItems()) item.setScheduleLocked(false);
     var copy = trips.create(t);
     db.update("UPDATE square_post SET clone_count=clone_count+1 WHERE id=?", id);
     return copy;

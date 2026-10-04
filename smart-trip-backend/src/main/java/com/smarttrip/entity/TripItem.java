@@ -6,6 +6,8 @@ import lombok.Data;
 
 @Data
 public class TripItem {
+  private String environmentType;
+  private Boolean scheduleLocked;
   private String poiId;
   private String coordinateSystem;
   private Long id;

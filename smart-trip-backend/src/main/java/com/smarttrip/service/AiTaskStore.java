@@ -23,8 +23,9 @@ public class AiTaskStore {
     var rows =
         db.queryForList(
             "SELECT id,user_id AS userId,status,task_type AS type,trip_id AS tripId,base_version AS"
-                + " baseVersion,result_json AS resultJson,error_message AS errorMessage,create_time"
-                + " AS createdAt FROM ai_task WHERE id=? AND user_id=?",
+                + " baseVersion,result_json AS resultJson,proposal_meta_json AS"
+                + " proposalMeta,error_message AS errorMessage,create_time AS createdAt FROM"
+                + " ai_task WHERE id=? AND user_id=?",
             id,
             access.userId());
     if (rows.isEmpty()) throw new BusinessException(404, "任务不存在");
@@ -37,6 +38,8 @@ public class AiTaskStore {
         throw new IllegalStateException(e);
       }
     }
+    Object meta = t.remove("proposalMeta");
+    if (meta != null) t.put("proposal", trips.parseObject(meta.toString()));
     return t;
   }
 
@@ -91,6 +94,24 @@ public class AiTaskStore {
   }
 
   @Transactional
+  public void completeAdjustment(String id, ItineraryAnalysisService.Built built) {
+    var task = db.queryForMap("SELECT * FROM ai_task WHERE id=? FOR UPDATE", id);
+    if (!"RUNNING".equals(task.get("status"))) return;
+    Long trip = ((Number) task.get("trip_id")).longValue();
+    var current = access.writeLocked(trip);
+    if (!Objects.equals(current.getVersion(), ((Number) task.get("base_version")).longValue()))
+      throw new BusinessException(409, "路书已变化，请重新分析");
+    built.trip().setId(trip);
+    built.trip().setVersion(current.getVersion());
+    db.update(
+        "UPDATE ai_task SET status='PREVIEW',result_json=?,proposal_meta_json=?,quota_reserved=0"
+            + " WHERE id=?",
+        trips.encode(built.trip()),
+        trips.encode(built.proposal()),
+        id);
+  }
+
+  @Transactional
   public void fail(String id, String message) {
     var rows =
         db.queryForList(
@@ -119,6 +140,15 @@ public class AiTaskStore {
     if ("APPLIED".equals(t.get("status")))
       return trips.load(((Number) t.get("trip_id")).longValue());
     if (!"PREVIEW".equals(t.get("status"))) throw new BusinessException(409, "任务没有可确认的预览");
+    if ("ADJUST".equals(t.get("task_type"))) {
+      var meta = (Map<?, ?>) trips.parseObject((String) t.get("proposal_meta_json"));
+      Object expires = meta.get("expiresAt");
+      if (expires != null
+          && !java.time.Instant.now().isBefore(java.time.Instant.parse(expires.toString())))
+        throw new BusinessException(409, "外部分析依据已过期，请重新查询并生成");
+      if (((List<?>) meta.get("changes")).isEmpty())
+        throw new BusinessException(409, "提案没有需要保存的变更");
+    }
     var proposal = trips.decode((String) t.get("result_json"));
     var saved = trips.save(((Number) t.get("trip_id")).longValue(), proposal);
     db.update("UPDATE ai_task SET status='APPLIED' WHERE id=?", id);

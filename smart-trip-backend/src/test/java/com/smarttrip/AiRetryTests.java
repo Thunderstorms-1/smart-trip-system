@@ -19,6 +19,7 @@ class AiRetryTests {
   JdbcTemplate db;
   AiTaskStore store;
   AiTaskService service;
+  StringRedisTemplate redis;
 
   @BeforeEach
   void setup() {
@@ -28,12 +29,20 @@ class AiRetryTests {
     when(access.userId()).thenReturn(1L);
     var provider = mock(AiProvider.class);
     when(provider.available()).thenReturn(true);
-    var redis = mock(StringRedisTemplate.class);
+    redis = mock(StringRedisTemplate.class);
     when(redis.opsForValue()).thenReturn(mock(ValueOperations.class));
     var tm = mock(PlatformTransactionManager.class);
     when(tm.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
     service =
-        new AiTaskService(db, provider, store, mock(WorkbenchService.class), access, redis, tm);
+        new AiTaskService(
+            db,
+            provider,
+            store,
+            mock(WorkbenchService.class),
+            access,
+            redis,
+            tm,
+            mock(ItineraryAnalysisService.class));
   }
 
   @AfterEach
@@ -71,5 +80,43 @@ class AiRetryTests {
     assertEquals(
         "existing-task", service.submit("same-request", "GENERATE", null, "original").get("id"));
     verify(store).get("existing-task");
+  }
+
+  @Test
+  void terminalWorkerLockCanBeReclaimedWithItsExactToken() {
+    var ops = redis.opsForValue();
+    when(ops.setIfAbsent(anyString(), anyString(), any(java.time.Duration.class)))
+        .thenReturn(false, true);
+    when(ops.get("lock")).thenReturn("previous-task");
+    when(db.queryForList(anyString(), any(Object[].class)))
+        .thenReturn(List.of(Map.of("status", "PREVIEW")));
+    assertEquals(
+        true,
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+            service, "acquire", "lock", "new-task", 1L));
+    verify(redis)
+        .execute(
+            any(org.springframework.data.redis.core.script.RedisScript.class),
+            eq(List.of("lock")),
+            eq("previous-task"));
+  }
+
+  @Test
+  void runningWorkerLockIsNeverCleared() {
+    var ops = redis.opsForValue();
+    when(ops.setIfAbsent(anyString(), anyString(), any(java.time.Duration.class)))
+        .thenReturn(false);
+    when(ops.get("lock")).thenReturn("running-task");
+    when(db.queryForList(anyString(), any(Object[].class)))
+        .thenReturn(List.of(Map.of("status", "RUNNING")));
+    assertEquals(
+        false,
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+            service, "acquire", "lock", "new-task", 1L));
+    verify(redis, never())
+        .execute(
+            any(org.springframework.data.redis.core.script.RedisScript.class),
+            anyList(),
+            any(Object[].class));
   }
 }

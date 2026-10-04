@@ -87,6 +87,9 @@ public class WorkbenchService {
         if (i == null || i.getId() != null && !items.add(i.getId()))
           throw new BusinessException(400, "节点重复");
         count++;
+        if (i.getEnvironmentType() != null
+            && !Set.of("INDOOR", "OUTDOOR", "UNKNOWN").contains(i.getEnvironmentType()))
+          throw new BusinessException(400, "活动环境标记无效");
         if (i.getItemName() == null || i.getItemName().isBlank() || i.getItemName().length() > 100)
           throw new BusinessException(400, "地点名称必填且最多100字");
         if (i.getItemType() == null) i.setItemType("SCENIC");
@@ -151,6 +154,8 @@ public class WorkbenchService {
         i.setTripId(t.getId());
         i.setSortOrder(++order);
         i.setIsDeleted(0);
+        if (i.getEnvironmentType() == null) i.setEnvironmentType("UNKNOWN");
+        if (i.getScheduleLocked() == null) i.setScheduleLocked(false);
         if (i.getStartTime() != null && i.getStartTime().isBlank()) i.setStartTime(null);
         if (i.getCostTimeHours() != null)
           i.setCostTimeHours(i.getCostTimeHours().setScale(1, java.math.RoundingMode.HALF_UP));
@@ -238,7 +243,9 @@ public class WorkbenchService {
         decimal(i.getLatitude()),
         i.getPoiId(),
         i.getCoordinateSystem(),
-        i.getSortOrder());
+        i.getSortOrder(),
+        i.getEnvironmentType(),
+        i.getScheduleLocked());
   }
 
   private BigDecimal decimal(BigDecimal d) {
@@ -271,6 +278,17 @@ public class WorkbenchService {
     if (!Objects.equals(before.getVersion(), t.getVersion()))
       throw new BusinessException(409, "路书已被修改，请刷新后重试");
     TripDetailVO allowed = restore ? repository.tree(repository.find(id), true) : before;
+    Map<Long, TripItem> previousItems = new HashMap<>();
+    for (var d : before.getDays()) for (var i : d.getItems()) previousItems.put(i.getId(), i);
+    if (!restore)
+      for (var d : t.getDays())
+        for (var i : d.getItems()) {
+          var old = previousItems.get(i.getId());
+          if (old != null) {
+            if (i.getEnvironmentType() == null) i.setEnvironmentType(old.getEnvironmentType());
+            if (i.getScheduleLocked() == null) i.setScheduleLocked(old.getScheduleLocked());
+          }
+        }
     Set<Long> dayIds = new HashSet<>(), itemIds = new HashSet<>();
     for (var d : allowed.getDays()) {
       dayIds.add(d.getId());
@@ -378,7 +396,9 @@ public class WorkbenchService {
           i.getLatitude(),
           i.getPoiId(),
           i.getCoordinateSystem(),
-          i.getSortOrder()
+          i.getSortOrder(),
+          i.getEnvironmentType(),
+          i.getScheduleLocked()
         };
         if (i.getId() == null) {
           List<Object> args = new ArrayList<>();
@@ -387,8 +407,8 @@ public class WorkbenchService {
           i.setId(
               insert(
                   "INSERT INTO"
-                      + " trip_item(trip_id,day_id,item_type,item_name,start_time,cost_time_hours,cost_estimate,transport_tips,ai_tips,address,longitude,latitude,poi_id,coordinate_system,sort_order,is_deleted)"
-                      + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+                      + " trip_item(trip_id,day_id,item_type,item_name,start_time,cost_time_hours,cost_estimate,transport_tips,ai_tips,address,longitude,latitude,poi_id,coordinate_system,sort_order,environment_type,schedule_locked,is_deleted)"
+                      + " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                   args.toArray()));
         } else {
           removedItems.remove(i.getId());
@@ -399,7 +419,7 @@ public class WorkbenchService {
             args.add(t.getId());
             db.update(
                 "UPDATE trip_item SET"
-                    + " day_id=?,item_type=?,item_name=?,start_time=?,cost_time_hours=?,cost_estimate=?,transport_tips=?,ai_tips=?,address=?,longitude=?,latitude=?,poi_id=?,coordinate_system=?,sort_order=?,is_deleted=0,update_time=NOW()"
+                    + " day_id=?,item_type=?,item_name=?,start_time=?,cost_time_hours=?,cost_estimate=?,transport_tips=?,ai_tips=?,address=?,longitude=?,latitude=?,poi_id=?,coordinate_system=?,sort_order=?,environment_type=?,schedule_locked=?,is_deleted=0,update_time=NOW()"
                     + " WHERE id=? AND trip_id=?",
                 args.toArray());
           }

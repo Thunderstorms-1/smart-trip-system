@@ -16,6 +16,7 @@ public class AiTaskService {
   private final JdbcTemplate db;
   private final AiProvider provider;
   private final AiTaskStore store;
+  private final ItineraryAnalysisService analyses;
   private final WorkbenchService trips;
   private final ResourceAccess access;
   private final StringRedisTemplate redis;
@@ -40,10 +41,12 @@ public class AiTaskService {
       WorkbenchService trips,
       ResourceAccess access,
       StringRedisTemplate redis,
-      PlatformTransactionManager tm) {
+      PlatformTransactionManager tm,
+      ItineraryAnalysisService analyses) {
     this.db = db;
     this.provider = provider;
     this.store = store;
+    this.analyses = analyses;
     this.trips = trips;
     this.access = access;
     this.redis = redis;
@@ -122,7 +125,62 @@ public class AiTaskService {
       return existing(rows.get(0), fingerprint, type, trip, prompt);
     }
     try {
-      pool.execute(() -> run(id, user, request));
+      pool.execute(() -> run(id, user, request, null));
+    } catch (RejectedExecutionException e) {
+      store.fail(id, "任务繁忙，请稍后重试");
+    }
+    return store.get(id);
+  }
+
+  public Map<String, Object> submitAdjustment(String key, Long trip, String analysisId) {
+    Long user = access.userId();
+    access.write(trip);
+    if (key == null
+        || !key.matches("[A-Za-z0-9_-]{8,80}")
+        || analysisId == null
+        || !analysisId.matches("[a-f0-9-]{36}")) throw new BusinessException(400, "请求标识或分析会话无效");
+    String fingerprint = CommunityService.hash("ADJUST\n" + trip + "\n" + analysisId);
+    var previous =
+        db.queryForList(
+            "SELECT id,request_hash FROM ai_task WHERE user_id=? AND request_key=?", user, key);
+    if (!previous.isEmpty()) {
+      if (!Objects.equals(previous.get(0).get("request_hash"), fingerprint))
+        throw new BusinessException(409, "同一请求标识不能用于不同任务");
+      return store.get((String) previous.get(0).get("id"));
+    }
+    var prepared = analyses.prepare(trip, analysisId);
+    if (!provider.available()) throw new BusinessException(503, "AI免费权限尚未确认，基础检查仍可使用");
+    try {
+      redis.opsForValue().set("smarttrip:health", "ok", Duration.ofSeconds(10));
+    } catch (Exception e) {
+      throw new BusinessException(503, "任务服务暂不可用，请检查Redis");
+    }
+    String id = UUID.randomUUID().toString();
+    try {
+      tx.executeWithoutResult(
+          status ->
+              db.update(
+                  "INSERT INTO"
+                      + " ai_task(id,user_id,request_key,task_type,status,trip_id,base_version,input_json,request_hash)"
+                      + " VALUES(?,?,?,'ADJUST','QUEUED',?,?,?,?)",
+                  id,
+                  user,
+                  key,
+                  trip,
+                  prepared.base().getVersion(),
+                  analyses.persistedInput(prepared),
+                  fingerprint));
+    } catch (org.springframework.dao.DuplicateKeyException e) {
+      var rows =
+          db.queryForList(
+              "SELECT id,request_hash FROM ai_task WHERE user_id=? AND request_key=?", user, key);
+      if (rows.isEmpty()) throw e;
+      if (!Objects.equals(rows.get(0).get("request_hash"), fingerprint))
+        throw new BusinessException(409, "同一请求标识不能用于不同任务");
+      return store.get((String) rows.get(0).get("id"));
+    }
+    try {
+      pool.execute(() -> run(id, user, analyses.modelInput(prepared), prepared));
     } catch (RejectedExecutionException e) {
       store.fail(id, "任务繁忙，请稍后重试");
     }
@@ -148,32 +206,53 @@ public class AiTaskService {
     return store.get((String) row.get("id"));
   }
 
-  private void run(String id, Long user, String input) {
+  private boolean acquire(String lock, String id, Long user) {
+    if (Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(lock, id, Duration.ofSeconds(180))))
+      return true;
+    String prior = redis.opsForValue().get(lock);
+    if (prior != null) {
+      var rows =
+          db.queryForList("SELECT status FROM ai_task WHERE id=? AND user_id=?", prior, user);
+      if (rows.isEmpty() || Set.of("QUEUED", "RUNNING").contains(rows.get(0).get("status")))
+        return false;
+      // Completion can be observed before the worker's finally block releases its lock.
+      // Compare-and-delete only that terminal task's token; never clear a newer worker.
+      release(lock, prior);
+    }
+    return Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(lock, id, Duration.ofSeconds(180)));
+  }
+
+  private void release(String lock, String id) {
+    redis.execute(
+        new org.springframework.data.redis.core.script.DefaultRedisScript<Long>(
+            "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else"
+                + " return 0 end",
+            Long.class),
+        List.of(lock),
+        id);
+  }
+
+  private void run(
+      String id, Long user, String input, ItineraryAnalysisService.Prepared adjustment) {
     UserContext.setUserId(user);
     String lock = "smarttrip:ai:user:" + user;
     boolean acquired = false;
     try {
-      acquired =
-          Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(lock, id, Duration.ofSeconds(180)));
+      acquired = acquire(lock, id, user);
       if (!acquired) {
         store.fail(id, "已有AI任务运行中，请稍后重试");
         return;
       }
       if (!store.start(id)) return;
       String answer = provider.parse(provider.complete(input)).json();
-      store.complete(id, trips.decode(answer));
+      if (adjustment == null) store.complete(id, trips.decode(answer));
+      else store.completeAdjustment(id, analyses.build(adjustment, answer));
     } catch (Exception e) {
       store.fail(id, e instanceof BusinessException ? e.getMessage() : "任务异常，配额已退回");
     } finally {
       if (acquired)
         try {
-          redis.execute(
-              new org.springframework.data.redis.core.script.DefaultRedisScript<Long>(
-                  "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else"
-                      + " return 0 end",
-                  Long.class),
-              List.of(lock),
-              id);
+          release(lock, id);
         } catch (Exception ignored) {
         }
       UserContext.clear();

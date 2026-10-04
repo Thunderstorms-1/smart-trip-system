@@ -27,6 +27,8 @@ export interface Item {
   id?: number;
   dayId?: number;
   tripId?: number;
+  environmentType?: "INDOOR" | "OUTDOOR" | "UNKNOWN";
+  scheduleLocked?: boolean;
   itemType: ItemType;
   itemName: string;
   startTime?: string;
@@ -98,11 +100,13 @@ export interface Capabilities {
 }
 export interface Task {
   id: string;
-  type: "GENERATE" | "MODIFY";
+  type: "GENERATE" | "MODIFY" | "ADJUST";
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "PREVIEW" | "APPLIED" | "FAILED";
   tripId?: number;
+  baseVersion?: number;
   result?: Trip;
   errorMessage?: string;
+  proposal?: AdjustmentProposal;
 }
 export interface Expense {
   id?: number;
@@ -174,4 +178,56 @@ export interface Weather {
   low?: string;
   issuedAt?: string;
   retrievedAt?: string;
+}
+
+export interface AnalysisIssue {
+  id: string;
+  code: string;
+  severity: string;
+  dayId: number;
+  itemIds: number[];
+  message: string;
+  evidenceIds: string[];
+}
+export interface AnalysisSource {
+  id: string;
+  dayId: number;
+  kind: "WEATHER" | "ROUTE";
+  status: string;
+  summary: string;
+  retrievedAt?: string;
+  issuedAt?: string;
+}
+export interface AnalysisReport {
+  id: string;
+  tripId: number;
+  baseVersion: number;
+  revision: number;
+  dayIds: number[];
+  mode: string;
+  expiresAt: string;
+  issues: AnalysisIssue[];
+  sources: AnalysisSource[];
+}
+export interface AdjustmentChange {
+  itemId: number;
+  itemName: string;
+  fromDayId: number;
+  toDayId: number;
+  fromDayIndex: number;
+  toDayIndex: number;
+  fromOrder: number;
+  toOrder: number;
+  fromTime?: string;
+  toTime?: string;
+  kinds: string[];
+}
+export interface AdjustmentProposal {
+  dayIds: number[];
+  changes: AdjustmentChange[];
+  reasons: { itemIds: number[]; evidenceIds: string[]; text: string }[];
+  remainingIssues: AnalysisIssue[];
+  unverifiedRouteDayIds: number[];
+  sources: AnalysisSource[];
+  expiresAt?: string;
 }

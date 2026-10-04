@@ -12,10 +12,13 @@ public class AiTaskController {
   private final AiTaskService tasks;
   private final AiTaskStore store;
 
-  public record Request(String requestKey, String type, Long tripId, String prompt) {}
+  public record Request(
+      String requestKey, String type, Long tripId, String prompt, String analysisId) {}
 
   @PostMapping
   public Result<?> submit(@RequestBody Request r) {
+    if ("ADJUST".equals(r.type()))
+      return Result.success(tasks.submitAdjustment(r.requestKey(), r.tripId(), r.analysisId()));
     return Result.success(tasks.submit(r.requestKey(), r.type(), r.tripId(), r.prompt()));
   }
 

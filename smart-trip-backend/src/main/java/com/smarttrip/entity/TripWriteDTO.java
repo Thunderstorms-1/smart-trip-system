@@ -34,7 +34,9 @@ public record TripWriteDTO(
       BigDecimal longitude,
       BigDecimal latitude,
       String poiId,
-      String coordinateSystem) {}
+      String coordinateSystem,
+      String environmentType,
+      Boolean scheduleLocked) {}
 
   public TripDetailVO toTrip() {
     var t = new TripDetailVO();
@@ -77,6 +79,8 @@ public record TripWriteDTO(
           i.setLatitude(node.latitude());
           i.setPoiId(node.poiId());
           i.setCoordinateSystem(node.coordinateSystem());
+          i.setEnvironmentType(node.environmentType());
+          i.setScheduleLocked(node.scheduleLocked());
           targetItems.add(i);
         }
       d.setItems(targetItems);

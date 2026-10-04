@@ -117,7 +117,10 @@ class AiWorkflowIntegrationTests {
     trip = trips.save(id, trip);
     var proposal = tasks.submit(UUID.randomUUID().toString(), "MODIFY", id, "MODIFY_FIXTURE");
     String task = (String) proposal.get("id");
-    assertEquals("PREVIEW", await(task).get("status"));
+    assertEquals(
+        "PREVIEW",
+        await(task).get("status"),
+        () -> String.valueOf(store.get(task).get("errorMessage")));
     assertEquals("修改前的标题", trips.load(id).getTitle());
     var saved = store.apply(task);
     assertEquals("本地测试草稿", saved.getTitle());

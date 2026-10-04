@@ -23,6 +23,8 @@ function addItem() {
     startTime: "09:00",
     costTimeHours: 2,
     costEstimate: 0,
+    environmentType: "UNKNOWN",
+    scheduleLocked: false,
     aiTips: "",
   });
 }
@@ -121,6 +123,21 @@ function transfer(index: number, event: Event) {
               <option value="TRAFFIC">交通</option>
               <option value="OTHER">活动</option>
             </select></label
+          ><label
+            >活动环境（由你确认）<select
+              v-model="item.environmentType"
+              :disabled="!editable"
+            >
+              <option value="UNKNOWN">不确定</option>
+              <option value="INDOOR">室内</option>
+              <option value="OUTDOOR">室外</option>
+            </select></label
+          ><label
+            >智能调整时固定此安排<input
+              type="checkbox"
+              v-model="item.scheduleLocked"
+              :disabled="!editable"
+            />保留日期、开始时间和时长</label
           ><label
             >开始时间<input
               v-model="item.startTime"

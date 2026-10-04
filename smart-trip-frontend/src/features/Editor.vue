@@ -13,6 +13,7 @@ import type { Trip, Item, Poi, Revision, Share } from "./types";
 import TripRead from "./TripRead.vue";
 import TravelTools from "./TravelTools.vue";
 import MapWeather from "./MapWeather.vue";
+import ItineraryAnalysis from "./ItineraryAnalysis.vue";
 import Members from "./Members.vue";
 import HistoryDialog from "./workbench/HistoryDialog.vue";
 import ShareDialog from "./workbench/ShareDialog.vue";
@@ -46,7 +47,14 @@ const {
   save: saveDraft,
   reset,
 } = useTripDraft(() => String(route.params.tripId));
-const { busy, error, run } = useAction();
+const { busy: actionBusy, error, run } = useAction();
+const analysisBusy = ref(false);
+const busy = computed(() => actionBusy.value || analysisBusy.value);
+function analysisApplied(value: Trip) {
+  saved.value = JSON.stringify(value);
+  trip.value = value;
+  notify("行程调整已保存");
+}
 const { prompt, task, preview, aiAdjust, requestAi, applyAi, resetTask } =
   useAiTask(trip, saved, dayIndex, dirty, modal, guardSaved, run);
 const owner = computed(() => trip.value?.userId === s.profile?.id),
@@ -316,6 +324,12 @@ function print() {
         @click="aiAdjust()"
       >
         AI 调整预览</button
+      ><button
+        class="button secondary"
+        :disabled="busy || dirty"
+        @click="tab = 'analysis'"
+      >
+        行程诊断</button
       ><button class="button secondary" :disabled="busy" @click="history">
         历史版本</button
       ><button
@@ -359,12 +373,14 @@ function print() {
         v-for="t in [
           { id: 'plan', label: '行程编辑' },
           { id: 'map', label: '路线与天气' },
+          { id: 'analysis', label: '行程诊断' },
           { id: 'tools', label: '记账与行李' },
           { id: 'members', label: '同行成员' },
           { id: 'read', label: '路书预览' },
         ]"
         :key="t.id"
         :class="{ active: tab === t.id }"
+        :disabled="analysisBusy"
         @click="tab = t.id"
       >
         {{ t.label }}
@@ -397,9 +413,20 @@ function print() {
         :trip="trip"
         :day="day"
         :dirty="dirty"
-        @adjust="aiAdjust"
+        @adjust="tab = 'analysis'"
       />
     </div>
+    <ItineraryAnalysis
+      v-if="tab === 'analysis'"
+      :trip="trip"
+      :day-index="dayIndex"
+      :dirty="dirty"
+      :editable="editable"
+      :busy="actionBusy"
+      :capabilities="s.capabilities"
+      @applied="analysisApplied"
+      @busy="analysisBusy = $event"
+    />
     <TravelTools
       v-if="tab === 'tools'"
       ref="tools"
