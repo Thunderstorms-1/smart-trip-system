@@ -243,7 +243,7 @@ class ItineraryAnalysisTests {
     assertEquals("10:00", base.getDays().get(0).getItems().get(1).getStartTime());
     assertEquals("11:00", built.trip().getDays().get(0).getItems().get(1).getStartTime());
     assertEquals(1, built.proposal().changes().size());
-    assertNull(built.proposal().expiresAt());
+    assertEquals(p.expiresAt(), built.proposal().expiresAt());
     verify(trips, never()).save(any(), any());
   }
 
@@ -349,5 +349,52 @@ class ItineraryAnalysisTests {
                 adjust(
                     "[{\"dayId\":11,\"items\":[{\"itemId\":101},{\"itemId\":102},{\"itemId\":103}]},{\"dayId\":12,\"items\":[]}]",
                     "[]")));
+  }
+
+  @Test
+  void qualityCoversEntireTripButActionableEvidenceRespectsSelectedDays() {
+    var r = report(11L);
+    assertEquals(List.of(11L), r.dayIds());
+    assertEquals(List.of(11L, 12L), r.quality().dayIds());
+    var p = service.prepare(10L, r.id());
+    assertTrue(service.modelInput(p).startsWith("ADJUST_SCHEMA_V2"));
+    assertTrue(service.persistedInput(p).contains("quality-v1"));
+    verifyNoInteractions(geo);
+  }
+
+  @Test
+  void qualityReasonIsAcceptedForRestImprovementWithoutBasicErrors() {
+    base.getDays().get(0).getItems().get(1).setStartTime("11:00");
+    base.getDays().get(0).getItems().get(1).setCostTimeHours(new java.math.BigDecimal("2"));
+    var p = prepared(11L);
+    var r = service.get(10L, report(11L).id());
+    var quality =
+        r.quality().findings().stream()
+            .filter(f -> f.ruleId().equals("QUALITY_CONTINUOUS_ACTIVITY"))
+            .findFirst()
+            .orElseThrow();
+    var b =
+        service.build(
+            p,
+            adjust(
+                day1("11:30"),
+                "[{\"itemIds\":[102],\"evidenceIds\":[\""
+                    + quality.id()
+                    + "\"],\"text\":\"预留30分钟间隔\"}]"));
+    assertNotNull(b.proposal().qualityComparison());
+    assertFalse(b.proposal().qualityComparison().resolved().isEmpty());
+    assertEquals("11:00", base.getDays().get(0).getItems().get(1).getStartTime());
+  }
+
+  @Test
+  void legacyPreparedInputKeepsOriginalProtocolAndNoQualityGate() {
+    var v2 = prepared(11L);
+    var old =
+        new ItineraryAnalysisService.Prepared(
+            v2.base(), v2.dayIds(), v2.mode(), v2.issues(), v2.sources(), v2.expiresAt());
+    assertTrue(service.modelInput(old).startsWith("ADJUST_SCHEMA_V1"));
+    var b = service.build(old, adjust(day1("11:00"), reason(old, 102L)));
+    assertNull(b.proposal().qualityComparison());
+    assertNull(b.proposal().expiresAt());
   }
 }

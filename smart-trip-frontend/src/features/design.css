@@ -1465,3 +1465,57 @@ form .form-error {
     padding: 16px;
   }
 }
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 12px;
+}
+.quality-section {
+  padding: 18px;
+  border: 1px solid var(--line, #d4ddd1);
+  border-radius: 16px;
+  background: #f3f5ed;
+}
+.quality-score {
+  font-size: 2.8rem;
+  font-weight: 750;
+  margin: 10px 0;
+}
+.quality-score small {
+  font-size: 1rem;
+}
+.quality-grid progress {
+  width: 100%;
+  accent-color: #466d54;
+}
+.quality-metrics {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin: 12px 0;
+}
+.quality-metrics dd {
+  margin: 0;
+  text-align: right;
+}
+.quality-grid .analysis-card {
+  margin: 0;
+  min-width: 0;
+}
+.quality-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quality-filter input {
+  width: auto;
+}
+.quality-section p,
+.quality-grid p {
+  overflow-wrap: anywhere;
+}
+[id^="plan-item-"]:focus {
+  outline: 2px solid #2c725b;
+  outline-offset: 4px;
+}

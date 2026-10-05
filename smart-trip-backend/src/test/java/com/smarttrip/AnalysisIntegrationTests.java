@@ -312,4 +312,57 @@ class AnalysisIntegrationTests {
             .getCode());
     assertEquals(404, assertThrows(BusinessException.class, () -> store.apply(id)).getCode());
   }
+
+  @Test
+  void qualityComparisonSurvivesPreviewPersistenceAndIsRecheckedOnConfirmation() throws Exception {
+    String id = submit(report());
+    var preview = store.get(id);
+    var meta = (Map<?, ?>) preview.get("proposal");
+    var comparison = (Map<?, ?>) meta.get("qualityComparison");
+    assertNotNull(comparison);
+    assertEquals(2, ((Number) comparison.get("schemaVersion")).intValue());
+    var saved = store.apply(id);
+    assertEquals(
+        "11:00", trips.load(saved.getId()).getDays().get(0).getItems().get(1).getStartTime());
+  }
+
+  @Test
+  void tamperedCandidateCannotBypassConfirmationValidation() throws Exception {
+    String id = submit(report());
+    var result =
+        (String) db.queryForObject("SELECT result_json FROM ai_task WHERE id=?", String.class, id);
+    var candidate = trips.decode(result);
+    candidate.getDays().get(0).getItems().get(1).setCostEstimate(new java.math.BigDecimal("999"));
+    db.update("UPDATE ai_task SET result_json=? WHERE id=?", trips.encode(candidate), id);
+    assertEquals(422, assertThrows(BusinessException.class, () -> store.apply(id)).getCode());
+    assertEquals("PREVIEW", store.get(id).get("status"));
+    assertEquals(
+        "10:00", trips.load(base.getId()).getDays().get(0).getItems().get(1).getStartTime());
+  }
+
+  @Test
+  void storedLegacyTaskCanStillConfirmWithoutV2Metadata() throws Exception {
+    String id = submit(report());
+    var input =
+        (String) db.queryForObject("SELECT input_json FROM ai_task WHERE id=?", String.class, id);
+    var mapper = new ObjectMapper();
+    var legacy = (ObjectNode) mapper.readTree(input);
+    legacy.put("schemaVersion", 1);
+    legacy.remove(List.of("quality", "policy", "sources"));
+    var meta =
+        (ObjectNode)
+            mapper.readTree(
+                (String)
+                    db.queryForObject(
+                        "SELECT proposal_meta_json FROM ai_task WHERE id=?", String.class, id));
+    meta.remove("qualityComparison");
+    meta.putNull("expiresAt");
+    db.update(
+        "UPDATE ai_task SET input_json=?,proposal_meta_json=? WHERE id=?",
+        legacy.toString(),
+        meta.toString(),
+        id);
+    assertFalse(((Map<?, ?>) store.get(id).get("proposal")).containsKey("qualityComparison"));
+    assertNotNull(store.apply(id));
+  }
 }

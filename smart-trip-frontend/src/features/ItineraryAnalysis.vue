@@ -3,6 +3,10 @@ import { watch } from "vue";
 import type { Trip, Capabilities } from "./types";
 import { useItineraryAnalysis } from "./useItineraryAnalysis";
 import TripRead from "./TripRead.vue";
+import QualityOverview from "./analysis/QualityOverview.vue";
+import DayQualityCards from "./analysis/DayQualityCards.vue";
+import QualityFindings from "./analysis/QualityFindings.vue";
+import QualityComparison from "./analysis/QualityComparison.vue";
 import { capabilityEnabled, capabilityNotice } from "./capabilities";
 const props = defineProps<{
   trip: Trip;
@@ -12,7 +16,11 @@ const props = defineProps<{
   busy: boolean;
   capabilities: Capabilities;
 }>();
-const emit = defineEmits<{ applied: [trip: Trip]; busy: [value: boolean] }>();
+const emit = defineEmits<{
+  applied: [trip: Trip];
+  busy: [value: boolean];
+  focus: [dayId: number, itemId?: number];
+}>();
 const a = useItineraryAnalysis(
   () => props,
   (trip) => emit("applied", trip),
@@ -84,6 +92,11 @@ function when(value?: string) {
     </fieldset>
     <p v-if="error" class="form-error" role="alert">{{ error }}</p>
     <template v-if="report">
+      <QualityOverview
+        v-if="report.quality"
+        :quality="report.quality"
+        :trip="trip"
+      />
       <section aria-label="基础检查结果">
         <h3>当前发现</h3>
         <p v-if="!report.issues.length">
@@ -116,6 +129,20 @@ function when(value?: string) {
           }}</small>
         </article>
       </section>
+      <DayQualityCards
+        v-if="report.quality"
+        :quality="report.quality"
+        :disabled="dirty || busy || applying || props.busy || running"
+        @focus="(d, i) => emit('focus', d, i)"
+      />
+      <QualityFindings
+        v-if="report.quality"
+        :quality="report.quality"
+        :trip="trip"
+        :day-ids="dayIds"
+        :disabled="dirty || busy || applying || props.busy || running"
+        @focus="(d, i) => emit('focus', d, i)"
+      />
       <section>
         <h3>按需补充依据</h3>
         <p v-if="!capabilities.geo" class="notice">
@@ -244,6 +271,10 @@ function when(value?: string) {
       aria-label="调整差异"
     >
       <h3>调整差异</h3>
+      <QualityComparison
+        v-if="task.proposal.qualityComparison"
+        :comparison="task.proposal.qualityComparison"
+      />
       <p>
         涉及第
         {{ task.proposal.dayIds.map(dayNumber).join("、") }}

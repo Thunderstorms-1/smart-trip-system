@@ -83,6 +83,8 @@ function transfer(index: number, event: Event) {
         v-for="(item, n) in day.items"
         :key="item.id || 'new-' + n"
         class="item-editor"
+        :id="item.id ? 'plan-item-' + item.id : undefined"
+        tabindex="-1"
       >
         <div class="row">
           <h3>{{ n + 1 }} / {{ item.itemName || "新地点" }}</h3>

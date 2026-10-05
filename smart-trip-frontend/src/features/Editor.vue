@@ -99,6 +99,19 @@ watch(
     if (count) dayIndex.value = Math.min(dayIndex.value, count - 1);
   },
 );
+async function focusQuality(dayId: number, itemId?: number) {
+  if (dirty.value || busy.value || loading.value || !trip.value) return;
+  const index = trip.value.days.findIndex((d) => d.id === dayId);
+  if (index < 0) return;
+  dayIndex.value = index;
+  tab.value = "plan";
+  await nextTick();
+  const target = itemId
+    ? document.getElementById("plan-item-" + itemId)
+    : document.querySelector(".editor-panel");
+  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (target instanceof HTMLElement) target.focus({ preventScroll: true });
+}
 function save() {
   return run(saveDraft, "路书已保存");
 }
@@ -442,6 +455,7 @@ function print() {
       :busy="actionBusy"
       :capabilities="s.capabilities"
       @applied="analysisApplied"
+      @focus="focusQuality"
       @busy="analysisBusy = $event"
     />
     <TravelTools

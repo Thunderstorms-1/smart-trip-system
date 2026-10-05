@@ -227,6 +227,7 @@ export interface AnalysisReport {
   expiresAt: string;
   issues: AnalysisIssue[];
   sources: AnalysisSource[];
+  quality?: QualityReport;
 }
 export interface AdjustmentChange {
   itemId: number;
@@ -246,7 +247,97 @@ export interface AdjustmentProposal {
   changes: AdjustmentChange[];
   reasons: { itemIds: number[]; evidenceIds: string[]; text: string }[];
   remainingIssues: AnalysisIssue[];
+  qualityComparison?: QualityComparison;
   unverifiedRouteDayIds: number[];
   sources: AnalysisSource[];
   expiresAt?: string;
+}
+
+export interface QualityDimension {
+  key: "TIME" | "PACE" | "MEAL_REST" | "BALANCE";
+  status: "READY" | "UNKNOWN" | "NOT_APPLICABLE";
+  score: number | null;
+  weight: number;
+  deductionIds: string[];
+  unknownReasons: string[];
+}
+export interface QualityFinding {
+  id: string;
+  ruleId: string;
+  severity: string;
+  dayIds: number[];
+  itemIds: number[];
+  message: string;
+  evidence: {
+    metric: string;
+    actual: number;
+    threshold: number;
+    unit: string;
+  }[];
+  penalty: number;
+  evidenceIds: string[];
+  action: string;
+}
+export interface DayQuality {
+  dayId: number;
+  dayIndex: number;
+  loadLevel: string;
+  coverage: {
+    total: number;
+    complete: number;
+    percent: number;
+    missingItemIds: number[];
+    overnightItemIds: number[];
+  };
+  metrics: {
+    nodeCount: number;
+    scenicCount: number;
+    activityCount: number;
+    plannedActivityMinutes: number;
+    occupiedActivityMinutes: number;
+    scheduledFoodMinutes: number;
+    scheduledTrafficMinutes: number;
+    daySpanMinutes: number | null;
+    longestContinuousMinutes: number;
+    unallocatedMinutes: number;
+    gaps: {
+      from: number;
+      to: number;
+      plannedMinutes: number;
+      routeMinutes: number | null;
+      remainingMinutes: number | null;
+    }[];
+  };
+  dimensions: QualityDimension[];
+  findingIds: string[];
+}
+export interface ExternalQualityState {
+  status: string;
+  expected: number;
+  available: number;
+  sourceIds: string[];
+  reason: string;
+}
+export interface QualityReport {
+  schemaVersion: number;
+  rulesVersion: string;
+  profile: string;
+  scope: "TRIP";
+  baseVersion: number;
+  dayIds: number[];
+  status: string;
+  totalScore: number | null;
+  dimensions: QualityDimension[];
+  days: DayQuality[];
+  findings: QualityFinding[];
+  basicIssues?: AnalysisIssue[];
+  external: { route: ExternalQualityState; weather: ExternalQualityState };
+}
+export interface QualityComparison {
+  schemaVersion: number;
+  before: QualityReport;
+  after: QualityReport;
+  resolved: string[];
+  remaining: string[];
+  added: string[];
 }

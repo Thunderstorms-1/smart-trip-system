@@ -12,11 +12,17 @@ public class AiTaskStore {
   private final JdbcTemplate db;
   private final WorkbenchService trips;
   private final ResourceAccess access;
+  private final ItineraryAnalysisService analyses;
 
-  public AiTaskStore(JdbcTemplate db, WorkbenchService trips, ResourceAccess access) {
+  public AiTaskStore(
+      JdbcTemplate db,
+      WorkbenchService trips,
+      ResourceAccess access,
+      ItineraryAnalysisService analyses) {
     this.db = db;
     this.trips = trips;
     this.access = access;
+    this.analyses = analyses;
   }
 
   public Map<String, Object> get(String id) {
@@ -140,6 +146,9 @@ public class AiTaskStore {
     if ("APPLIED".equals(t.get("status")))
       return trips.load(((Number) t.get("trip_id")).longValue());
     if (!"PREVIEW".equals(t.get("status"))) throw new BusinessException(409, "任务没有可确认的预览");
+    var current = access.writeLocked(((Number) t.get("trip_id")).longValue());
+    if (!Objects.equals(current.getVersion(), ((Number) t.get("base_version")).longValue()))
+      throw new BusinessException(409, "路书已变化，请重新生成提案");
     if ("ADJUST".equals(t.get("task_type"))) {
       var meta = (Map<?, ?>) trips.parseObject((String) t.get("proposal_meta_json"));
       Object expires = meta.get("expiresAt");
@@ -150,6 +159,11 @@ public class AiTaskStore {
         throw new BusinessException(409, "提案没有需要保存的变更");
     }
     var proposal = trips.decode((String) t.get("result_json"));
+    if ("ADJUST".equals(t.get("task_type")))
+      analyses.verifyForApply(
+          (String) t.get("input_json"),
+          proposal,
+          (Map<?, ?>) trips.parseObject((String) t.get("proposal_meta_json")));
     var saved = trips.save(((Number) t.get("trip_id")).longValue(), proposal);
     db.update("UPDATE ai_task SET status='APPLIED' WHERE id=?", id);
     return saved;
