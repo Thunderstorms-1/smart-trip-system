@@ -3,6 +3,7 @@ import { watch } from "vue";
 import type { Trip, Capabilities } from "./types";
 import { useItineraryAnalysis } from "./useItineraryAnalysis";
 import TripRead from "./TripRead.vue";
+import { capabilityEnabled, capabilityNotice } from "./capabilities";
 const props = defineProps<{
   trip: Trip;
   dayIndex: number;
@@ -48,18 +49,6 @@ function dayNumber(id: number) {
 }
 function when(value?: string) {
   return value ? new Date(value).toLocaleString("zh-CN") : "未查询";
-}
-function geoUnavailableReason() {
-  switch (props.capabilities.status?.geo) {
-    case "QUOTA_UNVERIFIED":
-      return "地图与天气免费权限尚未确认。";
-    case "KEY_MISSING":
-      return "高德 Web 服务 Key 尚未配置。";
-    case "DISABLED":
-      return "地图与天气服务当前处于关闭状态。";
-    default:
-      return "地图与天气尚未启用。";
-  }
 }
 </script>
 <template>
@@ -130,7 +119,7 @@ function geoUnavailableReason() {
       <section>
         <h3>按需补充依据</h3>
         <p v-if="!capabilities.geo" class="notice">
-          {{ geoUnavailableReason() }}基础检查可继续使用，未调用外部服务。
+          基础检查可继续使用，路线与天气按各自配置提供，当前未调用外部服务。
         </p>
         <article v-for="id in report.dayIds" :key="id" class="analysis-card">
           <h4>第 {{ dayNumber(id) }} 天</h4>
@@ -139,12 +128,31 @@ function geoUnavailableReason() {
             :key="kind"
             class="analysis-source"
           >
+            <p
+              v-if="
+                !capabilityEnabled(
+                  capabilities,
+                  kind === 'WEATHER' ? 'weather' : 'route',
+                )
+              "
+              class="notice"
+            >
+              {{
+                capabilityNotice(
+                  capabilities,
+                  kind === "WEATHER" ? "weather" : "route",
+                )
+              }}
+            </p>
             <div class="button-row">
               <strong>{{ kind === "WEATHER" ? "日天气" : "路线耗时" }}</strong>
               <button
                 class="text-button"
                 :disabled="
-                  !capabilities.geo ||
+                  !capabilityEnabled(
+                    capabilities,
+                    kind === 'WEATHER' ? 'weather' : 'route',
+                  ) ||
                   dirty ||
                   props.busy ||
                   applying ||
@@ -161,7 +169,10 @@ function geoUnavailableReason() {
               <button
                 class="text-button"
                 :disabled="
-                  !capabilities.geo ||
+                  !capabilityEnabled(
+                    capabilities,
+                    kind === 'WEATHER' ? 'weather' : 'route',
+                  ) ||
                   dirty ||
                   props.busy ||
                   applying ||
@@ -235,9 +246,7 @@ function geoUnavailableReason() {
       <h3>调整差异</h3>
       <p>
         涉及第
-        {{
-          task.proposal.dayIds.map(dayNumber).join("、")
-        }}
+        {{ task.proposal.dayIds.map(dayNumber).join("、") }}
         天，原路书尚未改变。
       </p>
       <p v-if="stale || expired" class="form-error">
@@ -274,9 +283,7 @@ function geoUnavailableReason() {
       </article>
       <p v-if="task.proposal.unverifiedRouteDayIds.length" class="notice">
         第
-        {{
-          task.proposal.unverifiedRouteDayIds.map(dayNumber).join("、")
-        }}
+        {{ task.proposal.unverifiedRouteDayIds.map(dayNumber).join("、") }}
         天的路线发生变化，新增路段尚未复核。此提案不承诺节省交通时间；保存后可查询新路线。
       </p>
       <details>

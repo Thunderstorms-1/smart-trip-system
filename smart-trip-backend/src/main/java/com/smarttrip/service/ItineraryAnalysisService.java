@@ -234,7 +234,7 @@ public class ItineraryAnalysisService {
               .filter(d -> Objects.equals(dayId, d.getId()))
               .findFirst()
               .orElseThrow();
-      if (!geo.available())
+      if (!("WEATHER".equals(kind) ? geo.weatherAvailable() : geo.routeAvailable()))
         source =
             new Source(
                 key,

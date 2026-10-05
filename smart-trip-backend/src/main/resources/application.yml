@@ -33,8 +33,13 @@ ai:
     base-url: ${SMARTTRIP_AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
     api-key: ${SMARTTRIP_AI_KEY:}
     model: ${SMARTTRIP_AI_MODEL:qwen3.8-flash}
+    max-output-tokens: ${SMARTTRIP_AI_MAX_OUTPUT_TOKENS:8192}
 geo:
   enabled: ${SMARTTRIP_GEO_ENABLED:false}
+  poi-enabled: ${SMARTTRIP_POI_ENABLED:false}
+  route-enabled: ${SMARTTRIP_ROUTE_ENABLED:false}
+  weather-enabled: ${SMARTTRIP_WEATHER_ENABLED:false}
+  map-enabled: ${SMARTTRIP_MAP_ENABLED:false}
   free-quota-verified: ${SMARTTRIP_GEO_FREE_QUOTA_VERIFIED:false}
   amap-key: ${SMARTTRIP_AMAP_KEY:}
   amap-js-key: ${SMARTTRIP_AMAP_JS_KEY:}

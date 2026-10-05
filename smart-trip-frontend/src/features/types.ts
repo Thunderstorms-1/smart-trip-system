@@ -103,10 +103,16 @@ export interface Capabilities {
   ai: boolean;
   geo: boolean;
   map: boolean;
+  poi?: boolean;
+  route?: boolean;
+  weather?: boolean;
   status?: {
     ai: CapabilityStatus;
     geo: CapabilityStatus;
     map: CapabilityStatus;
+    poi?: CapabilityStatus;
+    route?: CapabilityStatus;
+    weather?: CapabilityStatus;
   };
   notice: string;
 }
@@ -155,6 +161,7 @@ export interface Poi {
   address: string;
   location: string;
   adcode: string;
+  coordinateSystem?: "GCJ02";
   provider: string;
 }
 export interface RoutePoint {

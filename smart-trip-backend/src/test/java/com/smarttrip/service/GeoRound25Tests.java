@@ -17,6 +17,10 @@ class GeoRound25Tests {
   GeoProperties config() {
     var c = new GeoProperties();
     c.setEnabled(true);
+    c.setPoiEnabled(true);
+    c.setRouteEnabled(true);
+    c.setWeatherEnabled(true);
+    c.setMapEnabled(true);
     c.setFreeQuotaVerified(true);
     c.setAmapKey("local-fixture");
     return c;
@@ -44,7 +48,9 @@ class GeoRound25Tests {
   }
 
   String detail(String loc) {
-    return "{\"status\":\"1\",\"pois\":[{\"location\":\"" + loc + "\"}]}";
+    return "{\"status\":\"1\",\"pois\":[{\"id\":\"B00001\",\"name\":\"地点\",\"location\":\""
+        + loc
+        + "\"}]}";
   }
 
   String direction =

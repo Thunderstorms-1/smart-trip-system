@@ -13,5 +13,6 @@ public class AiProperties {
   // 默认与 application-local.example.yml 保持一致；未显式开启且确认免费额度时不会调用外部服务。
   private String baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
   private String apiKey = "";
+  private int maxOutputTokens = 8192;
   private String model = "qwen3.8-flash";
 }

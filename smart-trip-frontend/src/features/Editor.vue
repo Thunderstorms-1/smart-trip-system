@@ -23,6 +23,8 @@ import DayNavigation from "./workbench/DayNavigation.vue";
 import PlanEditor from "./workbench/PlanEditor.vue";
 import AiProposal from "./workbench/AiProposal.vue";
 import { useTripDraft } from "./useTripDraft";
+import { usePoiSearch } from "./usePoiSearch";
+import { capabilityEnabled, capabilityNotice } from "./capabilities";
 const route = useRoute(),
   router = useRouter(),
   s = useSession(),
@@ -33,7 +35,6 @@ const route = useRoute(),
   revisions = ref<Revision[]>([]),
   shares = ref<Share[]>([]),
   shareUrl = ref(""),
-  poi = ref<Poi[]>([]),
   search = ref(""),
   selected = ref<Item>();
 const {
@@ -47,6 +48,23 @@ const {
   save: saveDraft,
   reset,
 } = useTripDraft(() => String(route.params.tripId));
+const {
+  results: poi,
+  busy: poiBusy,
+  error: poiError,
+  searched: poiSearched,
+  search: searchPoi,
+  reset: resetPoi,
+} = usePoiSearch(
+  () => ({
+    tripId: trip.value?.id,
+    version: trip.value?.version,
+    destination: trip.value?.destination || "",
+    item: selected.value,
+    open: modal.value === "poi",
+  }),
+  () => search.value,
+);
 const { busy: actionBusy, error, run } = useAction();
 const analysisBusy = ref(false);
 const busy = computed(() => actionBusy.value || analysisBusy.value);
@@ -209,21 +227,20 @@ async function removeTrip() {
 function selectPoi(item: Item) {
   selected.value = item;
   search.value = item.itemName;
-  poi.value = [];
+  resetPoi();
   modal.value = "poi";
 }
 function findPoi() {
-  run(async () => {
-    poi.value = await api<Poi[]>(
-      "/geo/search?city=" +
-        encodeURIComponent(trip.value!.destination) +
-        "&keyword=" +
-        encodeURIComponent(search.value),
-    );
-  });
+  if (!capabilityEnabled(s.capabilities, "poi")) return;
+  void searchPoi();
 }
 function choose(p: Poi) {
-  if (!selected.value) return;
+  if (
+    !selected.value ||
+    modal.value !== "poi" ||
+    !trip.value?.days.some((day) => day.items.includes(selected.value!))
+  )
+    return;
   selected.value.poiId = p.poiId;
   selected.value.itemName = p.name;
   selected.value.longitude = undefined;
@@ -402,7 +419,7 @@ function print() {
         :editable="editable"
         :busy="busy || loading"
         :dirty="dirty"
-        :geo="s.capabilities.geo"
+        :geo="capabilityEnabled(s.capabilities, 'poi')"
         @remove-day="removeDay"
         @poi="selectPoi"
         @record="record"
@@ -488,7 +505,10 @@ function print() {
             v-model="search"
             :poi="poi"
             :destination="trip.destination"
-            :busy="busy"
+            :busy="poiBusy"
+            :error="poiError"
+            :searched="poiSearched"
+            :unavailable="capabilityNotice(s.capabilities, 'poi')"
             @search="findPoi"
             @choose="choose"
           /><AiProposal

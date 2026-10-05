@@ -84,27 +84,60 @@ public class GeoService {
   }
 
   public boolean available() {
-    return "READY".equals(status());
+    return poiAvailable() || routeAvailable() || weatherAvailable();
+  }
+
+  private String status(boolean selected, boolean browser) {
+    if (!config.isEnabled() || !selected) return "DISABLED";
+    if (!config.isFreeQuotaVerified()) return "QUOTA_UNVERIFIED";
+    if (browser) {
+      if (config.getAmapJsKey() == null
+          || config.getAmapJsKey().isBlank()
+          || config.getAmapSecurityKey() == null
+          || config.getAmapSecurityKey().isBlank()) return "BROWSER_KEY_MISSING";
+    } else if (config.getAmapKey() == null || config.getAmapKey().isBlank()) return "KEY_MISSING";
+    return "READY";
   }
 
   public String status() {
-    if (!config.isEnabled()) return "DISABLED";
-    if (!config.isFreeQuotaVerified()) return "QUOTA_UNVERIFIED";
-    if (config.getAmapKey() == null || config.getAmapKey().isBlank()) return "KEY_MISSING";
-    return "READY";
+    return status(
+        config.isPoiEnabled() || config.isRouteEnabled() || config.isWeatherEnabled(), false);
+  }
+
+  public String poiStatus() {
+    return status(config.isPoiEnabled(), false);
+  }
+
+  public String routeStatus() {
+    return status(config.isRouteEnabled(), false);
+  }
+
+  public String weatherStatus() {
+    return status(config.isWeatherEnabled(), false);
+  }
+
+  public String mapStatus() {
+    return status(config.isMapEnabled(), true);
+  }
+
+  public boolean poiAvailable() {
+    return "READY".equals(poiStatus());
+  }
+
+  public boolean routeAvailable() {
+    return "READY".equals(routeStatus());
+  }
+
+  public boolean weatherAvailable() {
+    return "READY".equals(weatherStatus());
   }
 
   public boolean mapAvailable() {
     return "READY".equals(mapStatus());
   }
 
-  public String mapStatus() {
-    if (!available()) return status();
-    if (config.getAmapJsKey() == null
-        || config.getAmapJsKey().isBlank()
-        || config.getAmapSecurityKey() == null
-        || config.getAmapSecurityKey().isBlank()) return "BROWSER_KEY_MISSING";
-    return "READY";
+  private void require(boolean available, String feature) {
+    if (!available) throw new BusinessException(503, feature + "服务未启用、免费权限未确认或 Key 未配置，未发起外部请求");
   }
 
   public Map<String, Object> mapConfig() {
@@ -125,7 +158,11 @@ public class GeoService {
   }
 
   private JsonNode call(String path, Map<String, String> args, RouteContext context) {
-    if (!available()) throw new BusinessException(503, "地图和天气免费权限尚未确认，暂未启用");
+    require(
+        context != null
+            ? routeAvailable()
+            : path.startsWith("/v5/place/") ? poiAvailable() : weatherAvailable(),
+        "地理");
     HttpUrl.Builder url =
         Objects.requireNonNull(HttpUrl.parse("https://restapi.amap.com" + path))
             .newBuilder()
@@ -139,14 +176,19 @@ public class GeoService {
               Math.min(TimeUnit.SECONDS.toNanos(15), context.remaining()), TimeUnit.NANOSECONDS);
     try (Response r = request.execute()) {
       if (context != null) context.remaining();
-      if (!r.isSuccessful() || r.body() == null) throw new BusinessException(502, "地理服务暂不可用");
+      if (r.body() == null) throw ProviderErrors.geo(r.code(), "");
+      if (!r.isSuccessful()) throw ProviderErrors.geo(r.code(), "");
       JsonNode n = json.readTree(r.body().string());
+      if (n == null || !n.isObject()) throw new BusinessException(502, "高德返回的数据格式无效");
       if (context != null) context.remaining();
       if (!"1".equals(n.path("status").asText()))
-        throw new BusinessException(502, "地理服务拒绝请求，请检查免费权限或配额");
+        throw ProviderErrors.geo(r.code(), n.path("infocode").asText());
       return n;
     } catch (BusinessException e) {
       throw e;
+    } catch (java.io.InterruptedIOException e) {
+      if (context != null) context.remaining();
+      throw new BusinessException(504, "高德查询超时，请稍后手动重试");
     } catch (Exception e) {
       if (context != null) context.remaining();
       throw new BusinessException(502, "地理服务连接失败，请稍后重试");
@@ -160,6 +202,7 @@ public class GeoService {
         || keyword == null
         || keyword.isBlank()
         || keyword.length() > 100) throw new BusinessException(400, "城市和地点名称必填");
+    require(poiAvailable(), "地点搜索");
     JsonNode n =
         call(
             "/v5/place/text",
@@ -177,7 +220,9 @@ public class GeoService {
     List<Map<String, Object>> result = new ArrayList<>();
     for (var p : n.path("pois")) {
       var parsed = location(p.path("location").asText());
-      if (parsed.isEmpty()) continue;
+      if (parsed.isEmpty()
+          || !p.path("id").asText().matches("[A-Za-z0-9]{5,80}")
+          || p.path("name").asText().isBlank()) continue;
       String location = parsed.get();
       result.add(
           Map.of(
@@ -233,7 +278,7 @@ public class GeoService {
   }
 
   public Map<String, Object> route(Long tripId, Long dayId, String mode) {
-    if (!available()) throw new BusinessException(503, "路径服务免费权限尚未确认");
+    require(routeAvailable(), "路线");
     if (!Set.of("walking", "driving").contains(mode)) throw new BusinessException(400, "目前支持步行或驾车");
     RouteContext context = new RouteContext();
     var t = trips.load(tripId);
@@ -288,24 +333,56 @@ public class GeoService {
         continue;
       }
       var route = paths.get(0);
+      var distance = nonnegative(route.path("distance").asText());
+      var duration = nonnegative(route.path("cost").path("duration").asText());
       List<String> polylines = new ArrayList<>();
-      for (var step : route.path("steps"))
-        if (!step.path("polyline").asText().isBlank())
-          polylines.add(step.path("polyline").asText());
-      legs.add(
-          Map.of(
-              "from",
-              a.get("itemId"),
-              "to",
-              b.get("itemId"),
-              "available",
-              !polylines.isEmpty(),
-              "distanceMeters",
-              route.path("distance").asText(),
-              "durationSeconds",
-              route.path("cost").path("duration").asText(),
-              "polylines",
-              polylines));
+      boolean valid = distance.isPresent() && duration.isPresent() && route.path("steps").isArray();
+      for (var step : route.path("steps")) {
+        String wire = step.path("polyline").asText();
+        String[] positions = wire.split(";", -1);
+        if (positions.length < 2) {
+          valid = false;
+          break;
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String position : positions) {
+          var parsed = location(position);
+          if (parsed.isEmpty()) {
+            valid = false;
+            break;
+          }
+          normalized.add(parsed.get());
+        }
+        if (!valid) break;
+        polylines.add(String.join(";", normalized));
+      }
+      if (!valid || polylines.isEmpty()) {
+        legs.add(
+            Map.of(
+                "from",
+                a.get("itemId"),
+                "to",
+                b.get("itemId"),
+                "available",
+                false,
+                "reason",
+                "供应商未提供有效的距离、耗时或道路路线，无法确认此段"));
+      } else {
+        legs.add(
+            Map.of(
+                "from",
+                a.get("itemId"),
+                "to",
+                b.get("itemId"),
+                "available",
+                true,
+                "distanceMeters",
+                distance.get(),
+                "durationSeconds",
+                duration.get(),
+                "polylines",
+                polylines));
+      }
     }
     context.remaining();
     return Map.of(
@@ -325,7 +402,20 @@ public class GeoService {
         Instant.now().toString());
   }
 
+  private Optional<String> nonnegative(String value) {
+    try {
+      var number = new java.math.BigDecimal(value);
+      if (number.signum() < 0
+          || !Double.isFinite(number.doubleValue())
+          || Math.abs((long) number.scale()) > 128) return Optional.empty();
+      return Optional.of(number.stripTrailingZeros().toPlainString());
+    } catch (NumberFormatException e) {
+      return Optional.empty();
+    }
+  }
+
   public Map<String, Object> weather(String city, LocalDate date) {
+    require(weatherAvailable(), "天气");
     if (city == null || city.isBlank() || city.length() > 100 || date == null)
       throw new BusinessException(400, "城市和日期必填");
     LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
@@ -345,7 +435,21 @@ public class GeoService {
     var forecasts = n.path("forecasts");
     for (var f : forecasts)
       for (var cast : f.path("casts"))
-        if (date.toString().equals(cast.path("date").asText()))
+        if (date.toString().equals(cast.path("date").asText())) {
+          double dayTemp, nightTemp;
+          try {
+            dayTemp = Double.parseDouble(cast.path("daytemp").asText());
+            nightTemp = Double.parseDouble(cast.path("nighttemp").asText());
+            if (!Double.isFinite(dayTemp)
+                || !Double.isFinite(nightTemp)
+                || Math.abs(dayTemp) > 100
+                || Math.abs(nightTemp) > 100
+                || cast.path("dayweather").asText().isBlank()
+                || cast.path("nightweather").asText().isBlank()) throw new NumberFormatException();
+          } catch (NumberFormatException e) {
+            return Map.of(
+                "available", false, "reason", "数据源返回的该日预报不完整，暂无法确认", "date", date.toString());
+          }
           return Map.of(
               "available",
               true,
@@ -360,13 +464,19 @@ public class GeoService {
               "nightWeather",
               cast.path("nightweather").asText(),
               "high",
-              cast.path("daytemp").asText(),
+              dayTemp >= nightTemp
+                  ? cast.path("daytemp").asText()
+                  : cast.path("nighttemp").asText(),
               "low",
-              cast.path("nighttemp").asText(),
+              dayTemp >= nightTemp
+                  ? cast.path("nighttemp").asText()
+                  : cast.path("daytemp").asText(),
               "issuedAt",
               f.path("reporttime").asText(),
               "retrievedAt",
               Instant.now().toString());
-    return Map.of("available", false, "reason", "数据源暂未提供该日预报", "date", date.toString());
+        }
+    return Map.of(
+        "available", false, "reason", "所选日期暂无数据源实际提供的预报，临近出发时再查看", "date", date.toString());
   }
 }

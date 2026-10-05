@@ -4,6 +4,7 @@ import { useSession } from "./session";
 import type { Trip, Day, Weather } from "./types";
 import { loadAmapSdk, type MapInstance } from "./amap-sdk";
 import { useGeoQueries } from "./useGeoQueries";
+import { capabilityEnabled, capabilityNotice } from "./capabilities";
 const props = defineProps<{ trip: Trip; day: Day; dirty: boolean }>(),
   emit = defineEmits<{ adjust: [] }>();
 const s = useSession(),
@@ -85,8 +86,14 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="panel-stack">
-    <div v-if="!s.capabilities.geo" class="notice">
-      地图与天气服务暂未启用。服务可用后，将按真实地点查询步行或驾车路线及近期预报。
+    <div
+      v-if="
+        !capabilityEnabled(s.capabilities, 'route') &&
+        !capabilityEnabled(s.capabilities, 'weather')
+      "
+      class="notice"
+    >
+      路线与天气查询尚未启用。可以继续手动安排路书，按需查询真实路线与日预报。
     </div>
     <section class="paper editor-panel">
       <div class="row">
@@ -101,26 +108,43 @@ onBeforeUnmount(() => {
             <option value="driving">驾车</option></select
           ><button
             class="button small"
-            :disabled="routeBusy || !s.capabilities.geo || dirty"
+            :disabled="
+              routeBusy || !capabilityEnabled(s.capabilities, 'route') || dirty
+            "
             @click="refresh(false)"
           >
             查询路线</button
           ><button
             v-if="route"
             class="text-button"
-            :disabled="routeBusy || dirty"
+            :disabled="
+              routeBusy || dirty || !capabilityEnabled(s.capabilities, 'route')
+            "
             @click="refresh(true)"
           >
             重新查询
           </button>
         </div>
       </div>
+      <p v-if="!capabilityEnabled(s.capabilities, 'route')" class="notice">
+        {{ capabilityNotice(s.capabilities, "route") }}
+      </p>
       <p class="muted">
         未关联地点的节点会标注待确认。修改地点或顺序后，保存并重新查询。
       </p>
-      <div v-if="s.capabilities.map" ref="mapHost" class="map-container"></div>
+      <div
+        v-if="s.capabilities.map && route"
+        ref="mapHost"
+        class="map-container"
+      ></div>
       <div v-else class="map-placeholder">
-        <p>地图暂不可用。可以先在路书中安排地点与顺序。</p>
+        <p>
+          {{
+            s.capabilities.map
+              ? "查询真实路线后将显示地图。"
+              : capabilityNotice(s.capabilities, "map")
+          }}路线数据可用时仍会显示距离与预计耗时。
+        </p>
       </div>
       <template v-if="route"
         ><p class="muted">
@@ -153,12 +177,19 @@ onBeforeUnmount(() => {
         <h2>出行天气</h2>
         <button
           class="button secondary small"
-          :disabled="weatherBusy || !s.capabilities.geo || dirty"
+          :disabled="
+            weatherBusy ||
+            !capabilityEnabled(s.capabilities, 'weather') ||
+            dirty
+          "
           @click="getWeather"
         >
           查看 {{ day.dayDate || "当日" }} 天气
         </button>
       </div>
+      <p v-if="!capabilityEnabled(s.capabilities, 'weather')" class="notice">
+        {{ capabilityNotice(s.capabilities, "weather") }}
+      </p>
       <p class="muted">
         只展示数据源实际提供的近期预报；较远的出行日期会提示暂无预报。
       </p>

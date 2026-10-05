@@ -101,7 +101,7 @@ class ItineraryAnalysisTests {
     var r = report(11L);
     var w = service.source(10L, r.id(), 11L, "WEATHER", false);
     assertEquals("UNAVAILABLE", w.sources().get(0).status());
-    verify(geo).available();
+    verify(geo).weatherAvailable();
     verifyNoMoreInteractions(geo);
   }
 
@@ -130,7 +130,8 @@ class ItineraryAnalysisTests {
 
   @Test
   void weatherIsDailyOnlyAndUnknownEnvironmentRemainsUnknown() {
-    when(geo.available()).thenReturn(true);
+    when(geo.weatherAvailable()).thenReturn(true);
+    when(geo.routeAvailable()).thenReturn(true);
     when(geo.weather("成都", LocalDate.parse("2026-10-04")))
         .thenReturn(
             Map.of(
@@ -165,7 +166,8 @@ class ItineraryAnalysisTests {
   @Test
   void routeSummaryStripsGeometryAndComputesTransferWarning() {
     base.getDays().get(0).getItems().get(1).setStartTime("11:05");
-    when(geo.available()).thenReturn(true);
+    when(geo.weatherAvailable()).thenReturn(true);
+    when(geo.routeAvailable()).thenReturn(true);
     when(geo.route(10L, 11L, "walking"))
         .thenReturn(
             Map.of(
@@ -200,7 +202,8 @@ class ItineraryAnalysisTests {
 
   @Test
   void incompleteOrInvalidRouteMetricsNeverBecomeComplete() {
-    when(geo.available()).thenReturn(true);
+    when(geo.weatherAvailable()).thenReturn(true);
+    when(geo.routeAvailable()).thenReturn(true);
     when(geo.route(10L, 11L, "walking"))
         .thenReturn(
             Map.of(
@@ -220,7 +223,8 @@ class ItineraryAnalysisTests {
 
   @Test
   void failedWeatherDoesNotDiscardRouteOrLocalProblems() {
-    when(geo.available()).thenReturn(true);
+    when(geo.weatherAvailable()).thenReturn(true);
+    when(geo.routeAvailable()).thenReturn(true);
     when(geo.weather(anyString(), any())).thenThrow(new BusinessException(504, "超时"));
     var r = report(11L);
     r = service.source(10L, r.id(), 11L, "WEATHER", false);
@@ -318,7 +322,8 @@ class ItineraryAnalysisTests {
 
   @Test
   void aLateProviderResponseCannotAttachAfterVersionChange() {
-    when(geo.available()).thenReturn(true);
+    when(geo.weatherAvailable()).thenReturn(true);
+    when(geo.routeAvailable()).thenReturn(true);
     when(geo.route(10L, 11L, "walking"))
         .thenAnswer(
             invocation -> {

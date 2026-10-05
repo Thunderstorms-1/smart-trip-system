@@ -122,7 +122,7 @@ test("real disabled capabilities keep geo actions unavailable without external c
     );
     await page.goto("/trip/edit/" + trip.id);
     await page.getByRole("button", { name: "路线与天气", exact: true }).click();
-    await expect(page.getByText(/地图与天气服务暂未启用/)).toBeVisible();
+    await expect(page.getByText(/路线与天气查询尚未启用/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "查询路线", exact: true }),
     ).toBeDisabled();
