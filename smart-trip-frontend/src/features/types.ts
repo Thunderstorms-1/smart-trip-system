@@ -92,10 +92,22 @@ export interface Comment {
   content: string;
   createdAt: string;
 }
+export type CapabilityStatus =
+  | "READY"
+  | "DISABLED"
+  | "QUOTA_UNVERIFIED"
+  | "KEY_MISSING"
+  | "BROWSER_KEY_MISSING";
+
 export interface Capabilities {
   ai: boolean;
   geo: boolean;
   map: boolean;
+  status?: {
+    ai: CapabilityStatus;
+    geo: CapabilityStatus;
+    map: CapabilityStatus;
+  };
   notice: string;
 }
 export interface Task {

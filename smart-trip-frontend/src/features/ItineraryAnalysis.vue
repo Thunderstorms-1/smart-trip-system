@@ -49,6 +49,18 @@ function dayNumber(id: number) {
 function when(value?: string) {
   return value ? new Date(value).toLocaleString("zh-CN") : "未查询";
 }
+function geoUnavailableReason() {
+  switch (props.capabilities.status?.geo) {
+    case "QUOTA_UNVERIFIED":
+      return "地图与天气免费权限尚未确认。";
+    case "KEY_MISSING":
+      return "高德 Web 服务 Key 尚未配置。";
+    case "DISABLED":
+      return "地图与天气服务当前处于关闭状态。";
+    default:
+      return "地图与天气尚未启用。";
+  }
+}
 </script>
 <template>
   <section class="paper panel-stack analysis-panel">
@@ -118,7 +130,7 @@ function when(value?: string) {
       <section>
         <h3>按需补充依据</h3>
         <p v-if="!capabilities.geo" class="notice">
-          地图与天气尚未启用。基础检查可继续使用，未调用外部服务。
+          {{ geoUnavailableReason() }}基础检查可继续使用，未调用外部服务。
         </p>
         <article v-for="id in report.dayIds" :key="id" class="analysis-card">
           <h4>第 {{ dayNumber(id) }} 天</h4>

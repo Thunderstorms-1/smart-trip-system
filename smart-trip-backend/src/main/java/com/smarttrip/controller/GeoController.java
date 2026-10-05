@@ -23,8 +23,10 @@ public class GeoController {
             geo.available(),
             "map",
             geo.mapAvailable(),
+            "status",
+            Map.of("ai", ai.status(), "geo", geo.status(), "map", geo.mapStatus()),
             "notice",
-            "仅在已确认免费权限时启用外部服务"));
+            "仅在已确认免费权限且本机配置完整时启用外部服务"));
   }
 
   @GetMapping("/api/geo/config")

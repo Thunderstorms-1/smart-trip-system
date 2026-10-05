@@ -84,13 +84,27 @@ public class GeoService {
   }
 
   public boolean available() {
-    return config.isEnabled() && config.isFreeQuotaVerified() && !config.getAmapKey().isBlank();
+    return "READY".equals(status());
+  }
+
+  public String status() {
+    if (!config.isEnabled()) return "DISABLED";
+    if (!config.isFreeQuotaVerified()) return "QUOTA_UNVERIFIED";
+    if (config.getAmapKey() == null || config.getAmapKey().isBlank()) return "KEY_MISSING";
+    return "READY";
   }
 
   public boolean mapAvailable() {
-    return available()
-        && !config.getAmapJsKey().isBlank()
-        && !config.getAmapSecurityKey().isBlank();
+    return "READY".equals(mapStatus());
+  }
+
+  public String mapStatus() {
+    if (!available()) return status();
+    if (config.getAmapJsKey() == null
+        || config.getAmapJsKey().isBlank()
+        || config.getAmapSecurityKey() == null
+        || config.getAmapSecurityKey().isBlank()) return "BROWSER_KEY_MISSING";
+    return "READY";
   }
 
   public Map<String, Object> mapConfig() {

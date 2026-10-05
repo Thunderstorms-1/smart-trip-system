@@ -49,6 +49,7 @@ class AiProviderTests {
     p.setFreeQuotaVerified(false);
     AiProvider provider = new AiProvider(p);
     assertFalse(provider.available());
+    assertEquals("QUOTA_UNVERIFIED", provider.status());
     assertEquals(
         503, assertThrows(BusinessException.class, () -> provider.complete("成都")).getCode());
   }

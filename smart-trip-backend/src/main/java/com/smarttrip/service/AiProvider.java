@@ -26,11 +26,16 @@ public class AiProvider {
   }
 
   public boolean available() {
-    return config.isEnabled()
-        && config.isFreeQuotaVerified()
-        && config.getApiKey() != null
-        && !config.getApiKey().isBlank()
-        && !config.getApiKey().contains("YOUR_");
+    return "READY".equals(status());
+  }
+
+  public String status() {
+    if (!config.isEnabled()) return "DISABLED";
+    if (!config.isFreeQuotaVerified()) return "QUOTA_UNVERIFIED";
+    if (config.getApiKey() == null
+        || config.getApiKey().isBlank()
+        || config.getApiKey().contains("YOUR_")) return "KEY_MISSING";
+    return "READY";
   }
 
   public String complete(String input) {

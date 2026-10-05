@@ -23,6 +23,18 @@ const route = useRoute(),
   { busy, error, run } = useAction();
 let timer: ReturnType<typeof setTimeout>;
 const stream = new AbortController();
+function aiUnavailableReason() {
+  switch (s.capabilities.status?.ai) {
+    case "QUOTA_UNVERIFIED":
+      return "AI 免费额度或模型权限尚未确认。确认后再启用，避免意外计费。";
+    case "KEY_MISSING":
+      return "AI Key 尚未配置。";
+    case "DISABLED":
+      return "AI 服务当前处于关闭状态。";
+    default:
+      return "AI 服务暂未启用。";
+  }
+}
 onBeforeUnmount(() => {
   clearTimeout(timer);
   stream.abort();
@@ -111,7 +123,7 @@ function submit() {
     </button>
   </div>
   <div v-if="!s.capabilities.ai" class="notice">
-    AI 服务暂未启用。你可以先手动创建路书，填写地点和每天的安排。
+    {{ aiUnavailableReason() }}你可以先手动创建路书，填写地点和每天的安排。
   </div>
   <div class="generate-layout">
     <form class="paper generate-form" @submit.prevent="submit">

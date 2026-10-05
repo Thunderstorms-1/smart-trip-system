@@ -108,3 +108,7 @@ node scripts/api-smoke.cjs
 工作台增加行程诊断：基础时间检查、室内/室外标记、固定安排；按需补充真实来源后，通过 ADJUST 任务生成受约束提案，预览差异并整份确认保存。V8 增加节点约束与提案元数据，仅应用 demo/test。AI/地图/天气保持关闭，基础诊断可用，联动采用测试替身验证。
 
 本轮后端 79、前端 37、浏览器 11、HTTP 95 项检查通过，类型与构建通过。见 [功能说明](docs/itinerary-analysis.md) 和 [验收报告](docs/itinerary-analysis-verification.md)。
+
+## 第四轮：真实外部能力接通
+
+已开始 `feat/provider-integration`。当前先完成安全接通准备：能力状态可诊断、AI 默认配置统一到百炼 `qwen3.8-flash`，页面区分关闭、免费权限未确认和 Key 缺失。当前 AI 免费额度尚未在账号侧确认，高德 Key 尚未配置，因此不执行真实供应商调用、不强行开启开关。详见 [真实能力接通方案](docs/provider-integration.md)。

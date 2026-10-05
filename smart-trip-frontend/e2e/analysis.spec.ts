@@ -48,8 +48,8 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
     page.getByRole("button", { name: "生成调整提案" }),
   ).toBeDisabled();
   await expect(
-    page.getByText("地图与天气尚未启用。基础检查可继续使用，未调用外部服务。", {
-      exact: true,
+    page.getByText(/基础检查可继续使用，未调用外部服务。/, {
+      exact: false,
     }),
   ).toBeVisible();
   await page.screenshot({
