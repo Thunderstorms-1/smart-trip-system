@@ -66,6 +66,5 @@ const duration = computed(() =>
         ></span
       >
     </button>
-    <div v-if="selected" :id="'fields-' + nodeKey"><slot /></div>
   </article>
 </template>

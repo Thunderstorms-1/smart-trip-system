@@ -90,6 +90,7 @@ test("real UNKNOWN and single-day NOT_APPLICABLE are distinct from a score, with
     ).toBeDisabled();
     await expect(insight).toContainText("重新分析");
     await expect(insight.locator(".wb-insight-score")).toHaveCount(0);
+    await page.getByRole("button", { name: "收起编辑", exact: true }).click();
     await analyze(page);
     await expect(insight.locator(".wb-insight-score")).toHaveCount(1);
   } finally {
@@ -159,7 +160,14 @@ test("real four dimensions survive day selection, bridge the existing diagnostic
       .click();
     await expect(insight).not.toBeVisible();
     await expect(
-      page.locator("#plan-item-" + c.trip.days[1].items[0].id),
+      page.getByRole("dialog", { name: "安排 Inspector" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("地点 / 活动", { exact: true })).toHaveValue(
+      "重复活动",
+    );
+    await page.keyboard.press("Escape");
+    await expect(
+      page.locator("#timeline-item-" + c.trip.days[1].items[0].id),
     ).toBeFocused();
     expect(
       await page.evaluate(
@@ -178,7 +186,6 @@ test("a real delayed analysis response cannot restore scores after a draft edit"
     { items: [item("等待分析", "09:00")] },
   ]);
   try {
-    await page.locator(".wb-node-select").first().click();
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
     let received!: () => void;
@@ -193,6 +200,7 @@ test("a real delayed analysis response cannot restore scores after a draft edit"
       .getByRole("button", { name: "分析已保存行程", exact: true })
       .click();
     await started;
+    await page.locator(".wb-node-select").first().click();
     await page.getByLabel("地点 / 活动", { exact: true }).fill("已变化");
     release();
     await expect(page.locator(".wb-quality-insight")).toContainText(

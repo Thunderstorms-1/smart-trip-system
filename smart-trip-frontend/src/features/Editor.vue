@@ -28,6 +28,7 @@ import { capabilityEnabled, capabilityNotice } from "./capabilities";
 import WorkbenchShell from "./workbench/WorkbenchShell.vue";
 import QualityInsight from "./workbench/QualityInsight.vue";
 import { useWorkbenchQuality } from "./workbench/useWorkbenchQuality";
+import { lockEditorScroll } from "./workbench/scrollLock";
 import HomeIcon from "./HomeIcon.vue";
 import "./workbench-v3.css";
 const toolLabels: Record<string, string> = {
@@ -49,7 +50,7 @@ function nodeKey(item: Item): string {
 }
 const modalDialog = ref<HTMLDialogElement>();
 let modalTrigger: HTMLElement | undefined;
-let previousOverflow: string | undefined;
+let releaseScroll: (() => void) | undefined;
 function rememberModalTrigger() {
   modalTrigger =
     document.activeElement instanceof HTMLElement
@@ -58,9 +59,8 @@ function rememberModalTrigger() {
 }
 function releaseModal() {
   modalDialog.value?.close();
-  if (previousOverflow !== undefined)
-    document.body.style.overflow = previousOverflow;
-  previousOverflow = undefined;
+  releaseScroll?.();
+  releaseScroll = undefined;
   if (modalTrigger?.isConnected) modalTrigger.focus({ preventScroll: true });
   modalTrigger = undefined;
 }
@@ -130,8 +130,7 @@ watch(
   (value, before) => {
     if (value && !before) {
       if (!modalTrigger) rememberModalTrigger();
-      previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
+      releaseScroll = lockEditorScroll();
     } else if (!value) releaseModal();
   },
   { flush: "sync" },
@@ -227,6 +226,7 @@ const insight = useWorkbenchQuality(() => ({
 }));
 watch(insightOpen, async (open) => {
   if (!open) return;
+  selectedNode.value = "";
   await nextTick();
   document
     .querySelector<HTMLButtonElement>("#workbench-insight .wb-insight-close")
@@ -466,6 +466,7 @@ function print() {
     :expanded="timelineExpanded"
     :tool-open="tab !== 'plan'"
     :insight-open="insightOpen"
+    :inspector-open="Boolean(selectedNode) && !insightOpen"
   >
     <template #header>
       <header class="wb-tripbar">
@@ -634,6 +635,9 @@ function print() {
         :dirty="dirty"
         :geo="capabilityEnabled(s.capabilities, 'poi')"
         :node-key="nodeKey"
+        :active="tab === 'plan' && !insightOpen"
+        :error="error"
+        @save="save"
         @remove-day="removeDay"
         @poi="selectPoi"
         @record="record"

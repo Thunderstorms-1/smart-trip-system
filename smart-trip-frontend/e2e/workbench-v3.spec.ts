@@ -292,6 +292,18 @@ test("editor CSS stays isolated on other routes after client navigation", async 
   page,
 }) => {
   await fixture(page);
+  const ready: Record<string, string> = {
+    "/": ".v3-home",
+    "/square": ".page-title h1",
+    "/login": ".auth-page",
+    "/profile": ".profile-layout",
+    "/ai-generate": ".generate-layout",
+    "/my-trips": ".page-title h1",
+  };
+  async function waitReady(path: string) {
+    await page.locator(ready[path]!).waitFor();
+    await page.evaluate(() => document.fonts.ready);
+  }
   async function clientRoute(path: string) {
     await page.evaluate((path) => {
       history.pushState({}, "", path);
@@ -299,6 +311,7 @@ test("editor CSS stays isolated on other routes after client navigation", async 
     }, path);
     await expect(page).toHaveURL(new RegExp(path.replaceAll("/", "\\/") + "$"));
     await expect(page.locator(".workbench-v3-shell")).toHaveCount(0);
+    await waitReady(path);
   }
   const paths = [
     "/",
@@ -311,7 +324,7 @@ test("editor CSS stays isolated on other routes after client navigation", async 
   const baseline: Record<string, string[]> = {};
   for (const path of paths) {
     await page.goto(path);
-    await page.locator("main").waitFor();
+    await waitReady(path);
     baseline[path] = await page.evaluate(() => [
       getComputedStyle(document.querySelector("main")!).padding,
       getComputedStyle(document.querySelector("header")!).height,

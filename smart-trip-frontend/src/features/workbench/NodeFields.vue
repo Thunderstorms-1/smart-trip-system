@@ -35,12 +35,6 @@ function transfer(event: Event) {
     aria-label="编辑选中安排"
     @keydown.esc.stop="emit('close')"
   >
-    <div class="wb-fields-heading">
-      <h3>{{ editable ? "编辑安排" : "安排详情" }}</h3>
-      <button type="button" class="wb-text-button" @click="emit('close')">
-        收起编辑
-      </button>
-    </div>
     <fieldset class="draft-fieldset" :disabled="busy">
       <div class="form-grid">
         <label class="wide"

@@ -4,7 +4,7 @@ import type { Trip, Item } from "../types";
 import { money } from "../api";
 import TimelinePanel from "./TimelinePanel.vue";
 import TimelineNode from "./TimelineNode.vue";
-import NodeFields from "./NodeFields.vue";
+import NodeInspector from "./NodeInspector.vue";
 const props = defineProps<{
   trip: Trip;
   dayIndex: number;
@@ -12,12 +12,15 @@ const props = defineProps<{
   busy: boolean;
   dirty: boolean;
   geo: boolean;
+  active: boolean;
+  error: string;
   nodeKey: (item: Item) => string;
 }>();
 const selectedNode = defineModel<string>("selectedNode", { required: true });
 const expanded = defineModel<boolean>("expanded", { required: true });
 const emit = defineEmits<{
   "remove-day": [];
+  save: [];
   poi: [item: Item];
   record: [item: Item];
 }>();
@@ -41,6 +44,9 @@ const duration = computed(
 );
 const missingDuration = computed(
   () => day.value.items.filter((item) => item.costTimeHours == null).length,
+);
+const selectedItem = computed(() =>
+  day.value.items.find((item) => props.nodeKey(item) === selectedNode.value),
 );
 function select(item: Item) {
   selectedNode.value = props.nodeKey(item);
@@ -168,24 +174,7 @@ async function transfer(item: Item, target: number) {
       :node-key="nodeKey(item)"
       :selected="selectedNode === nodeKey(item)"
       @select="select(item)"
-    >
-      <NodeFields
-        :item="item"
-        :trip="trip"
-        :day-index="dayIndex"
-        :index="index"
-        :editable="editable"
-        :busy="busy"
-        :dirty="dirty"
-        :geo="geo"
-        @close="close(item)"
-        @move="move(item, $event)"
-        @remove="remove(item)"
-        @transfer="transfer(item, $event)"
-        @poi="emit('poi', item)"
-        @record="emit('record', item)"
-      />
-    </TimelineNode>
+    />
     <div v-if="!day.items.length" class="wb-empty-day">
       <h2>留一段时间给新的发现</h2>
       <p>这一天还没有安排。添加地点或活动，开始规划。</p>
@@ -223,4 +212,26 @@ async function transfer(item: Item, target: number) {
       </p></template
     >
   </TimelinePanel>
+  <Teleport defer to="#workbench-inspector-host">
+    <NodeInspector
+      v-if="selectedItem && active"
+      :item="selectedItem"
+      :node-key="nodeKey(selectedItem)"
+      :trip="trip"
+      :day-index="dayIndex"
+      :index="day.items.indexOf(selectedItem)"
+      :editable="editable"
+      :busy="busy"
+      :dirty="dirty"
+      :geo="geo"
+      :error="error"
+      @close="close(selectedItem)"
+      @move="move(selectedItem, $event)"
+      @remove="remove(selectedItem)"
+      @transfer="transfer(selectedItem, $event)"
+      @poi="emit('poi', selectedItem)"
+      @record="emit('record', selectedItem)"
+      @save="emit('save')"
+    />
+  </Teleport>
 </template>
