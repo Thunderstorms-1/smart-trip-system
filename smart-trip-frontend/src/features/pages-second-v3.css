@@ -1,0 +1,604 @@
+/* Second migration batch only; shares approved V3 tokens without altering earlier pages. */
+.pages-second-v3-shell select {
+  color: var(--ink);
+  background: #fff;
+  border-color: #bccad3;
+  border-radius: 8px;
+}
+.pages-second-v3-shell fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.pages-second-v3-shell label {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.pages-second-v3-shell .builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 32px;
+  align-items: start;
+}
+.pages-second-v3-shell .builder-scene {
+  position: sticky;
+  top: 24px;
+  min-height: 590px;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+}
+.pages-second-v3-shell .builder-scene-copy {
+  position: relative;
+  z-index: 1;
+  padding: 40px 32px 64px;
+}
+.pages-second-v3-shell .builder-scene h2 {
+  font-size: clamp(28px, 3vw, 40px);
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .builder-scene :is(p, small) {
+  color: #fff;
+}
+.pages-second-v3-shell .builder-scene small {
+  display: block;
+  margin-top: 16px;
+}
+.pages-second-v3-shell .builder-intentions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+  font-size: 14px;
+}
+.pages-second-v3-shell .builder-intentions span {
+  background: rgba(14, 33, 46, 0.72);
+  backdrop-filter: blur(12px);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.pages-second-v3-shell .builder-scene-note {
+  margin-top: 16px;
+}
+.pages-second-v3-shell .builder-workspace {
+  min-width: 0;
+  padding: 28px 32px;
+  background: #fff;
+  border-radius: 16px;
+}
+.pages-second-v3-shell .builder-notice {
+  font-size: 13px;
+  padding-block: 20px 0;
+}
+.pages-second-v3-shell .builder-steps {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.pages-second-v3-shell .builder-steps button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  font-size: 12px;
+}
+.pages-second-v3-shell .builder-steps button span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8eef2;
+  flex: none;
+}
+.pages-second-v3-shell .builder-steps button[aria-current] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.pages-second-v3-shell .builder-steps button[aria-current] span {
+  background: var(--accent);
+  color: #fff;
+}
+.pages-second-v3-shell .builder-stage {
+  padding-top: 28px;
+}
+.pages-second-v3-shell .builder-stage > p {
+  margin: 12px 0 24px;
+  font-size: 14px;
+}
+.pages-second-v3-shell .builder-stage > label + label {
+  margin-top: 20px;
+}
+.pages-second-v3-shell .builder-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.pages-second-v3-shell .builder-review {
+  margin: 24px 0 0;
+  font-size: 14px;
+}
+.pages-second-v3-shell .builder-review > div {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pages-second-v3-shell .builder-review dt {
+  color: var(--muted);
+}
+.pages-second-v3-shell .builder-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .builder-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+.pages-second-v3-shell .builder-privacy {
+  font-size: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.pages-second-v3-shell .builder-task {
+  display: flex;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 16px;
+  background: #edf3f6;
+  border-radius: 8px;
+}
+.pages-second-v3-shell .builder-task p {
+  font-size: 13px;
+  margin-top: 8px;
+}
+.pages-second-v3-shell .builder-form .form-error {
+  margin-top: 20px;
+}
+.pages-second-v3-shell .v3-entry {
+  position: relative;
+  min-height: 680px;
+  padding: 64px max(32px, calc((100vw - 1216px) / 2));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 64px;
+  align-items: center;
+}
+.pages-second-v3-shell .entry-copy {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+.pages-second-v3-shell .entry-copy h1 {
+  font-size: clamp(32px, 4vw, 54px);
+  line-height: 1.2;
+}
+.pages-second-v3-shell .entry-copy p {
+  color: #fff;
+  margin-top: 24px;
+}
+.pages-second-v3-shell .entry-copy a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+.pages-second-v3-shell .entry-form {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px;
+}
+.pages-second-v3-shell .entry-form > p {
+  font-size: 14px;
+  margin-top: 12px;
+}
+.pages-second-v3-shell .entry-form fieldset {
+  display: grid;
+  gap: 22px;
+  margin-top: 28px;
+}
+.pages-second-v3-shell .journal-cover,
+.pages-second-v3-shell .author-scene {
+  position: relative;
+  min-height: 340px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+  color: #fff;
+}
+.pages-second-v3-shell .journal-cover-copy,
+.pages-second-v3-shell .author-scene-copy {
+  position: relative;
+  z-index: 1;
+  padding: 48px 40px 64px;
+  max-width: 85ch;
+}
+.pages-second-v3-shell .journal-cover h1,
+.pages-second-v3-shell .author-scene h1 {
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .journal-cover p,
+.pages-second-v3-shell .author-scene p {
+  color: #fff;
+  margin-top: 20px;
+}
+.pages-second-v3-shell .journal-location {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.pages-second-v3-shell .journal-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.pages-second-v3-shell .journal-author img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.pages-second-v3-shell .journal-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.pages-second-v3-shell .journal-actions button[aria-pressed="true"] {
+  color: var(--accent);
+  background: #fff0e9;
+  border-color: var(--accent);
+}
+.pages-second-v3-shell .journal-actions > .button:last-child {
+  margin-left: auto;
+}
+.pages-second-v3-shell .journal-reading {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 48px;
+  padding-top: 36px;
+}
+.pages-second-v3-shell .journal-outline {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+.pages-second-v3-shell .journal-outline h2 {
+  font-size: 20px;
+}
+.pages-second-v3-shell .journal-outline > p {
+  font-size: 13px;
+  margin-top: 12px;
+}
+.pages-second-v3-shell .journal-outline nav {
+  display: grid;
+  gap: 8px;
+  margin-block: 20px 24px;
+}
+.pages-second-v3-shell .journal-outline button {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 14px;
+  border-radius: 8px;
+  color: var(--ink);
+}
+.pages-second-v3-shell .journal-outline button:hover {
+  background: #e8eef2;
+}
+.pages-second-v3-shell .journal-outline button > span {
+  color: var(--accent);
+  font-size: 12px;
+}
+.pages-second-v3-shell .journal-outline button strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .journal-content {
+  min-width: 0;
+}
+.pages-second-v3-shell .journal-content .trip-read {
+  max-width: none;
+}
+.pages-second-v3-shell .journal-content .pill {
+  color: var(--ink);
+  background: #e8eef2;
+}
+.pages-second-v3-shell .journal-content .intro {
+  margin-block: 20px 32px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .journal-content .day-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 24px;
+  scroll-margin-top: 24px;
+}
+.pages-second-v3-shell .journal-content .day-number {
+  font-family: inherit;
+  color: var(--accent);
+  font-size: 30px;
+  font-weight: 650;
+}
+.pages-second-v3-shell .journal-content .day-heading {
+  gap: 16px;
+}
+.pages-second-v3-shell .journal-content .day-heading h2 {
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .journal-content .stop-content {
+  padding: 16px 0 24px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.pages-second-v3-shell .journal-content .stop-content h3 {
+  overflow-wrap: anywhere;
+}
+.pages-second-v3-shell .journal-content .stop-time {
+  width: 56px;
+}
+.pages-second-v3-shell .journal-content .stop-time span {
+  background: #fff0e9;
+  border-color: #e3a17f;
+  color: var(--accent);
+}
+.pages-second-v3-shell .journal-content .stop-time:after {
+  border-color: #d1dce3;
+  left: 27px;
+}
+.pages-second-v3-shell .journal-content .stop:last-child .stop-content {
+  border: 0;
+}
+.pages-second-v3-shell .journal-comments {
+  max-width: 928px;
+  margin: 32px 0 0 auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0 32px 32px;
+}
+.pages-second-v3-shell .journal-comments form {
+  display: grid;
+  gap: 16px;
+}
+.pages-second-v3-shell .journal-comments form .button {
+  justify-self: end;
+}
+.pages-second-v3-shell .journal-comment {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pages-second-v3-shell .journal-comment header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-weight: 600;
+}
+.pages-second-v3-shell .journal-comment p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-block: 12px;
+}
+.pages-second-v3-shell .author-identity {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  padding: 36px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.pages-second-v3-shell .author-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.pages-second-v3-shell .author-letter {
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  color: var(--ink);
+  background: #dbe7ee;
+}
+.pages-second-v3-shell .author-city {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pages-second-v3-shell .author-bio {
+  margin-top: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 70ch;
+}
+@media (max-width: 960px) {
+  .pages-second-v3-shell .builder-layout {
+    gap: 24px;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr);
+  }
+  .pages-second-v3-shell .builder-workspace {
+    padding: 24px;
+  }
+  .pages-second-v3-shell .builder-steps {
+    gap: 8px;
+  }
+  .pages-second-v3-shell .builder-steps button {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pages-second-v3-shell .v3-entry {
+    gap: 32px;
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .pages-second-v3-shell .journal-reading {
+    gap: 24px;
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .pages-second-v3-shell .builder-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .pages-second-v3-shell .builder-scene {
+    position: relative;
+    top: auto;
+    min-height: 240px;
+    width: 100%;
+  }
+  .pages-second-v3-shell .builder-scene-copy {
+    padding: 24px 24px 56px;
+  }
+  .pages-second-v3-shell .builder-scene-copy > .icon,
+  .pages-second-v3-shell .builder-scene-copy > p:not(.builder-scene-note),
+  .pages-second-v3-shell .builder-scene-copy > small {
+    display: none;
+  }
+  .pages-second-v3-shell .builder-scene h2 {
+    font-size: 28px;
+    margin: 0;
+  }
+  .pages-second-v3-shell .builder-intentions {
+    margin-top: 16px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .pages-second-v3-shell .builder-workspace {
+    width: 100%;
+    padding: 24px 20px;
+  }
+  .pages-second-v3-shell .builder-steps {
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .pages-second-v3-shell .builder-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pages-second-v3-shell .builder-review > div {
+    grid-template-columns: 65px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .pages-second-v3-shell .v3-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 28px;
+    padding: 36px 20px 64px;
+    min-height: 0;
+  }
+  .pages-second-v3-shell .entry-copy h1 {
+    font-size: 30px;
+  }
+  .pages-second-v3-shell .entry-copy p {
+    margin-top: 16px;
+  }
+  .pages-second-v3-shell .entry-copy a {
+    margin-top: 18px;
+    font-size: 14px;
+  }
+  .pages-second-v3-shell .entry-form {
+    padding: 28px 24px;
+  }
+  .pages-second-v3-shell .journal-cover,
+  .pages-second-v3-shell .author-scene {
+    min-height: 280px;
+  }
+  .pages-second-v3-shell .journal-cover-copy,
+  .pages-second-v3-shell .author-scene-copy {
+    padding: 32px 24px 56px;
+  }
+  .pages-second-v3-shell .journal-author {
+    font-size: 14px;
+  }
+  .pages-second-v3-shell .journal-actions {
+    gap: 10px;
+  }
+  .pages-second-v3-shell .journal-actions button {
+    flex: 1;
+    padding-inline: 12px;
+  }
+  .pages-second-v3-shell .journal-actions > .button:last-child {
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .pages-second-v3-shell .journal-reading {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 24px;
+  }
+  .pages-second-v3-shell .journal-outline {
+    position: static;
+    width: 100%;
+  }
+  .pages-second-v3-shell .journal-outline nav {
+    display: flex;
+    overflow-x: auto;
+    padding: 4px;
+    margin-block: 12px;
+    gap: 8px;
+  }
+  .pages-second-v3-shell .journal-outline button {
+    flex: 0 0 150px;
+    background: #e8eef2;
+  }
+  .pages-second-v3-shell .journal-outline button strong {
+    font-size: 14px;
+  }
+  .pages-second-v3-shell .journal-content .day-block {
+    padding: 20px 16px;
+  }
+  .pages-second-v3-shell .journal-content .stop {
+    gap: 12px;
+  }
+  .pages-second-v3-shell .journal-content .stop-time {
+    width: 46px;
+  }
+  .pages-second-v3-shell .journal-content .stop-time:after {
+    left: 22px;
+  }
+  .pages-second-v3-shell .journal-comments {
+    padding: 0 20px 24px;
+    margin-top: 24px;
+  }
+  .pages-second-v3-shell .author-identity {
+    gap: 18px;
+    padding-block: 28px;
+  }
+  .pages-second-v3-shell .author-avatar {
+    width: 64px;
+    height: 64px;
+  }
+  .pages-second-v3-shell .author-identity h2 {
+    font-size: 24px;
+  }
+}

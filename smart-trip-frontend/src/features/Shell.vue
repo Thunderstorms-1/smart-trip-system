@@ -5,11 +5,21 @@ import { useSession } from "./session";
 import { message, severity } from "./ui";
 import HomeIcon from "./HomeIcon.vue";
 import "./pages-v3.css";
+import "./pages-second-v3.css";
 const s = useSession(),
   router = useRouter();
 const route = useRoute();
-const v3Pages = computed(() =>
-  ["/square", "/my-trips", "/profile"].includes(route.path.replace(/\/$/, "")),
+const v3Second = computed(
+  () =>
+    ["/ai-generate", "/login"].includes(route.path.replace(/\/$/, "")) ||
+    /^\/(posts|authors|share)\/[^/]+\/?$/.test(route.path),
+);
+const v3Pages = computed(
+  () =>
+    v3Second.value ||
+    ["/square", "/my-trips", "/profile"].includes(
+      route.path.replace(/\/$/, ""),
+    ),
 );
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
@@ -39,6 +49,7 @@ function logout() {
       'v3-shell': home,
       'workbench-v3-shell': workbench,
       'pages-v3-shell': v3Pages,
+      'pages-second-v3-shell': v3Second,
     }"
   >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
