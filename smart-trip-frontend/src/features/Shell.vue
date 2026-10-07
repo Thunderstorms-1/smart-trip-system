@@ -4,9 +4,13 @@ import { useRouter, useRoute } from "vue-router";
 import { useSession } from "./session";
 import { message, severity } from "./ui";
 import HomeIcon from "./HomeIcon.vue";
+import "./pages-v3.css";
 const s = useSession(),
   router = useRouter();
 const route = useRoute();
+const v3Pages = computed(() =>
+  ["/square", "/my-trips", "/profile"].includes(route.path.replace(/\/$/, "")),
+);
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
 function expired() {
@@ -30,13 +34,21 @@ function logout() {
 }
 </script>
 <template>
-  <div :class="{ 'v3-shell': home, 'workbench-v3-shell': workbench }">
+  <div
+    :class="{
+      'v3-shell': home,
+      'workbench-v3-shell': workbench,
+      'pages-v3-shell': v3Pages,
+    }"
+  >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
     <header :class="home ? 'home-header' : 'site-header'">
       <RouterLink to="/" class="brand"
-        ><HomeIcon v-if="home || workbench" /><span v-else class="brand-mark"
+        ><HomeIcon v-if="home || workbench || v3Pages" /><span
+          v-else
+          class="brand-mark"
           >游</span
-        ><span v-if="home || workbench"
+        ><span v-if="home || workbench || v3Pages"
           >SmartTrip<span class="brand-cn">智游伴路</span></span
         ><strong v-else>智游伴路<small>SMARTTRIP</small></strong></RouterLink
       >

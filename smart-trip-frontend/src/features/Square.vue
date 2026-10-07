@@ -3,16 +3,18 @@ import { ref, onMounted } from "vue";
 import { api } from "./api";
 import type { Post, PostPage } from "./types";
 import { useLatestQuery } from "./useLatestQuery";
-import PostCards from "./PostCards.vue";
+import ExploreFeed from "./ExploreFeed.vue";
+import JourneyBackdrop from "./JourneyBackdrop.vue";
+import HomeIcon from "./HomeIcon.vue";
 const q = ref(""),
   posts = ref<Post[]>([]),
   cursor = ref<string>(),
   hasMore = ref(false);
 const { loading: busy, error, query } = useLatestQuery();
-let activeSearch = "";
+const activeSearch = ref("");
 function search(reset = true) {
   if (reset) {
-    activeSearch = q.value.trim();
+    activeSearch.value = q.value.trim();
     posts.value = [];
     cursor.value = undefined;
     hasMore.value = false;
@@ -22,7 +24,7 @@ function search(reset = true) {
     (signal) =>
       api<PostPage>(
         "/community/posts?q=" +
-          encodeURIComponent(activeSearch) +
+          encodeURIComponent(activeSearch.value) +
           (requestCursor ? "&cursor=" + encodeURIComponent(requestCursor) : ""),
         "GET",
         undefined,
@@ -40,31 +42,49 @@ function search(reset = true) {
 onMounted(() => search());
 </script>
 <template>
-  <section class="page-title">
-    <p class="eyebrow">FIND YOUR NEXT CHAPTER</p>
-    <h1>旅行灵感广场</h1>
-    <p>真实的路书，来自每一个热爱出发的人。</p>
-  </section>
-  <form class="search-bar" @submit.prevent="search()">
-    <input
-      v-model="q"
-      maxlength="100"
-      aria-label="搜索城市或路书"
-      placeholder="想去哪里？搜索城市或路书"
-    /><button class="button">搜索</button>
-  </form>
-  <p v-if="error" class="form-error">{{ error }}</p>
-  <p v-if="busy && !posts.length" class="empty">正在加载路书…</p>
-  <PostCards :posts="posts" />
-  <div v-if="!busy && !posts.length" class="empty paper">
-    暂无匹配的路书，换个城市试试。
+  <div class="v3-explore">
+    <section class="explore-intro" aria-labelledby="explore-title">
+      <JourneyBackdrop />
+      <div class="explore-intro-copy">
+        <h1 id="explore-title">下一站，<br />从心动开始。</h1>
+        <p>探索旅行灵感广场，沿着真实路书找到自己的方向。</p>
+      </div>
+      <form class="v3-search" @submit.prevent="search()">
+        <HomeIcon name="pin" /><input
+          v-model="q"
+          maxlength="100"
+          aria-label="搜索城市或路书"
+          placeholder="想去哪里？搜索城市或路书"
+        /><button class="button">搜索</button>
+      </form>
+    </section>
+    <section class="v3-content" aria-label="公开路书">
+      <div class="v3-section-heading">
+        <h2>{{ activeSearch ? "探索结果" : "沿着路书，发现更多" }}</h2>
+        <span>旅行者分享的公开行程</span>
+      </div>
+      <div v-if="error" class="v3-state" role="alert">
+        <p>{{ error }}</p>
+        <button class="button secondary" :disabled="busy" @click="search()">
+          重新加载
+        </button>
+      </div>
+      <p v-if="busy && !posts.length" class="v3-state" role="status">
+        正在加载路书…
+      </p>
+      <ExploreFeed :posts="posts" featured />
+      <div v-if="!error && !busy && !posts.length" class="v3-state">
+        <h3>还没有找到这段旅程</h3>
+        <p>暂无匹配的路书，换个城市试试。</p>
+      </div>
+      <button
+        v-if="hasMore"
+        class="button secondary v3-load-more"
+        :disabled="busy"
+        @click="search(false)"
+      >
+        {{ busy ? "加载中…" : "查看更多" }}
+      </button>
+    </section>
   </div>
-  <button
-    v-if="hasMore"
-    class="button secondary load-more"
-    :disabled="busy"
-    @click="search(false)"
-  >
-    {{ busy ? "加载中…" : "查看更多" }}
-  </button>
 </template>
