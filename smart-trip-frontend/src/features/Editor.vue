@@ -12,7 +12,7 @@ import { useSession } from "./session";
 import type { Trip, Item, Poi, Revision, Share } from "./types";
 import TripRead from "./TripRead.vue";
 import TravelTools from "./TravelTools.vue";
-import MapWeather from "./MapWeather.vue";
+import GeoCanvas from "./workbench/GeoCanvas.vue";
 import ItineraryAnalysis from "./ItineraryAnalysis.vue";
 import Members from "./Members.vue";
 import HistoryDialog from "./workbench/HistoryDialog.vue";
@@ -464,9 +464,10 @@ function print() {
     v-if="trip && day"
     :destination="trip.destination"
     :expanded="timelineExpanded"
-    :tool-open="tab !== 'plan'"
+    :tool-open="tab !== 'plan' && tab !== 'map'"
     :insight-open="insightOpen"
-    :inspector-open="Boolean(selectedNode) && !insightOpen"
+    :inspector-open="Boolean(selectedNode) && !insightOpen && tab === 'plan'"
+    :geo-open="tab === 'map'"
   >
     <template #header>
       <header class="wb-tripbar">
@@ -616,6 +617,26 @@ function print() {
         </button>
       </nav>
     </template>
+    <template #canvas
+      ><GeoCanvas
+        :trip="trip"
+        :day="day"
+        :dirty="dirty"
+        :active="tab === 'plan' || tab === 'map'"
+        :controls-open="tab === 'map'"
+        :selected-node="selectedNode"
+        :node-key="nodeKey"
+        @close="closeTool"
+        @adjust="tab = 'analysis'"
+        @select="
+          (item) => {
+            selectedNode = nodeKey(item);
+            tab = 'plan';
+            insightOpen = false;
+            timelineExpanded = true;
+          }
+        "
+    /></template>
     <template #rail
       ><DayNavigation
         v-model="dayIndex"
@@ -627,6 +648,11 @@ function print() {
     <template #timeline
       ><PlanEditor
         v-model:selected-node="selectedNode"
+        @update:selected-node="
+          (value) => {
+            if (value && tab === 'map') tab = 'plan';
+          }
+        "
         v-model:expanded="timelineExpanded"
         :trip="trip"
         :day-index="dayIndex"
@@ -657,7 +683,7 @@ function print() {
     /></template>
     <template #tools
       ><section
-        v-if="tab !== 'plan'"
+        v-if="tab !== 'plan' && tab !== 'map'"
         class="wb-tool-panel"
         tabindex="-1"
         aria-label="工作台工具面板"
@@ -674,13 +700,7 @@ function print() {
             返回行程编辑
           </button>
         </header>
-        <MapWeather
-          v-if="tab === 'map'"
-          :trip="trip"
-          :day="day"
-          :dirty="dirty"
-          @adjust="tab = 'analysis'"
-        /><ItineraryAnalysis
+        <ItineraryAnalysis
           v-if="tab === 'analysis'"
           :trip="trip"
           :day-index="dayIndex"

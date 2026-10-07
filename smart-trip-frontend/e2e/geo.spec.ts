@@ -24,7 +24,26 @@ async function setup(page: Page, onScript?: () => Promise<void>) {
         destination: "成都",
         version: 7,
         totalBudget: 0,
-        days: [{ id: 2, dayDate: "2026-10-10", items: [] }],
+        days: [
+          {
+            id: 2,
+            dayDate: "2026-10-10",
+            items: [
+              {
+                id: 101,
+                itemName: "地点一",
+                itemType: "SCENIC",
+                costEstimate: 0,
+              },
+              {
+                id: 102,
+                itemName: "地点二",
+                itemType: "SCENIC",
+                costEstimate: 0,
+              },
+            ],
+          },
+        ],
       };
     else if (path.includes("/membership/"))
       data = [{ userId: 1, role: "OWNER" }];
@@ -35,7 +54,10 @@ async function setup(page: Page, onScript?: () => Promise<void>) {
       data = {
         tripVersion: 7,
         mode: "walking",
-        points: [],
+        points: [
+          { itemId: 101, name: "地点一", resolved: true, location: "104,30" },
+          { itemId: 102, name: "地点二", resolved: true, location: "105,31" },
+        ],
         legs: [],
         retrievedAt: "2026-10-04T12:00:00Z",
       };
@@ -79,7 +101,7 @@ test("leaving a map view before SDK finishes cannot create a stale map", async (
   const fixture = await setup(page, () => gate);
   await page.getByRole("button", { name: "查询路线", exact: true }).click();
   await expect.poll(fixture.scripts).toBe(1);
-  await page.getByRole("button", { name: "行程编辑", exact: true }).click();
+  await page.getByRole("button", { name: "记账与行李", exact: true }).click();
   release();
   await page.waitForFunction(
     () => !!(window as unknown as { AMap?: unknown }).AMap,

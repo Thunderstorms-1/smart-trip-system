@@ -1340,3 +1340,260 @@
     visibility: hidden;
   }
 }
+
+/* Real geography stays under the established timeline and context surfaces. */
+.workbench-v3-shell .wb-planning-canvas {
+  z-index: 0;
+}
+.workbench-v3-shell .wb-rail-region,
+.workbench-v3-shell .wb-timeline-region,
+.workbench-v3-shell .wb-context-region,
+.workbench-v3-shell .wb-inspector-region,
+.workbench-v3-shell .wb-tool-panel {
+  z-index: 2;
+}
+.workbench-v3-shell .wb-geo-canvas,
+.workbench-v3-shell .wb-real-map,
+.workbench-v3-shell .wb-map-fallback {
+  position: absolute;
+  inset: 0;
+}
+.workbench-v3-shell .wb-map-fallback {
+  pointer-events: none;
+}
+.workbench-v3-shell .wb-geo-controls {
+  position: absolute;
+  z-index: 3;
+  right: 22px;
+  top: 24px;
+  bottom: 24px;
+  width: 340px;
+  padding: 20px;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 26px #203c5412;
+  scrollbar-color: #b3c8d5 transparent;
+  scrollbar-width: thin;
+}
+.workbench-v3-shell .wb-geo-controls header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.workbench-v3-shell .wb-geo-controls h2 {
+  margin: 0;
+  font-size: 19px;
+}
+.workbench-v3-shell .wb-geo-controls h3 {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+.workbench-v3-shell .wb-geo-controls p {
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-geo-controls .muted {
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-geo-actions {
+  padding: 18px 0;
+  border-bottom: 1px solid #e3ebef;
+}
+.workbench-v3-shell .wb-geo-actions button,
+.workbench-v3-shell .wb-geo-controls .form-error button {
+  border: 0;
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 8px 12px;
+  background: #edf3f6;
+  color: #264c64;
+  font-size: 12px;
+}
+.workbench-v3-shell .wb-geo-actions .button-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workbench-v3-shell .wb-geo-actions select {
+  width: auto;
+  margin: 0;
+  min-height: 36px;
+  font-size: 12px;
+}
+.workbench-v3-shell .wb-canvas-weather {
+  position: absolute;
+  top: 24px;
+  left: 466px;
+  max-width: calc(100% - 850px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fffffff0;
+  color: #243e50;
+  border-radius: 12px;
+  box-shadow: 0 8px 26px #203c5412;
+}
+.workbench-v3-shell .wb-canvas-weather strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.workbench-v3-shell .wb-canvas-weather span {
+  font-size: 13px;
+}
+.workbench-v3-shell .wb-canvas-weather small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.workbench-v3-shell .wb-map-navigation {
+  position: absolute;
+  right: 376px;
+  bottom: 45px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.workbench-v3-shell .wb-map-navigation button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #274d65;
+}
+.workbench-v3-shell .wb-map-navigation svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+.workbench-v3-shell .wb-map-source {
+  position: absolute;
+  bottom: 12px;
+  left: 466px;
+  right: 376px;
+  margin: 0;
+  color: #243e50;
+  background: #fffffff0;
+  font-size: 11px;
+  padding: 5px 8px;
+  width: fit-content;
+  max-width: calc(100% - 850px);
+}
+.workbench-v3-shell .wb-map-pin {
+  background: #c95323;
+  color: white;
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 650;
+  box-shadow: 0 4px 12px #203c5433;
+}
+.workbench-v3-shell .wb-map-pin[aria-pressed="true"] {
+  background: #274d65;
+  outline: 3px solid #ebae86;
+  outline-offset: 2px;
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  .workbench-v3-shell .wb-geo-controls {
+    right: 12px;
+    width: 320px;
+  }
+  .workbench-v3-shell .geo-open .wb-timeline-region {
+    width: calc(100% - 456px);
+  }
+  .workbench-v3-shell .wb-canvas-weather {
+    left: 420px;
+    top: auto;
+    bottom: 48px;
+    max-width: calc(100% - 440px);
+  }
+  .workbench-v3-shell .wb-map-navigation {
+    right: 12px;
+    bottom: 12px;
+  }
+  .workbench-v3-shell .wb-map-source {
+    left: 110px;
+    right: 64px;
+    max-width: calc(100% - 180px);
+  }
+}
+@media (max-width: 700px) {
+  .workbench-v3-shell .geo-open .wb-timeline-region {
+    visibility: hidden;
+  }
+  .workbench-v3-shell .wb-geo-controls {
+    inset: auto 8px 0;
+    width: auto;
+    height: 68%;
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 16px 16px 0 0;
+  }
+  .workbench-v3-shell .wb-geo-controls h2 {
+    font-size: 18px;
+  }
+  .workbench-v3-shell .wb-geo-actions select {
+    font-size: 16px;
+  }
+  .workbench-v3-shell .wb-canvas-weather {
+    left: 12px;
+    right: 12px;
+    top: 84px;
+    bottom: auto;
+    max-width: none;
+    padding: 8px 12px;
+  }
+  .workbench-v3-shell .wb-map-navigation {
+    right: 12px;
+    top: 164px;
+    bottom: auto;
+  }
+  .workbench-v3-shell .wb-map-source {
+    left: 12px;
+    right: 60px;
+    top: 144px;
+    bottom: auto;
+    max-width: calc(100% - 72px);
+  }
+}
+/* Query surfaces keep the map and their exit action available at narrow widths. */
+.workbench-v3-shell .wb-geo-controls {
+  overscroll-behavior: contain;
+}
+.workbench-v3-shell .wb-geo-controls header {
+  position: sticky;
+  top: -20px;
+  z-index: 1;
+  padding: 10px 0;
+  background: #fff;
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  .workbench-v3-shell .geo-open .wb-timeline-region {
+    display: none;
+  }
+  .workbench-v3-shell .geo-open .wb-canvas-title {
+    left: calc((100% - 240px) / 2);
+    max-width: calc(100% - 460px);
+  }
+  .workbench-v3-shell .geo-open .wb-canvas-weather {
+    left: 110px;
+    right: 352px;
+    max-width: none;
+  }
+}
+@media (max-width: 700px) {
+  .workbench-v3-shell .wb-geo-controls header {
+    top: -18px;
+  }
+  .workbench-v3-shell .geo-open .wb-map-fallback .wb-canvas-notice {
+    top: 151px;
+  }
+}

@@ -156,5 +156,6 @@ export function useGeoQueries(
     epoch,
     refresh,
     getWeather,
+    cancel: invalidate,
   };
 }

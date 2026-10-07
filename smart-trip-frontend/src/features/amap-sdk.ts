@@ -3,10 +3,20 @@ export interface MapInstance {
   destroy(): void;
   add(overlay: object): void;
   setFitView(overlays: object[]): void;
+  setCenter?(position: number[], immediately?: boolean): void;
+  getZoom?(): number;
+  setZoom?(zoom: number): void;
 }
 export interface AMapSDK {
-  Map: new (host: HTMLElement, options: { zoom: number }) => MapInstance;
-  Marker: new (options: { position: number[]; title: string }) => object;
+  Map: new (
+    host: HTMLElement,
+    options: { zoom: number; center?: number[] },
+  ) => MapInstance;
+  Marker: new (options: {
+    position: number[];
+    title: string;
+    content?: HTMLElement;
+  }) => object;
   Polyline: new (options: {
     path: number[][];
     strokeColor: string;
