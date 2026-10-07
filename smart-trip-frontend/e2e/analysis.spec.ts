@@ -42,7 +42,9 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
     .click();
   await page.getByRole("button", { name: "检查行程", exact: true }).click();
   await expect(
-    page.getByText("两个安排的时间存在重叠", { exact: true }),
+    page
+      .locator(".analysis-panel")
+      .getByText("两个安排的时间存在重叠", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "生成调整提案" }),

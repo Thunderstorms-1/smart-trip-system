@@ -1,10 +1,19 @@
 <script setup lang="ts">
-defineProps<{ destination: string; expanded: boolean; toolOpen: boolean }>();
+defineProps<{
+  destination: string;
+  expanded: boolean;
+  toolOpen: boolean;
+  insightOpen: boolean;
+}>();
 </script>
 <template>
   <div
     class="workbench-v3"
-    :class="{ 'timeline-expanded': expanded, 'tool-open': toolOpen }"
+    :class="{
+      'timeline-expanded': expanded,
+      'tool-open': toolOpen,
+      'insight-open': insightOpen,
+    }"
   >
     <slot name="header" />
     <div class="workbench-workspace">
@@ -25,8 +34,9 @@ defineProps<{ destination: string; expanded: boolean; toolOpen: boolean }>();
       <div class="wb-timeline-region"><slot name="timeline" /></div>
       <aside
         v-show="!toolOpen"
+        id="workbench-insight"
         class="wb-context-region"
-        aria-label="当前路书概览"
+        aria-label="行程洞察面板"
       >
         <slot name="context" />
       </aside>

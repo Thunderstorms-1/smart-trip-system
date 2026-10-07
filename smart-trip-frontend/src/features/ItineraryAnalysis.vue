@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch } from "vue";
-import type { Trip, Capabilities } from "./types";
+import type { Trip, Capabilities, AnalysisReport } from "./types";
 import { useItineraryAnalysis } from "./useItineraryAnalysis";
 import TripRead from "./TripRead.vue";
 import QualityOverview from "./analysis/QualityOverview.vue";
@@ -20,6 +20,7 @@ const emit = defineEmits<{
   applied: [trip: Trip];
   busy: [value: boolean];
   focus: [dayId: number, itemId?: number];
+  report: [value: AnalysisReport];
 }>();
 const a = useItineraryAnalysis(
   () => props,
@@ -40,6 +41,13 @@ const {
   sourceBusy,
   sourceErrors,
 } = a;
+watch(
+  report,
+  (value) => {
+    if (value) emit("report", value);
+  },
+  { flush: "sync" },
+);
 watch(applying, (value) => emit("busy", value), { flush: "sync" });
 const labels: Record<string, string> = {
   MOVE: "跨天移动",

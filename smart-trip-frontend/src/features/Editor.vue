@@ -26,6 +26,8 @@ import { useTripDraft } from "./useTripDraft";
 import { usePoiSearch } from "./usePoiSearch";
 import { capabilityEnabled, capabilityNotice } from "./capabilities";
 import WorkbenchShell from "./workbench/WorkbenchShell.vue";
+import QualityInsight from "./workbench/QualityInsight.vue";
+import { useWorkbenchQuality } from "./workbench/useWorkbenchQuality";
 import HomeIcon from "./HomeIcon.vue";
 import "./workbench-v3.css";
 const toolLabels: Record<string, string> = {
@@ -37,6 +39,7 @@ const toolLabels: Record<string, string> = {
 };
 const selectedNode = ref("");
 const timelineExpanded = ref(true);
+const insightOpen = ref(false);
 const nodeKeys = new WeakMap<Item, string>();
 let nextNodeKey = 0;
 function nodeKey(item: Item): string {
@@ -217,10 +220,29 @@ async function closeTool() {
   await nextTick();
   document.querySelector<HTMLElement>('[data-wb-tab="plan"]')?.focus();
 }
+const insight = useWorkbenchQuality(() => ({
+  trip: trip.value,
+  dirty: dirty.value,
+  blocked: busy.value || loading.value,
+}));
+watch(insightOpen, async (open) => {
+  if (!open) return;
+  await nextTick();
+  document
+    .querySelector<HTMLButtonElement>("#workbench-insight .wb-insight-close")
+    ?.focus();
+});
+function closeInsight() {
+  insightOpen.value = false;
+  nextTick(() =>
+    document.querySelector<HTMLButtonElement>(".wb-insight-toggle")?.focus(),
+  );
+}
 async function focusQuality(dayId: number, itemId?: number) {
   if (dirty.value || busy.value || loading.value || !trip.value) return;
   const index = trip.value.days.findIndex((d) => d.id === dayId);
   if (index < 0) return;
+  insightOpen.value = false;
   dayIndex.value = index;
   tab.value = "plan";
   selectedNode.value = itemId ? "item-" + itemId : "";
@@ -443,6 +465,7 @@ function print() {
     :destination="trip.destination"
     :expanded="timelineExpanded"
     :tool-open="tab !== 'plan'"
+    :insight-open="insightOpen"
   >
     <template #header>
       <header class="wb-tripbar">
@@ -560,6 +583,17 @@ function print() {
       <div v-if="!editable" class="notice">你以只读成员身份查看这份路书。</div>
       <nav class="wb-tabs" aria-label="工作台工具">
         <button
+          class="wb-insight-toggle"
+          :aria-expanded="insightOpen"
+          aria-controls="workbench-insight"
+          @click="
+            tab = 'plan';
+            insightOpen = !insightOpen;
+          "
+        >
+          行程洞察
+        </button>
+        <button
           v-for="t in [
             { id: 'plan', label: '行程编辑' },
             { id: 'map', label: '路线与天气' },
@@ -572,7 +606,10 @@ function print() {
           :data-wb-tab="t.id"
           :class="{ active: tab === t.id }"
           :disabled="analysisBusy"
-          @click="tab = t.id"
+          @click="
+            tab = t.id;
+            insightOpen = false;
+          "
         >
           {{ t.label }}
         </button>
@@ -602,46 +639,18 @@ function print() {
         @record="record"
     /></template>
     <template #context
-      ><section class="wb-trip-overview">
-        <h2>这段旅程</h2>
-        <p class="wb-overview-destination">{{ trip.destination }}</p>
-        <dl>
-          <div>
-            <dt>行程天数</dt>
-            <dd>{{ trip.days.length }} 天</dd>
-          </div>
-          <div>
-            <dt>已安排</dt>
-            <dd>
-              {{ trip.days.reduce((n, d) => n + d.items.length, 0) }} 个节点
-            </dd>
-          </div>
-          <div>
-            <dt>预估费用</dt>
-            <dd>
-              {{
-                money(
-                  trip.days
-                    .flatMap((d) => d.items)
-                    .reduce((sum, i) => sum + Number(i.costEstimate || 0), 0),
-                )
-              }}
-            </dd>
-          </div>
-        </dl>
-        <p class="wb-overview-note">
-          费用来自当前行程安排，实际消费以记账为准。
-        </p>
-        <button
-          class="wb-analysis-link"
-          :disabled="busy || dirty"
-          @click="tab = 'analysis'"
-        >
-          检查行程安排<HomeIcon name="arrow" />
-        </button>
-        <p class="wb-overview-note">位置尚未关联时，仍可编辑并保存行程。</p>
-      </section></template
-    >
+      ><QualityInsight
+        :trip="trip"
+        :report="insight.report.value"
+        :valid="insight.valid.value"
+        :state="insight.state.value"
+        :busy="insight.busy.value"
+        :disabled="busy || loading || dirty"
+        :error="insight.error.value"
+        @analyze="insight.analyze"
+        @focus="focusQuality"
+        @close="closeInsight"
+    /></template>
     <template #tools
       ><section
         v-if="tab !== 'plan'"
@@ -675,6 +684,7 @@ function print() {
           :editable="editable"
           :busy="actionBusy"
           :capabilities="s.capabilities"
+          @report="insight.accept"
           @applied="analysisApplied"
           @focus="focusQuality"
           @busy="analysisBusy = $event"
