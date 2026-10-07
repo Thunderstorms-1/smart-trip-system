@@ -680,10 +680,33 @@ function print() {
         @analyze="insight.analyze"
         @focus="focusQuality"
         @close="closeInsight"
-    /></template>
+      />
+      <Teleport
+        defer
+        :to="
+          tab === 'analysis'
+            ? '#workbench-analysis-host'
+            : '#workbench-adjustment-host'
+        "
+      >
+        <ItineraryAnalysis
+          :insight="tab !== 'analysis'"
+          :trip="trip"
+          :day-index="dayIndex"
+          :dirty="dirty"
+          :editable="editable"
+          :busy="actionBusy"
+          :capabilities="s.capabilities"
+          @report="insight.accept"
+          @applied="analysisApplied"
+          @focus="focusQuality"
+          @busy="analysisBusy = $event"
+        />
+      </Teleport>
+    </template>
     <template #tools
       ><section
-        v-if="tab !== 'plan' && tab !== 'map'"
+        v-show="tab !== 'plan' && tab !== 'map'"
         class="wb-tool-panel"
         tabindex="-1"
         aria-label="工作台工具面板"
@@ -700,19 +723,8 @@ function print() {
             返回行程编辑
           </button>
         </header>
-        <ItineraryAnalysis
-          v-if="tab === 'analysis'"
-          :trip="trip"
-          :day-index="dayIndex"
-          :dirty="dirty"
-          :editable="editable"
-          :busy="actionBusy"
-          :capabilities="s.capabilities"
-          @report="insight.accept"
-          @applied="analysisApplied"
-          @focus="focusQuality"
-          @busy="analysisBusy = $event"
-        /><TravelTools
+        <div id="workbench-analysis-host"></div>
+        <TravelTools
           v-if="tab === 'tools'"
           ref="tools"
           :trip="trip"

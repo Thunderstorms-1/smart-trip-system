@@ -1597,3 +1597,46 @@
     top: 151px;
   }
 }
+
+/* The existing constrained adjustment workflow shares the Insight surface. */
+.workbench-v3-shell .wb-adjustment-inline {
+  padding: 0;
+  margin-top: 24px;
+  font-size: 12px;
+}
+.workbench-v3-shell .wb-adjustment-inline h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.workbench-v3-shell .wb-adjustment-inline .analysis-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.workbench-v3-shell .wb-adjustment-inline .analysis-days label {
+  margin: 0;
+}
+.workbench-v3-shell .wb-adjustment-inline .button-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workbench-v3-shell .wb-adjustment-inline .button {
+  width: 100%;
+  white-space: normal;
+}
+.workbench-v3-shell .wb-adjustment-inline .analysis-card {
+  padding: 12px 0;
+  background: transparent;
+  border-radius: 0;
+}
+.workbench-v3-shell .wb-adjustment-inline .paper {
+  background: #fff;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+}
+.workbench-v3-shell .wb-adjustment-inline p,
+.workbench-v3-shell .wb-adjustment-inline small,
+.workbench-v3-shell .wb-adjustment-inline summary {
+  overflow-wrap: anywhere;
+}

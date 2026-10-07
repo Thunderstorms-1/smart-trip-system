@@ -169,5 +169,6 @@ function targets(f: Pick<QualityFinding, "dayIds" | "itemIds">) {
     >
       {{ busy ? "检查中…" : quality ? "重新分析行程" : "分析已保存行程" }}
     </button>
+    <div id="workbench-adjustment-host"></div>
   </section>
 </template>

@@ -253,3 +253,77 @@ test("browser version conflict retains the proposed differences", async ({
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "调整差异" })).toBeVisible();
 });
+
+test("Insight shares the constrained ADJUST preview with diagnostics and saves only after confirmation", async ({
+  page,
+}) => {
+  const saves = await fixture(page);
+  await page.goto("/trip/edit/1");
+  const insight = page.locator("#workbench-insight");
+  const adjust = insight.getByRole("region", { name: "受约束行程调整" });
+  await expect(adjust).toBeVisible();
+  await expect(adjust.getByRole("checkbox", { name: "第 1 天" })).toBeChecked();
+  await adjust.getByRole("button", { name: "检查行程", exact: true }).click();
+  await adjust
+    .getByRole("button", { name: "生成调整提案", exact: true })
+    .click();
+  await expect(
+    adjust.getByRole("heading", { name: "调整差异", exact: true }),
+  ).toBeVisible();
+  expect(saves()).toBe(0);
+  await page
+    .getByRole("button", { name: "行程诊断", exact: true })
+    .first()
+    .click();
+  await expect(
+    page
+      .locator("#workbench-analysis-host")
+      .getByRole("heading", { name: "调整差异", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "返回行程编辑", exact: true }).click();
+  await expect(
+    adjust.getByRole("heading", { name: "调整差异", exact: true }),
+  ).toBeVisible();
+  expect(saves()).toBe(0);
+  await adjust
+    .getByRole("button", { name: "整份确认保存", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "保存路书", exact: true }),
+  ).toBeDisabled();
+  expect(saves()).toBe(1);
+  await page
+    .getByRole("button", { name: "选择安排：博物馆", exact: true })
+    .click();
+  await expect(page.getByLabel("开始时间", { exact: true })).toHaveValue(
+    "11:00",
+  );
+});
+test("mobile Insight ADJUST keeps preview and differences on a version conflict", async ({
+  page,
+}) => {
+  const saves = await fixture(page, true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/trip/edit/1");
+  await page.getByRole("button", { name: "行程洞察", exact: true }).click();
+  const adjust = page
+    .locator("#workbench-insight")
+    .getByRole("region", { name: "受约束行程调整" });
+  await adjust.getByRole("button", { name: "检查行程", exact: true }).click();
+  await adjust
+    .getByRole("button", { name: "生成调整提案", exact: true })
+    .click();
+  await adjust
+    .getByRole("button", { name: "整份确认保存", exact: true })
+    .click();
+  await expect(
+    adjust.getByText("路书已被修改，请刷新后重试", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    adjust.getByRole("heading", { name: "调整差异", exact: true }),
+  ).toBeVisible();
+  expect(saves()).toBe(1);
+  await expect(
+    adjust.getByText("原路书尚未改变。", { exact: false }),
+  ).toBeVisible();
+});
