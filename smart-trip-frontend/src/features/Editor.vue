@@ -25,6 +25,63 @@ import AiProposal from "./workbench/AiProposal.vue";
 import { useTripDraft } from "./useTripDraft";
 import { usePoiSearch } from "./usePoiSearch";
 import { capabilityEnabled, capabilityNotice } from "./capabilities";
+import WorkbenchShell from "./workbench/WorkbenchShell.vue";
+import HomeIcon from "./HomeIcon.vue";
+import "./workbench-v3.css";
+const toolLabels: Record<string, string> = {
+  map: "路线与天气",
+  analysis: "行程诊断",
+  tools: "记账与行李",
+  members: "同行成员",
+  read: "路书预览",
+};
+const selectedNode = ref("");
+const timelineExpanded = ref(true);
+const nodeKeys = new WeakMap<Item, string>();
+let nextNodeKey = 0;
+function nodeKey(item: Item): string {
+  if (item.id != null) return "item-" + item.id;
+  if (!nodeKeys.has(item)) nodeKeys.set(item, "draft-" + ++nextNodeKey);
+  return nodeKeys.get(item)!;
+}
+const modalDialog = ref<HTMLDialogElement>();
+let modalTrigger: HTMLElement | undefined;
+let previousOverflow: string | undefined;
+function rememberModalTrigger() {
+  modalTrigger =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : undefined;
+}
+function releaseModal() {
+  modalDialog.value?.close();
+  if (previousOverflow !== undefined)
+    document.body.style.overflow = previousOverflow;
+  previousOverflow = undefined;
+  if (modalTrigger?.isConnected) modalTrigger.focus({ preventScroll: true });
+  modalTrigger = undefined;
+}
+watch(
+  modalDialog,
+  (dialog) => {
+    if (!dialog || !modal.value) return;
+    if (!dialog.open) dialog.showModal();
+    dialog.querySelector<HTMLButtonElement>("button")?.focus();
+  },
+  { flush: "post" },
+);
+function onModalBackdrop(event: MouseEvent) {
+  const dialog = modalDialog.value;
+  if (event.target !== dialog || !dialog) return;
+  const rect = dialog.getBoundingClientRect();
+  if (
+    event.clientX < rect.left ||
+    event.clientX > rect.right ||
+    event.clientY < rect.top ||
+    event.clientY > rect.bottom
+  )
+    modal.value = "";
+}
 const route = useRoute(),
   router = useRouter(),
   s = useSession(),
@@ -65,6 +122,18 @@ const {
   }),
   () => search.value,
 );
+watch(
+  modal,
+  (value, before) => {
+    if (value && !before) {
+      if (!modalTrigger) rememberModalTrigger();
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    } else if (!value) releaseModal();
+  },
+  { flush: "sync" },
+);
+onBeforeUnmount(releaseModal);
 const { busy: actionBusy, error, run } = useAction();
 const analysisBusy = ref(false);
 const busy = computed(() => actionBusy.value || analysisBusy.value);
@@ -99,17 +168,73 @@ watch(
     if (count) dayIndex.value = Math.min(dayIndex.value, count - 1);
   },
 );
+watch(
+  trip,
+  (value, before) => {
+    if (!value || !before || value.id !== before.id) {
+      selectedNode.value = "";
+      return;
+    }
+    const previousDay = before.days.findIndex((d) =>
+      d.items.some((i) => nodeKey(i) === selectedNode.value),
+    );
+    const previousIndex =
+      previousDay < 0
+        ? -1
+        : before.days[previousDay]!.items.findIndex(
+            (i) => nodeKey(i) === selectedNode.value,
+          );
+    if (previousIndex < 0) {
+      selectedNode.value = "";
+      return;
+    }
+    const oldItem = before.days[previousDay]!.items[previousIndex]!;
+    const nextItem =
+      oldItem.id != null
+        ? value.days.flatMap((d) => d.items).find((i) => i.id === oldItem.id)
+        : value.days[previousDay]?.items[previousIndex];
+    selectedNode.value = nextItem ? nodeKey(nextItem) : "";
+  },
+  { flush: "sync" },
+);
+watch(
+  dayIndex,
+  () => {
+    selectedNode.value = "";
+  },
+  { flush: "sync" },
+);
+watch(tab, async (value) => {
+  if (value === "plan") return;
+  await nextTick();
+  document
+    .querySelector<HTMLElement>(".wb-tool-panel")
+    ?.focus({ preventScroll: true });
+});
+async function closeTool() {
+  if (analysisBusy.value) return;
+  tab.value = "plan";
+  await nextTick();
+  document.querySelector<HTMLElement>('[data-wb-tab="plan"]')?.focus();
+}
 async function focusQuality(dayId: number, itemId?: number) {
   if (dirty.value || busy.value || loading.value || !trip.value) return;
   const index = trip.value.days.findIndex((d) => d.id === dayId);
   if (index < 0) return;
   dayIndex.value = index;
   tab.value = "plan";
+  selectedNode.value = itemId ? "item-" + itemId : "";
+  timelineExpanded.value = true;
   await nextTick();
   const target = itemId
     ? document.getElementById("plan-item-" + itemId)
     : document.querySelector(".editor-panel");
-  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  target?.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+    block: "nearest",
+  });
   if (target instanceof HTMLElement) target.focus({ preventScroll: true });
 }
 function save() {
@@ -146,6 +271,7 @@ function removeDay() {
     return;
   }
   if (!confirm("删除这一天及其节点？保存后生效。")) return;
+  selectedNode.value = "";
   trip.value.days.splice(dayIndex.value, 1);
   dayIndex.value = Math.max(0, dayIndex.value - 1);
 }
@@ -175,6 +301,7 @@ function unpublish() {
   }, "路书已下架");
 }
 function showShares() {
+  rememberModalTrigger();
   run(async () => {
     if (!(await guardSaved())) return;
     shares.value = await api<Share[]>(
@@ -207,6 +334,7 @@ function revoke(id: number) {
   }, "分享已撤销");
 }
 function history() {
+  rememberModalTrigger();
   run(async () => {
     revisions.value = await api<Revision[]>(
       "/workbench/" + trip.value!.id + "/revisions",
@@ -238,6 +366,7 @@ async function removeTrip() {
   if (removed) await router.push("/my-trips");
 }
 function selectPoi(item: Item) {
+  rememberModalTrigger();
   selected.value = item;
   search.value = item.itemName;
   resetPoi();
@@ -300,246 +429,328 @@ function print() {
 }
 </script>
 <template>
-  <p v-if="loading && !trip" class="empty">正在打开你的路书…</p>
-  <div v-if="(loadError || error) && !trip" class="empty paper">
-    <p>{{ loadError || error }}</p>
+  <div v-if="loading && !trip" class="wb-state" role="status">
+    正在打开你的路书…
+  </div>
+  <div v-if="(loadError || error) && !trip" class="wb-state">
+    <p role="alert">{{ loadError || error }}</p>
     <RouterLink to="/my-trips" class="button secondary"
       >返回我的路书</RouterLink
     >
   </div>
-  <template v-if="trip && day"
-    ><header class="editor-heading">
-      <div class="meta-row">
-        <RouterLink to="/my-trips">← 我的路书</RouterLink
-        ><span class="pill">{{
-          trip.isPublic ? "已发布快照" : "私密路书"
-        }}</span
-        ><span
-          >版本 {{ trip.version }} ·
-          {{ dirty ? "有未保存修改" : "修改已保存" }}</span
+  <WorkbenchShell
+    v-if="trip && day"
+    :destination="trip.destination"
+    :expanded="timelineExpanded"
+    :tool-open="tab !== 'plan'"
+  >
+    <template #header>
+      <header class="wb-tripbar">
+        <div class="wb-trip-heading">
+          <RouterLink to="/my-trips" class="wb-back" aria-label="返回我的路书"
+            ><HomeIcon name="arrow"
+          /></RouterLink>
+          <div>
+            <input
+              v-model="trip.title"
+              :readonly="!editable || busy || loading"
+              maxlength="100"
+              aria-label="路书标题"
+            />
+            <p>
+              {{ trip.destination }} · {{ trip.days.length }} 天 · 预估
+              {{
+                money(
+                  trip.days
+                    .flatMap((d) => d.items)
+                    .reduce((sum, i) => sum + Number(i.costEstimate || 0), 0),
+                )
+              }}<span
+                >版本 {{ trip.version }} ·
+                {{ dirty ? "有未保存修改" : "修改已保存" }}</span
+              >
+            </p>
+          </div>
+          <span class="wb-visibility">{{
+            trip.isPublic ? "已发布快照" : "私密路书"
+          }}</span>
+        </div>
+        <div class="wb-toolbar">
+          <button
+            v-if="editable"
+            class="button"
+            :disabled="busy || !dirty"
+            @click="save"
+          >
+            {{ busy ? "保存中…" : "保存路书" }}</button
+          ><button
+            v-if="editable"
+            class="button secondary"
+            :disabled="busy || dirty || !s.capabilities.ai"
+            @click="
+              rememberModalTrigger();
+              aiAdjust();
+            "
+          >
+            AI 调整预览</button
+          ><button
+            class="button secondary"
+            :disabled="busy || dirty"
+            @click="tab = 'analysis'"
+          >
+            行程诊断</button
+          ><button class="button secondary" :disabled="busy" @click="history">
+            历史版本
+          </button>
+          <details class="wb-more-actions">
+            <summary>更多操作</summary>
+            <div class="wb-more-content">
+              <button
+                v-if="owner"
+                class="button secondary"
+                :disabled="busy || dirty"
+                @click="publish"
+              >
+                {{ trip.isPublic ? "更新公开快照" : "发布到广场" }}</button
+              ><button
+                v-if="owner && trip.isPublic"
+                class="text-button"
+                :disabled="busy"
+                @click="unpublish"
+              >
+                下架</button
+              ><button
+                v-if="owner"
+                class="button secondary"
+                :disabled="busy || dirty"
+                @click="showShares"
+              >
+                分享</button
+              ><button
+                class="text-button"
+                :disabled="busy"
+                @click="exportImage"
+              >
+                导出图片</button
+              ><button class="text-button" @click="print">
+                打印 / 导出 PDF
+              </button>
+              <button
+                v-if="owner"
+                class="text-button wb-danger"
+                :disabled="busy"
+                @click="removeTrip"
+              >
+                删除这份路书
+              </button>
+            </div>
+          </details>
+        </div>
+      </header>
+      <p v-if="error" class="form-error" role="alert">
+        {{ error }}
+        <button
+          v-if="error.includes('刷新')"
+          class="text-button"
+          @click="leave() && run(load)"
         >
-      </div>
-      <input
-        v-model="trip.title"
-        :readonly="!editable || busy || loading"
-        maxlength="100"
-        aria-label="路书标题"
-      />
-      <div class="meta-row">
-        <span>{{ trip.destination }} · {{ trip.days.length }} 天</span
-        ><span
-          >预估
-          {{
-            money(
-              trip.days
-                .flatMap((d) => d.items)
-                .reduce((sum, i) => sum + Number(i.costEstimate || 0), 0),
-            )
-          }}</span
+          重新加载
+        </button>
+      </p>
+      <div v-if="!editable" class="notice">你以只读成员身份查看这份路书。</div>
+      <nav class="wb-tabs" aria-label="工作台工具">
+        <button
+          v-for="t in [
+            { id: 'plan', label: '行程编辑' },
+            { id: 'map', label: '路线与天气' },
+            { id: 'analysis', label: '行程诊断' },
+            { id: 'tools', label: '记账与行李' },
+            { id: 'members', label: '同行成员' },
+            { id: 'read', label: '路书预览' },
+          ]"
+          :key="t.id"
+          :data-wb-tab="t.id"
+          :class="{ active: tab === t.id }"
+          :disabled="analysisBusy"
+          @click="tab = t.id"
         >
-      </div>
-    </header>
-    <div class="editor-toolbar">
-      <button
-        v-if="editable"
-        class="button"
-        :disabled="busy || !dirty"
-        @click="save"
-      >
-        {{ busy ? "保存中…" : "保存路书" }}</button
-      ><button
-        v-if="editable"
-        class="button secondary"
-        :disabled="busy || dirty || !s.capabilities.ai"
-        @click="aiAdjust()"
-      >
-        AI 调整预览</button
-      ><button
-        class="button secondary"
-        :disabled="busy || dirty"
-        @click="tab = 'analysis'"
-      >
-        行程诊断</button
-      ><button class="button secondary" :disabled="busy" @click="history">
-        历史版本</button
-      ><button
-        v-if="owner"
-        class="button secondary"
-        :disabled="busy || dirty"
-        @click="publish"
-      >
-        {{ trip.isPublic ? "更新公开快照" : "发布到广场" }}</button
-      ><button
-        v-if="owner && trip.isPublic"
-        class="text-button"
-        :disabled="busy"
-        @click="unpublish"
-      >
-        下架</button
-      ><button
-        v-if="owner"
-        class="button secondary"
-        :disabled="busy || dirty"
-        @click="showShares"
-      >
-        分享</button
-      ><button class="text-button" :disabled="busy" @click="exportImage">
-        导出图片</button
-      ><button class="text-button" @click="print">打印 / 导出 PDF</button>
-    </div>
-    <p v-if="error" class="form-error" role="alert">
-      {{ error }}
-      <button
-        v-if="error.includes('刷新')"
-        class="text-button"
-        @click="leave() && run(load)"
-      >
-        重新加载
-      </button>
-    </p>
-    <div v-if="!editable" class="notice">你以只读成员身份查看这份路书。</div>
-    <div class="tabs">
-      <button
-        v-for="t in [
-          { id: 'plan', label: '行程编辑' },
-          { id: 'map', label: '路线与天气' },
-          { id: 'analysis', label: '行程诊断' },
-          { id: 'tools', label: '记账与行李' },
-          { id: 'members', label: '同行成员' },
-          { id: 'read', label: '路书预览' },
-        ]"
-        :key="t.id"
-        :class="{ active: tab === t.id }"
-        :disabled="analysisBusy"
-        @click="tab = t.id"
-      >
-        {{ t.label }}
-      </button>
-    </div>
-    <div v-if="tab === 'plan' || tab === 'map'" class="editor-layout">
-      <DayNavigation
+          {{ t.label }}
+        </button>
+      </nav>
+    </template>
+    <template #rail
+      ><DayNavigation
         v-model="dayIndex"
         :trip="trip"
         :editable="editable"
         :busy="busy || loading"
         @add-day="addDay"
-      />
-
-      <PlanEditor
-        v-if="tab === 'plan'"
+    /></template>
+    <template #timeline
+      ><PlanEditor
+        v-model:selected-node="selectedNode"
+        v-model:expanded="timelineExpanded"
         :trip="trip"
         :day-index="dayIndex"
         :editable="editable"
         :busy="busy || loading"
         :dirty="dirty"
         :geo="capabilityEnabled(s.capabilities, 'poi')"
+        :node-key="nodeKey"
         @remove-day="removeDay"
         @poi="selectPoi"
         @record="record"
-      />
-
-      <MapWeather
-        v-else
-        :trip="trip"
-        :day="day"
-        :dirty="dirty"
-        @adjust="tab = 'analysis'"
-      />
-    </div>
-    <ItineraryAnalysis
-      v-if="tab === 'analysis'"
-      :trip="trip"
-      :day-index="dayIndex"
-      :dirty="dirty"
-      :editable="editable"
-      :busy="actionBusy"
-      :capabilities="s.capabilities"
-      @applied="analysisApplied"
-      @focus="focusQuality"
-      @busy="analysisBusy = $event"
-    />
-    <TravelTools
-      v-if="tab === 'tools'"
-      ref="tools"
-      :trip="trip"
-      :readonly="!editable || busy || loading"
-    /><Members
-      v-if="tab === 'members'"
-      :trip-id="trip.id!"
-      :owner="owner"
-    /><TripRead v-if="tab === 'read'" :trip="trip" />
-    <div v-if="owner" class="no-print" style="margin-top: 35px">
-      <button class="text-button" :disabled="busy" @click="removeTrip">
-        删除这份路书
-      </button>
-    </div>
-    <Teleport to="body"
-      ><div
-        v-if="modal"
-        class="modal-backdrop"
-        @click.self="modal = ''"
-        @keydown.esc="modal = ''"
-      >
-        <div
-          class="modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="editor-modal-title"
-        >
-          <header class="row">
-            <h2 id="editor-modal-title">
+    /></template>
+    <template #context
+      ><section class="wb-trip-overview">
+        <h2>这段旅程</h2>
+        <p class="wb-overview-destination">{{ trip.destination }}</p>
+        <dl>
+          <div>
+            <dt>行程天数</dt>
+            <dd>{{ trip.days.length }} 天</dd>
+          </div>
+          <div>
+            <dt>已安排</dt>
+            <dd>
+              {{ trip.days.reduce((n, d) => n + d.items.length, 0) }} 个节点
+            </dd>
+          </div>
+          <div>
+            <dt>预估费用</dt>
+            <dd>
               {{
-                modal === "history"
-                  ? "历史版本"
-                  : modal === "shares"
-                    ? "分享旅行快照"
-                    : modal === "poi"
-                      ? "选择真实地点"
-                      : "AI 调整预览"
+                money(
+                  trip.days
+                    .flatMap((d) => d.items)
+                    .reduce((sum, i) => sum + Number(i.costEstimate || 0), 0),
+                )
               }}
-            </h2>
-            <button class="text-button" @click="modal = ''">关闭</button>
-          </header>
-          <HistoryDialog
-            v-if="modal === 'history'"
-            :revisions="revisions"
-            :editable="editable"
-            :busy="busy"
-            :dirty="dirty"
-            @restore="restore"
-          /><ShareDialog
-            v-else-if="modal === 'shares'"
-            :shares="shares"
-            :share-url="shareUrl"
-            :busy="busy"
-            @create="createShare"
-            @revoke="revoke"
-          /><PoiDialog
-            v-else-if="modal === 'poi'"
-            v-model="search"
-            :poi="poi"
-            :destination="trip.destination"
-            :busy="poiBusy"
-            :error="poiError"
-            :searched="poiSearched"
-            :unavailable="capabilityNotice(s.capabilities, 'poi')"
-            @search="findPoi"
-            @choose="choose"
-          /><AiProposal
-            v-else
-            v-model="prompt"
-            :current="trip"
-            :preview="preview"
-            :task="task"
-            :busy="busy"
-            :dirty="dirty"
-            @generate="requestAi"
-            @apply="applyAi"
-            @close="modal = ''"
-          />
-          <p v-if="error" class="form-error">{{ error }}</p>
-        </div>
-      </div></Teleport
-    ></template
+            </dd>
+          </div>
+        </dl>
+        <p class="wb-overview-note">
+          费用来自当前行程安排，实际消费以记账为准。
+        </p>
+        <button
+          class="wb-analysis-link"
+          :disabled="busy || dirty"
+          @click="tab = 'analysis'"
+        >
+          检查行程安排<HomeIcon name="arrow" />
+        </button>
+        <p class="wb-overview-note">位置尚未关联时，仍可编辑并保存行程。</p>
+      </section></template
+    >
+    <template #tools
+      ><section
+        v-if="tab !== 'plan'"
+        class="wb-tool-panel"
+        tabindex="-1"
+        aria-label="工作台工具面板"
+        @keydown.esc.stop="closeTool"
+      >
+        <header class="wb-tool-heading">
+          <h2>{{ toolLabels[tab] }}</h2>
+          <button
+            type="button"
+            class="wb-text-button"
+            :disabled="analysisBusy"
+            @click="closeTool"
+          >
+            返回行程编辑
+          </button>
+        </header>
+        <MapWeather
+          v-if="tab === 'map'"
+          :trip="trip"
+          :day="day"
+          :dirty="dirty"
+          @adjust="tab = 'analysis'"
+        /><ItineraryAnalysis
+          v-if="tab === 'analysis'"
+          :trip="trip"
+          :day-index="dayIndex"
+          :dirty="dirty"
+          :editable="editable"
+          :busy="actionBusy"
+          :capabilities="s.capabilities"
+          @applied="analysisApplied"
+          @focus="focusQuality"
+          @busy="analysisBusy = $event"
+        /><TravelTools
+          v-if="tab === 'tools'"
+          ref="tools"
+          :trip="trip"
+          :readonly="!editable || busy || loading"
+        /><Members
+          v-if="tab === 'members'"
+          :trip-id="trip.id!"
+          :owner="owner"
+        /><TripRead v-if="tab === 'read'" :trip="trip" /></section
+    ></template>
+  </WorkbenchShell>
+  <Teleport to="body"
+    ><dialog
+      v-if="modal && trip"
+      ref="modalDialog"
+      class="modal wb-modal"
+      aria-labelledby="editor-modal-title"
+      @cancel.prevent="modal = ''"
+      @click="onModalBackdrop"
+    >
+      <header class="row">
+        <h2 id="editor-modal-title">
+          {{
+            modal === "history"
+              ? "历史版本"
+              : modal === "shares"
+                ? "分享旅行快照"
+                : modal === "poi"
+                  ? "选择真实地点"
+                  : "AI 调整预览"
+          }}
+        </h2>
+        <button class="text-button" @click="modal = ''">关闭</button>
+      </header>
+      <HistoryDialog
+        v-if="modal === 'history'"
+        :revisions="revisions"
+        :editable="editable"
+        :busy="busy"
+        :dirty="dirty"
+        @restore="restore"
+      /><ShareDialog
+        v-else-if="modal === 'shares'"
+        :shares="shares"
+        :share-url="shareUrl"
+        :busy="busy"
+        @create="createShare"
+        @revoke="revoke"
+      /><PoiDialog
+        v-else-if="modal === 'poi'"
+        v-model="search"
+        :poi="poi"
+        :destination="trip.destination"
+        :busy="poiBusy"
+        :error="poiError"
+        :searched="poiSearched"
+        :unavailable="capabilityNotice(s.capabilities, 'poi')"
+        @search="findPoi"
+        @choose="choose"
+      /><AiProposal
+        v-else
+        v-model="prompt"
+        :current="trip"
+        :preview="preview"
+        :task="task"
+        :busy="busy"
+        :dirty="dirty"
+        @generate="requestAi"
+        @apply="applyAi"
+        @close="modal = ''"
+      />
+      <p v-if="error" class="form-error">{{ error }}</p>
+    </dialog></Teleport
   >
 </template>

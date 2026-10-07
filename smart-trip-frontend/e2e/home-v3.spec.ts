@@ -299,6 +299,9 @@ test("real demo backend recent trip persists and Home opens it", async ({
     );
     await page.locator(".trip-continuation .outline-button").click();
     await expect(page).toHaveURL(new RegExp("/trip/edit/" + created.id + "$"));
+    await page
+      .getByRole("button", { name: "选择安排：拙政园", exact: true })
+      .click();
     await expect(
       page.getByLabel("地点 / 活动", { exact: true }).first(),
     ).toHaveValue("拙政园");
@@ -370,6 +373,9 @@ test("Home CSS does not change the Square after client-side navigation", async (
         navHeight: nav.height,
       };
     });
+  await expect(
+    page.getByRole("heading", { name: "旅行灵感广场" }),
+  ).toBeVisible();
   const before = await appearance();
   await page.locator(".brand").click();
   await expect(page.locator(".v3-home")).toBeVisible();

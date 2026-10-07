@@ -8,6 +8,7 @@ const s = useSession(),
   router = useRouter();
 const route = useRoute();
 const home = computed(() => route.path === "/");
+const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
 function expired() {
   s.logout();
   router.push({
@@ -29,12 +30,14 @@ function logout() {
 }
 </script>
 <template>
-  <div :class="{ 'v3-shell': home }">
+  <div :class="{ 'v3-shell': home, 'workbench-v3-shell': workbench }">
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
     <header :class="home ? 'home-header' : 'site-header'">
       <RouterLink to="/" class="brand"
-        ><HomeIcon v-if="home" /><span v-else class="brand-mark">游</span
-        ><span v-if="home">SmartTrip<span class="brand-cn">智游伴路</span></span
+        ><HomeIcon v-if="home || workbench" /><span v-else class="brand-mark"
+          >游</span
+        ><span v-if="home || workbench"
+          >SmartTrip<span class="brand-cn">智游伴路</span></span
         ><strong v-else>智游伴路<small>SMARTTRIP</small></strong></RouterLink
       >
       <nav aria-label="主导航">
@@ -69,16 +72,16 @@ function logout() {
     </header>
     <main
       id="main-content"
-      :class="home ? 'home-main' : 'site-main'"
+      :class="home ? 'home-main' : workbench ? 'workbench-main' : 'site-main'"
       tabindex="-1"
     >
       <RouterView />
     </main>
-    <footer v-if="!home" class="site-footer">
+    <footer v-if="!home && !workbench" class="site-footer">
       <span>智游伴路 · 把灵感走成风景</span
       ><span>行程费用为预估，实际消费以你的记账为准。</span>
     </footer>
-    <footer v-else class="home-footer">
+    <footer v-else-if="home" class="home-footer">
       <RouterLink class="brand" to="/"
         ><HomeIcon /><span
           >SmartTrip<span class="brand-cn">智游伴路</span></span

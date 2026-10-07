@@ -36,10 +36,14 @@ test("register, create, save and delete a private itinerary", async ({
     page.getByRole("button", { name: "保存路书", exact: true }),
   ).toBeDisabled();
   await page.reload();
+  await page
+    .getByRole("button", { name: "选择安排：西湖散步", exact: true })
+    .click();
   await expect(page.getByLabel("地点 / 活动", { exact: true })).toHaveValue(
     "西湖散步",
   );
   page.once("dialog", (dialog) => dialog.accept());
+  await page.getByText("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "删除这份路书" }).click();
   await page.waitForURL("**/my-trips");
 });

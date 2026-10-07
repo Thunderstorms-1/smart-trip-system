@@ -189,6 +189,9 @@ test("mock POI selection persists only a reference through the real backend and 
       page.getByRole("button", { name: "保存路书", exact: true }),
     ).toBeDisabled();
     await page.reload();
+    await page
+      .getByRole("button", { name: "选择安排：成都博物馆", exact: true })
+      .click();
     await expect(page.getByLabel("地点 / 活动", { exact: true })).toHaveValue(
       "成都博物馆",
     );

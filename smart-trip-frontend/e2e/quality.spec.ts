@@ -79,6 +79,10 @@ test("real quality report covers all days although adjustment scope defaults to 
       load.getByText("第 2 天 · 轻松", { exact: true }),
     ).toBeVisible();
     await load.getByRole("button", { name: "查看第 2 天安排" }).click();
+    await page
+      .getByRole("button", { name: /^选择安排：/ })
+      .first()
+      .click();
     await expect(page.getByLabel("开始时间", { exact: true })).toHaveValue(
       "10:00",
     );

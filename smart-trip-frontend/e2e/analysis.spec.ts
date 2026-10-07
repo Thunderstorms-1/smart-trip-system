@@ -18,16 +18,16 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
   await page.getByLabel("活动环境（由你确认）").selectOption("OUTDOOR");
   await page.getByLabel("智能调整时固定此安排").check();
   await page.getByRole("button", { name: "＋ 添加行程节点" }).click();
-  await page
-    .getByLabel("地点 / 活动", { exact: true })
-    .nth(1)
-    .fill("博物馆参观");
-  await page.getByLabel("开始时间", { exact: true }).nth(1).fill("10:00");
+  await page.getByLabel("地点 / 活动", { exact: true }).fill("博物馆参观");
+  await page.getByLabel("开始时间", { exact: true }).fill("10:00");
   await page.getByRole("button", { name: "保存路书", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "保存路书", exact: true }),
   ).toBeDisabled();
   await page.reload();
+  await page
+    .getByRole("button", { name: "选择安排：公园漫步", exact: true })
+    .click();
   await expect(page.getByLabel("活动环境（由你确认）").first()).toHaveValue(
     "OUTDOOR",
   );
@@ -71,6 +71,7 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
     });
   expect(external).toBe(0);
   page.once("dialog", (d) => d.accept());
+  await page.getByText("更多操作", { exact: true }).click();
   await page.getByRole("button", { name: "删除这份路书" }).click();
   await page.waitForURL("**/my-trips");
 });
@@ -226,7 +227,10 @@ test("browser preview waits for one explicit confirmation and updates the saved 
   ).toBeDisabled();
   expect(saves()).toBe(1);
   await page.getByRole("button", { name: "行程编辑", exact: true }).click();
-  await expect(page.getByLabel("开始时间", { exact: true }).nth(1)).toHaveValue(
+  await page
+    .getByRole("button", { name: "选择安排：博物馆", exact: true })
+    .click();
+  await expect(page.getByLabel("开始时间", { exact: true })).toHaveValue(
     "11:00",
   );
 });

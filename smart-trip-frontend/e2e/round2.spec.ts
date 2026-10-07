@@ -68,6 +68,10 @@ test("save locks the draft until persistence completes", async ({ page }) => {
     return false;
   });
   await page.goto("/trip/edit/1");
+  await page
+    .getByRole("button", { name: /^选择安排：/ })
+    .first()
+    .click();
   const title = page.getByLabel("路书标题");
   await title.fill("保存中的标题");
   await page.getByRole("button", { name: "保存路书", exact: true }).click();

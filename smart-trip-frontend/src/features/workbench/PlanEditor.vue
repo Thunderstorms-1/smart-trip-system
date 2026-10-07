@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick } from "vue";
 import type { Trip, Item } from "../types";
+import { money } from "../api";
+import TimelinePanel from "./TimelinePanel.vue";
+import TimelineNode from "./TimelineNode.vue";
+import NodeFields from "./NodeFields.vue";
 const props = defineProps<{
   trip: Trip;
   dayIndex: number;
@@ -8,16 +12,49 @@ const props = defineProps<{
   busy: boolean;
   dirty: boolean;
   geo: boolean;
+  nodeKey: (item: Item) => string;
 }>();
+const selectedNode = defineModel<string>("selectedNode", { required: true });
+const expanded = defineModel<boolean>("expanded", { required: true });
 const emit = defineEmits<{
   "remove-day": [];
   poi: [item: Item];
   record: [item: Item];
 }>();
 const day = computed(() => props.trip.days[props.dayIndex]!);
+const estimated = computed(() =>
+  money(
+    day.value.items.reduce(
+      (sum, item) => sum + Number(item.costEstimate || 0),
+      0,
+    ),
+  ),
+);
+const duration = computed(
+  () =>
+    Math.round(
+      day.value.items.reduce(
+        (sum, item) => sum + Number(item.costTimeHours || 0),
+        0,
+      ) * 1000000,
+    ) / 1000000,
+);
+const missingDuration = computed(
+  () => day.value.items.filter((item) => item.costTimeHours == null).length,
+);
+function select(item: Item) {
+  selectedNode.value = props.nodeKey(item);
+  expanded.value = true;
+}
 function addItem() {
-  if (!props.editable || props.busy) return;
-  day.value.items.push({
+  if (
+    !props.editable ||
+    props.busy ||
+    day.value.items.length >= 40 ||
+    props.trip.days.reduce((n, d) => n + d.items.length, 0) >= 500
+  )
+    return;
+  const item: Item = {
     itemType: "SCENIC",
     itemName: "",
     startTime: "09:00",
@@ -26,195 +63,164 @@ function addItem() {
     environmentType: "UNKNOWN",
     scheduleLocked: false,
     aiTips: "",
-  });
+  };
+  day.value.items.push(item);
+  select(day.value.items[day.value.items.length - 1]!);
+  void nextTick(() =>
+    document.querySelector<HTMLInputElement>(".wb-node-fields input")?.focus(),
+  );
 }
-function move(index: number, delta: number) {
+function move(item: Item, delta: number) {
   if (!props.editable || props.busy) return;
-  const target = index + delta;
-  if (target < 0 || target >= day.value.items.length) return;
-  const [item] = day.value.items.splice(index, 1);
-  day.value.items.splice(target, 0, item!);
+  const index = day.value.items.indexOf(item),
+    target = index + delta;
+  if (index < 0 || target < 0 || target >= day.value.items.length) return;
+  day.value.items.splice(index, 1);
+  day.value.items.splice(target, 0, item);
 }
-function transfer(index: number, event: Event) {
+async function close(item: Item) {
+  selectedNode.value = "";
+  await nextTick();
+  document.getElementById("timeline-" + props.nodeKey(item))?.focus();
+}
+async function remove(item: Item) {
   if (!props.editable || props.busy) return;
-  const target = Number((event.target as HTMLSelectElement).value);
-  if (target === props.dayIndex || !props.trip.days[target]) return;
-  const [item] = day.value.items.splice(index, 1);
-  props.trip.days[target]!.items.push(item!);
+  const index = day.value.items.indexOf(item);
+  if (index < 0) return;
+  day.value.items.splice(index, 1);
+  selectedNode.value = "";
+  await nextTick();
+  const next = day.value.items[Math.min(index, day.value.items.length - 1)];
+  if (next) document.getElementById("timeline-" + props.nodeKey(next))?.focus();
+  else document.getElementById("wb-add-node")?.focus();
+}
+async function transfer(item: Item, target: number) {
+  if (
+    !props.editable ||
+    props.busy ||
+    target === props.dayIndex ||
+    !props.trip.days[target]
+  )
+    return;
+  const index = day.value.items.indexOf(item);
+  if (index < 0) return;
+  day.value.items.splice(index, 1);
+  props.trip.days[target]!.items.push(item);
+  selectedNode.value = "";
+  await nextTick();
+  document.getElementById("wb-add-node")?.focus();
 }
 </script>
 <template>
-  <fieldset class="panel-stack draft-fieldset" :disabled="busy">
-    <section class="paper editor-panel">
-      <div class="form-grid">
-        <label
-          >目的地<input
-            v-model="trip.destination"
-            :readonly="!editable || busy"
-            maxlength="100"
-            required /></label
-        ><label
-          >出发日期<input
-            v-model="trip.startDate"
-            :readonly="!editable || busy"
-            type="date" /></label
-        ><label class="wide"
-          >行程简介<textarea
-            v-model="trip.summary"
-            :readonly="!editable || busy"
-            maxlength="500"
-            rows="2"
-          ></textarea>
-        </label>
-      </div>
-      <div class="row">
-        <h2>第 {{ dayIndex + 1 }} 天</h2>
-        <button v-if="editable" class="text-button" @click="emit('remove-day')">
-          删除这一天
-        </button>
-      </div>
-      <label
-        >当日主题<input
-          v-model="day.dayTheme"
-          :readonly="!editable || busy"
-          maxlength="100"
-      /></label>
-      <article
-        v-for="(item, n) in day.items"
-        :key="item.id || 'new-' + n"
-        class="item-editor"
-        :id="item.id ? 'plan-item-' + item.id : undefined"
-        tabindex="-1"
-      >
-        <div class="row">
-          <h3>{{ n + 1 }} / {{ item.itemName || "新地点" }}</h3>
-          <div v-if="editable" class="mini-actions">
-            <button
-              :disabled="n === 0"
-              @click="move(n, -1)"
-              aria-label="向上移动节点"
-            >
-              ↑</button
-            ><button
-              :disabled="n === day.items.length - 1"
-              @click="move(n, 1)"
-              aria-label="向下移动节点"
-            >
-              ↓</button
-            ><button @click="day.items.splice(n, 1)">删除</button>
-          </div>
-        </div>
-        <div class="form-grid">
-          <label class="wide"
-            >地点 / 活动<input
-              v-model="item.itemName"
-              @input="
-                item.poiId = undefined;
-                item.latitude = undefined;
-                item.longitude = undefined;
-                item.coordinateSystem = undefined;
-              "
+  <TimelinePanel
+    :day="day"
+    :day-index="dayIndex"
+    :estimated="estimated"
+    :duration="duration"
+    :missing-duration="missingDuration"
+    :expanded="expanded"
+    @expand="expanded = !expanded"
+  >
+    <template #details>
+      <details class="wb-trip-details">
+        <summary>旅行信息与当日主题</summary>
+        <fieldset class="draft-fieldset" :disabled="busy">
+          <label
+            >目的地<input
+              v-model="trip.destination"
               :readonly="!editable || busy"
               maxlength="100"
               required /></label
           ><label
-            >类型<select v-model="item.itemType" :disabled="!editable">
-              <option value="SCENIC">景点</option>
-              <option value="FOOD">美食</option>
-              <option value="HOTEL">住宿</option>
-              <option value="TRAFFIC">交通</option>
-              <option value="OTHER">活动</option>
-            </select></label
-          ><label
-            >活动环境（由你确认）<select
-              v-model="item.environmentType"
-              :disabled="!editable"
-            >
-              <option value="UNKNOWN">不确定</option>
-              <option value="INDOOR">室内</option>
-              <option value="OUTDOOR">室外</option>
-            </select></label
-          ><label
-            >智能调整时固定此安排<input
-              type="checkbox"
-              v-model="item.scheduleLocked"
-              :disabled="!editable"
-            />保留日期、开始时间和时长</label
-          ><label
-            >开始时间<input
-              v-model="item.startTime"
+            >出发日期<input
+              v-model="trip.startDate"
               :readonly="!editable || busy"
-              type="time" /></label
+              type="date" /></label
           ><label
-            >停留时长（小时）<input
-              v-model.number="item.costTimeHours"
-              :readonly="!editable || busy"
-              type="number"
-              min="0"
-              max="24"
-              step="0.5" /></label
-          ><label
-            >预估花费（元）<input
-              v-model.number="item.costEstimate"
-              :readonly="!editable || busy"
-              type="number"
-              min="0"
-              max="9999999"
-              step="0.01" /></label
-          ><label class="wide"
-            >旅行备注<textarea
-              v-model="item.aiTips"
+            >行程简介<textarea
+              v-model="trip.summary"
               :readonly="!editable || busy"
               maxlength="500"
               rows="2"
             ></textarea></label
-          ><label class="wide"
-            >交通提示<input
-              v-model="item.transportTips"
+          ><label
+            >当日主题<input
+              v-model="day.dayTheme"
               :readonly="!editable || busy"
-              maxlength="500"
-          /></label>
-        </div>
-        <div v-if="editable" class="button-row">
-          <button
-            class="button secondary small"
-            :disabled="!geo"
-            @click="emit('poi', item)"
-          >
-            {{ item.poiId ? "重新选择地点" : "关联真实地点" }}</button
+              maxlength="100" /></label
           ><button
-            class="text-button"
-            :disabled="dirty || !item.id"
-            @click="emit('record', item)"
+            v-if="editable"
+            type="button"
+            class="wb-text-button wb-danger"
+            :disabled="busy"
+            @click="emit('remove-day')"
           >
-            记录这笔花费</button
-          ><select
-            :value="dayIndex"
-            style="width: auto; font-size: 12px; margin: 0"
-            aria-label="移动节点到另一天"
-            @change="transfer(n, $event)"
-          >
-            <option v-for="(_, idx) in trip.days" :key="idx" :value="idx">
-              移动到第 {{ idx + 1 }} 天
-            </option>
-          </select>
-        </div>
-        <p v-if="item.poiId" class="muted">已关联地点 ID：{{ item.poiId }}</p>
-      </article>
-      <div v-if="!day.items.length" class="empty">
-        这一天还没有安排，添加第一个地点吧。
-      </div>
-      <button
+            删除这一天
+          </button>
+        </fieldset>
+      </details>
+    </template>
+    <TimelineNode
+      v-for="(item, index) in day.items"
+      :key="nodeKey(item)"
+      :item="item"
+      :index="index"
+      :node-key="nodeKey(item)"
+      :selected="selectedNode === nodeKey(item)"
+      @select="select(item)"
+    >
+      <NodeFields
+        :item="item"
+        :trip="trip"
+        :day-index="dayIndex"
+        :index="index"
+        :editable="editable"
+        :busy="busy"
+        :dirty="dirty"
+        :geo="geo"
+        @close="close(item)"
+        @move="move(item, $event)"
+        @remove="remove(item)"
+        @transfer="transfer(item, $event)"
+        @poi="emit('poi', item)"
+        @record="emit('record', item)"
+      />
+    </TimelineNode>
+    <div v-if="!day.items.length" class="wb-empty-day">
+      <h2>留一段时间给新的发现</h2>
+      <p>这一天还没有安排。添加地点或活动，开始规划。</p>
+    </div>
+    <template #footer
+      ><button
         v-if="editable"
-        class="button secondary full"
-        style="margin-top: 20px"
+        id="wb-add-node"
+        type="button"
+        class="wb-add-node"
+        aria-label="＋ 添加行程节点"
+        :disabled="
+          busy ||
+          day.items.length >= 40 ||
+          trip.days.reduce((n, d) => n + d.items.length, 0) >= 500
+        "
         @click="addItem"
       >
-        ＋ 添加行程节点
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" /></svg
+        >添加行程节点
       </button>
-    </section>
-    <div v-if="!geo" class="notice">
-      地点搜索暂未启用。你仍可先写下地点名称，之后再关联真实位置。
-    </div>
-  </fieldset>
+      <p>
+        {{
+          dirty
+            ? "修改保留在当前草稿，保存后生效。"
+            : "正在查看已保存的行程安排。"
+        }}
+      </p></template
+    >
+  </TimelinePanel>
 </template>

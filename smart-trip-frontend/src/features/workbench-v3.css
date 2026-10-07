@@ -1,0 +1,1020 @@
+/* All rules are confined to the editor or its teleported dialog. */
+.workbench-v3-shell {
+  --paper: #fff;
+  --ink: #243e50;
+  --green: #274d65;
+  background: #eff4f6;
+  color: var(--ink);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.workbench-v3-shell *,
+.wb-modal * {
+  box-sizing: border-box;
+}
+.workbench-v3-shell ::selection,
+.wb-modal ::selection {
+  background: #d5e7f0;
+  color: #193c52;
+}
+.workbench-v3-shell :focus-visible,
+.wb-modal :focus-visible {
+  outline: 2px solid #2a6384;
+  outline-offset: 3px;
+}
+.workbench-v3-shell input,
+.workbench-v3-shell textarea {
+  caret-color: #c95323;
+}
+.workbench-v3-shell h1,
+.workbench-v3-shell h2,
+.workbench-v3-shell h3,
+.wb-modal h2 {
+  font-family: inherit;
+  letter-spacing: -0.02em;
+}
+.workbench-v3-shell > .site-header {
+  height: 56px;
+  min-height: 56px;
+  padding: 0 24px;
+  max-width: none;
+  background: #fff;
+  border-bottom: 1px solid #e2e9ed;
+}
+.workbench-v3-shell .site-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #233f53;
+  font-size: 18px;
+  font-weight: 650;
+}
+.workbench-v3-shell .site-header .brand .icon {
+  width: 24px;
+  height: 24px;
+}
+.workbench-v3-shell .brand-cn {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.workbench-v3-shell .site-header nav {
+  gap: 24px;
+  font-size: 13px;
+}
+.workbench-v3-shell .avatar-link {
+  width: auto;
+}
+.workbench-v3-shell .site-header .account {
+  gap: 12px;
+}
+.workbench-v3-shell > .workbench-main {
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  width: 100%;
+  height: calc(100dvh - 56px);
+}
+.workbench-v3-shell .workbench-v3 {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.workbench-v3-shell .wb-tripbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #fff;
+  flex: none;
+}
+.workbench-v3-shell .wb-trip-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.workbench-v3-shell .wb-trip-heading > div {
+  min-width: 0;
+}
+.workbench-v3-shell .wb-back {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #36566b;
+}
+.workbench-v3-shell .wb-back .icon {
+  width: 19px;
+  height: 19px;
+  transform: rotate(180deg);
+}
+.workbench-v3-shell .wb-trip-heading input {
+  width: 100%;
+  max-width: 420px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #233f53;
+  text-overflow: ellipsis;
+}
+.workbench-v3-shell .wb-trip-heading p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-trip-heading p span {
+  margin-left: 14px;
+}
+.workbench-v3-shell .wb-visibility {
+  color: #536b7b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.workbench-v3-shell .wb-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: none;
+}
+.workbench-v3-shell .wb-toolbar .button {
+  white-space: nowrap;
+  flex: none;
+  padding: 8px 12px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: #274d65;
+  color: white;
+}
+.workbench-v3-shell .wb-toolbar .secondary {
+  background: #edf3f6;
+  color: #264c64;
+  border: 0;
+}
+.workbench-v3-shell button:disabled,
+.wb-modal button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.workbench-v3-shell .wb-more-actions {
+  position: relative;
+}
+.workbench-v3-shell .wb-more-actions > summary {
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f0f4f6;
+  color: #35566b;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.workbench-v3-shell .wb-more-content {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px #203c5426;
+}
+.workbench-v3-shell .wb-more-content > button {
+  width: 100%;
+  text-align: left;
+}
+.workbench-v3-shell .wb-tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 20px;
+  padding: 0 24px;
+  height: 40px;
+  min-height: 40px;
+  background: #fff;
+  border-top: 1px solid #edf1f3;
+  border-bottom: 1px solid #e2e9ed;
+}
+.workbench-v3-shell .wb-tabs > button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0 2px;
+  color: #536b7b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.workbench-v3-shell .wb-tabs > button.active {
+  color: #243f53;
+  box-shadow: inset 0 -2px #d96b36;
+}
+.workbench-v3-shell .workbench-v3 > .form-error,
+.workbench-v3-shell .workbench-v3 > .notice {
+  margin: 0;
+  padding: 8px 24px;
+  border-radius: 0;
+  flex: none;
+}
+.workbench-v3-shell .workbench-workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: #eff4f6;
+}
+.workbench-v3-shell .wb-planning-canvas {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0f5f7, #e5eff3);
+}
+.workbench-v3-shell .wb-canvas-surface {
+  position: absolute;
+  width: 65%;
+  height: 85%;
+  left: 49%;
+  top: 36%;
+  background: #dce9ef;
+  border-radius: 28px;
+  transform: rotate(-12deg);
+}
+.workbench-v3-shell .wb-canvas-title {
+  position: absolute;
+  left: 52%;
+  top: 26%;
+  transform: translateX(-50%);
+  z-index: 1;
+  max-width: 340px;
+  text-align: center;
+}
+.workbench-v3-shell .wb-canvas-title strong {
+  display: block;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.4;
+  font-weight: 550;
+  color: #32546b;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-canvas-notice {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #536b7b;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1;
+  margin: 0;
+}
+.workbench-v3-shell .wb-rail-region {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  bottom: 72px;
+  width: 67px;
+}
+.workbench-v3-shell .wb-day-rail {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 8px;
+  width: 67px;
+  max-height: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 26px #203c5412;
+}
+.workbench-v3-shell .wb-rail-caption {
+  font-size: 12px;
+  color: #536b7b;
+  flex: none;
+}
+.workbench-v3-shell .wb-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 2px;
+}
+.workbench-v3-shell .wb-day-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 47px;
+  min-height: 64px;
+  flex: none;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: #506b7d;
+}
+.workbench-v3-shell .wb-day-button small {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.workbench-v3-shell .wb-day-button strong {
+  font-size: 23px;
+  line-height: 1.4;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.workbench-v3-shell .wb-day-button.active {
+  background: #274457;
+  color: white;
+}
+.workbench-v3-shell .wb-day-button:hover:not(.active) {
+  background: #edf3f6;
+}
+.workbench-v3-shell .wb-add-day {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 40px;
+  background: #f1f5f7;
+  border: 0;
+  border-radius: 8px;
+  color: #35576d;
+}
+.workbench-v3-shell .wb-add-day svg {
+  width: 20px;
+  height: 20px;
+}
+.workbench-v3-shell .wb-timeline-region {
+  position: absolute;
+  left: 104px;
+  top: 24px;
+  width: 340px;
+  height: calc(100% - 86px);
+}
+.workbench-v3-shell .wb-timeline-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  height: 100%;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 26px #203c5412;
+}
+.workbench-v3-shell .wb-timeline-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 22px 16px;
+  flex: none;
+}
+.workbench-v3-shell .wb-timeline-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-timeline-heading p {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-drawer-toggle {
+  display: none;
+}
+.workbench-v3-shell .wb-timeline-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.workbench-v3-shell .wb-timeline-overview {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  margin: 0 22px;
+  border-block: 1px solid #e4ebef;
+  font-size: 12px;
+  color: #536b7b;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.workbench-v3-shell .wb-timeline-overview > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.workbench-v3-shell .wb-timeline-overview .icon {
+  width: 15px;
+  height: 15px;
+}
+.workbench-v3-shell .wb-trip-details {
+  margin: 12px 22px 0;
+  flex: none;
+  font-size: 12px;
+  color: #536b7b;
+  max-height: 45%;
+  overflow: auto;
+}
+.workbench-v3-shell .wb-trip-details summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.workbench-v3-shell .wb-trip-details fieldset {
+  margin-top: 8px;
+}
+.workbench-v3-shell .wb-timeline-nodes {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 14px 10px;
+  scroll-padding-block: 16px;
+}
+.workbench-v3-shell .wb-timeline-node {
+  border-radius: 9px;
+  scroll-margin-block: 12px;
+}
+.workbench-v3-shell .wb-timeline-node + .wb-timeline-node {
+  margin-top: 10px;
+}
+.workbench-v3-shell .wb-node-select {
+  display: grid;
+  grid-template-columns: 47px 19px minmax(0, 1fr);
+  gap: 7px;
+  width: 100%;
+  padding: 12px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  color: #274457;
+}
+.workbench-v3-shell .wb-node-select:hover {
+  background: #f0f5f7;
+}
+.workbench-v3-shell .is-selected > .wb-node-select {
+  background: #fcf0e9;
+}
+.workbench-v3-shell .wb-node-time {
+  font-size: 12px;
+  font-weight: 600;
+  padding-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.workbench-v3-shell .wb-node-order {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  font-size: 11px;
+  color: white;
+  background: #bb4d20;
+}
+.workbench-v3-shell .wb-node-info strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-node-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-node-meta .icon {
+  width: 14px;
+  height: 14px;
+}
+.workbench-v3-shell .wb-node-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-lock {
+  color: #805020;
+  font-size: 11px;
+}
+.workbench-v3-shell .wb-node-fields {
+  margin: 4px 0 14px;
+  padding: 14px 10px;
+  background: #f7fafb;
+  border-radius: 9px;
+}
+.workbench-v3-shell .wb-fields-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.workbench-v3-shell .wb-fields-heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.workbench-v3-shell .wb-text-button {
+  border: 0;
+  background: transparent;
+  color: #365c76;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.workbench-v3-shell .wb-node-fields .form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px 12px;
+}
+.workbench-v3-shell .wb-node-fields label {
+  margin: 0;
+  font-size: 12px;
+  color: #3e5b70;
+}
+.workbench-v3-shell .wb-node-fields .wide {
+  grid-column: 1/-1;
+}
+.workbench-v3-shell .wb-node-fields input,
+.workbench-v3-shell .wb-node-fields select,
+.workbench-v3-shell .wb-node-fields textarea,
+.workbench-v3-shell .wb-trip-details input,
+.workbench-v3-shell .wb-trip-details textarea {
+  min-width: 0;
+  width: 100%;
+  margin: 6px 0 8px;
+  padding: 8px;
+  border: 1px solid #c7d6df;
+  border-radius: 7px;
+  background: #fff;
+  color: #233f53;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.workbench-v3-shell .wb-node-fields input[type="checkbox"] {
+  display: block;
+  width: 18px;
+  height: 18px;
+  accent-color: #274d65;
+}
+.workbench-v3-shell .wb-node-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+.workbench-v3-shell .wb-node-actions > button {
+  background: #eaf1f5;
+  color: #31556c;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+.workbench-v3-shell .wb-danger {
+  color: #a83924 !important;
+}
+.workbench-v3-shell .wb-transfer-label {
+  width: 100%;
+}
+.workbench-v3-shell .wb-field-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #536b7b;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-timeline-footer {
+  padding: 14px 22px;
+  background: #f5f8fa;
+  flex: none;
+}
+.workbench-v3-shell .wb-timeline-footer p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-add-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  width: 100%;
+  background: #e9f0f4;
+  color: #31556c;
+  border: 0;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.workbench-v3-shell .wb-add-node svg {
+  width: 17px;
+  height: 17px;
+}
+.workbench-v3-shell .wb-empty-day {
+  padding: 28px 8px;
+}
+.workbench-v3-shell .wb-empty-day h2 {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.workbench-v3-shell .wb-empty-day p {
+  font-size: 13px;
+  color: #536b7b;
+  line-height: 1.8;
+}
+.workbench-v3-shell .wb-context-region {
+  position: absolute;
+  top: 24px;
+  right: 22px;
+  width: 290px;
+  max-height: calc(100% - 80px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 26px #203c5412;
+  padding: 24px;
+}
+.workbench-v3-shell .wb-trip-overview h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.workbench-v3-shell .wb-overview-destination {
+  font-size: 23px;
+  font-weight: 550;
+  margin: 22px 0;
+  overflow-wrap: anywhere;
+}
+.workbench-v3-shell .wb-trip-overview dl {
+  margin: 0;
+}
+.workbench-v3-shell .wb-trip-overview dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 13px;
+}
+.workbench-v3-shell .wb-trip-overview dt {
+  color: #536b7b;
+}
+.workbench-v3-shell .wb-trip-overview dd {
+  margin: 0;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.workbench-v3-shell .wb-overview-note {
+  font-size: 12px;
+  color: #536b7b;
+  line-height: 1.8;
+  margin: 14px 0;
+}
+.workbench-v3-shell .wb-analysis-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-block: 1px solid #e3ebef;
+  border-radius: 0;
+  background: transparent;
+  color: #31556c;
+  font-size: 13px;
+}
+.workbench-v3-shell .wb-analysis-link .icon {
+  width: 17px;
+  height: 17px;
+}
+.workbench-v3-shell .wb-tool-panel {
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  right: 22px;
+  width: min(760px, calc(100% - 126px));
+  overflow: auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 32px #203c5420;
+}
+.workbench-v3-shell .wb-tool-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.workbench-v3-shell .wb-tool-heading h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.workbench-v3-shell .wb-tool-panel .paper {
+  background: #fff;
+  box-shadow: none;
+  border: 0;
+}
+.workbench-v3-shell .tool-open .wb-timeline-region {
+  display: none;
+}
+.workbench-v3-shell .wb-state {
+  padding: 48px 24px;
+  text-align: center;
+}
+.workbench-v3-shell .wb-timeline-nodes,
+.workbench-v3-shell .wb-day-list,
+.workbench-v3-shell .wb-tool-panel {
+  scrollbar-color: #b3c8d5 transparent;
+  scrollbar-width: thin;
+}
+.wb-modal {
+  --paper: #fff;
+  --green: #274d65;
+  --ink: #233f53;
+  width: calc(100% - 32px);
+  max-width: 700px;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  border: 0;
+  padding: 24px;
+  border-radius: 12px;
+  background: #fff;
+  color: #233f53;
+  box-shadow: 0 16px 48px #203c5433;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.wb-modal::backdrop {
+  background: #203c5470;
+}
+@media (max-width: 1100px) and (min-width: 701px) {
+  .workbench-v3-shell .wb-context-region {
+    width: 230px;
+    padding: 20px;
+  }
+  .workbench-v3-shell .wb-canvas-title {
+    left: 56%;
+    max-width: 210px;
+  }
+  .workbench-v3-shell .wb-tripbar {
+    flex-wrap: wrap;
+  }
+  .workbench-v3-shell .wb-visibility {
+    display: none;
+  }
+  .workbench-v3-shell .wb-timeline-region {
+    width: 310px;
+  }
+}
+@media (max-width: 700px) {
+  .workbench-v3-shell > .site-header {
+    padding: 0 14px;
+  }
+  .workbench-v3-shell .site-header nav,
+  .workbench-v3-shell .brand-cn,
+  .workbench-v3-shell .account-name {
+    display: none;
+  }
+  .workbench-v3-shell .site-header .brand {
+    font-size: 17px;
+  }
+  .workbench-v3-shell .site-header .account {
+    margin-left: auto;
+  }
+  .workbench-v3-shell .wb-tripbar {
+    display: block;
+    padding: 10px 14px;
+  }
+  .workbench-v3-shell .wb-trip-heading input {
+    font-size: 16px;
+  }
+  .workbench-v3-shell .wb-trip-heading p {
+    font-size: 11px;
+  }
+  .workbench-v3-shell .wb-trip-heading p span {
+    display: block;
+    margin: 2px 0 0;
+  }
+  .workbench-v3-shell .wb-trip-heading {
+    gap: 8px;
+  }
+  .workbench-v3-shell .wb-visibility {
+    display: none;
+  }
+  .workbench-v3-shell .wb-toolbar {
+    margin-top: 9px;
+    gap: 5px;
+  }
+  .workbench-v3-shell .wb-toolbar > .button {
+    font-size: 11px;
+    padding: 7px 6px;
+    min-height: 32px;
+  }
+  .workbench-v3-shell .wb-more-actions {
+    margin-left: auto;
+  }
+  .workbench-v3-shell .wb-more-actions > summary {
+    list-style: none;
+    font-size: 11px;
+    padding: 8px;
+  }
+  .workbench-v3-shell .wb-tabs {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 14px;
+    gap: 18px;
+  }
+  .workbench-v3-shell .wb-rail-region {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    bottom: auto;
+    width: auto;
+    height: 62px;
+  }
+  .workbench-v3-shell .wb-day-rail {
+    width: 100%;
+    flex-direction: row;
+    padding: 7px 9px;
+    gap: 8px;
+    height: 62px;
+  }
+  .workbench-v3-shell .wb-day-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1;
+    height: 100%;
+  }
+  .workbench-v3-shell .wb-day-button {
+    min-height: 44px;
+    width: 45px;
+  }
+  .workbench-v3-shell .wb-day-button small {
+    display: none;
+  }
+  .workbench-v3-shell .wb-day-button strong {
+    font-size: 19px;
+  }
+  .workbench-v3-shell .wb-add-day {
+    width: 38px;
+    min-height: 38px;
+  }
+  .workbench-v3-shell .wb-canvas-title {
+    top: 94px;
+    left: 26px;
+    transform: none;
+    max-width: calc(100% - 52px);
+    text-align: left;
+  }
+  .workbench-v3-shell .wb-canvas-title strong {
+    font-size: 28px;
+  }
+  .workbench-v3-shell .wb-canvas-notice {
+    top: 174px;
+    bottom: auto;
+    left: 26px;
+    right: 26px;
+    transform: none;
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.5;
+  }
+  .workbench-v3-shell .wb-timeline-region {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+    height: 60%;
+  }
+  .workbench-v3-shell .workbench-v3:has(.wb-node-fields) .wb-timeline-region {
+    height: calc(100% - 92px);
+  }
+  .workbench-v3-shell
+    .workbench-v3:not(.timeline-expanded)
+    .wb-timeline-region {
+    height: auto;
+  }
+  .workbench-v3-shell .wb-timeline-heading {
+    padding: 14px 16px;
+    align-items: center;
+  }
+  .workbench-v3-shell .wb-timeline-heading h1 {
+    font-size: 17px;
+  }
+  .workbench-v3-shell .wb-timeline-heading p {
+    font-size: 11px;
+  }
+  .workbench-v3-shell .wb-drawer-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: none;
+    padding: 6px;
+    background: transparent;
+    border: 0;
+    color: #365c76;
+    font-size: 11px;
+  }
+  .workbench-v3-shell .wb-drawer-toggle .icon {
+    width: 18px;
+    height: 18px;
+    transform: rotate(90deg);
+  }
+  .workbench-v3-shell .wb-timeline-content.is-collapsed {
+    display: none;
+  }
+  .workbench-v3-shell .wb-context-region {
+    display: none;
+  }
+  .workbench-v3-shell .wb-tool-panel {
+    inset: 86px 12px 12px;
+    width: auto;
+    padding: 18px;
+  }
+  .workbench-v3-shell .wb-tool-heading h2 {
+    font-size: 18px;
+  }
+  .workbench-v3-shell .wb-timeline-footer {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .workbench-v3-shell .wb-node-fields input,
+  .workbench-v3-shell .wb-node-fields select,
+  .workbench-v3-shell .wb-node-fields textarea {
+    font-size: 16px;
+  }
+  .wb-modal {
+    padding: 20px;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-bottom));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workbench-v3-shell .wb-node-select {
+    transition: background-color 0.16s ease-out;
+  }
+}
+@media print {
+  .workbench-v3-shell > .site-header,
+  .workbench-v3-shell .wb-tripbar,
+  .workbench-v3-shell .wb-tabs,
+  .workbench-v3-shell .wb-planning-canvas,
+  .workbench-v3-shell .wb-rail-region,
+  .workbench-v3-shell .wb-timeline-region,
+  .workbench-v3-shell .wb-context-region,
+  .workbench-v3-shell .wb-tool-heading {
+    display: none;
+  }
+  .workbench-v3-shell > .workbench-main,
+  .workbench-v3-shell .workbench-v3,
+  .workbench-v3-shell .workbench-workspace {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  .workbench-v3-shell .wb-tool-panel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1000px) {
+  .workbench-v3-shell .wb-context-region {
+    display: none;
+  }
+  .workbench-v3-shell .wb-canvas-title {
+    left: calc(50% + 207px);
+    max-width: calc(100% - 460px);
+  }
+}
