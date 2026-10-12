@@ -9,9 +9,11 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
   await page.getByLabel("密码", { exact: true }).fill("E2eAnalysis2026!");
   await page.getByRole("button", { name: "注册并开始旅行" }).click();
   await page.waitForURL("**/my-trips");
-  await page.getByRole("button", { name: "＋ 新建路书" }).click();
+  await page.locator(".v3-page-heading").getByRole("button", { name: "新建路书" }).click();
   await page.getByLabel("目的地", { exact: true }).fill("成都");
-  await page.getByRole("button", { name: "创建私密路书 →" }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "创建私密路书", exact: true }).click();
   await page.waitForURL("**/trip/edit/*");
   await page.getByRole("button", { name: "＋ 添加行程节点" }).click();
   await page.getByLabel("地点 / 活动", { exact: true }).fill("公园漫步");

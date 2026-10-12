@@ -294,11 +294,11 @@ test("editor CSS stays isolated on other routes after client navigation", async 
   await fixture(page);
   const ready: Record<string, string> = {
     "/": ".v3-home",
-    "/square": ".page-title h1",
-    "/login": ".auth-page",
-    "/profile": ".profile-layout",
-    "/ai-generate": ".generate-layout",
-    "/my-trips": ".page-title h1",
+    "/square": ".v3-explore h1",
+    "/login": ".v3-entry",
+    "/profile": ".v3-traveler",
+    "/ai-generate": ".v3-builder",
+    "/my-trips": ".v3-library h1",
   };
   async function waitReady(path: string) {
     await page.locator(ready[path]!).waitFor();

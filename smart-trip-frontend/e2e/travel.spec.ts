@@ -12,7 +12,7 @@ test("visitor can browse mobile without overflow", async ({ page }) => {
   ).toBe(false);
   await page.getByRole("link", { name: "旅行灵感", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "旅行灵感广场" }),
+    page.locator(".v3-explore h1"),
   ).toBeVisible();
 });
 test("register, create, save and delete a private itinerary", async ({
@@ -25,9 +25,11 @@ test("register, create, save and delete a private itinerary", async ({
   await page.getByLabel("密码", { exact: true }).fill("E2eTravel2026!");
   await page.getByRole("button", { name: "注册并开始旅行" }).click();
   await page.waitForURL("**/my-trips");
-  await page.getByRole("button", { name: "＋ 新建路书" }).click();
+  await page.locator(".v3-page-heading").getByRole("button", { name: "新建路书" }).click();
   await page.getByLabel("目的地", { exact: true }).fill("杭州");
-  await page.getByRole("button", { name: "创建私密路书 →" }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "创建私密路书", exact: true }).click();
   await page.waitForURL("**/trip/edit/*");
   await page.getByRole("button", { name: "＋ 添加行程节点" }).click();
   await page.getByLabel("地点 / 活动", { exact: true }).fill("西湖散步");

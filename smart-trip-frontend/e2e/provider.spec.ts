@@ -168,9 +168,11 @@ test("mock POI selection persists only a reference through the real backend and 
   await page.getByLabel("密码", { exact: true }).fill("ProviderE2e2026!");
   await page.getByRole("button", { name: "注册并开始旅行" }).click();
   await page.waitForURL("**/my-trips");
-  await page.getByRole("button", { name: "＋ 新建路书" }).click();
+  await page.locator(".v3-page-heading").getByRole("button", { name: "新建路书" }).click();
   await page.getByLabel("目的地", { exact: true }).fill("成都");
-  await page.getByRole("button", { name: "创建私密路书 →" }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "继续", exact: true }).click();
+  await page.getByRole("button", { name: "创建私密路书", exact: true }).click();
   await page.waitForURL("**/trip/edit/*");
   const tripId = page.url().split("/").pop()!;
   try {

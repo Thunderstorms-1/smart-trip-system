@@ -374,14 +374,14 @@ test("Home CSS does not change the Square after client-side navigation", async (
       };
     });
   await expect(
-    page.getByRole("heading", { name: "旅行灵感广场" }),
+    page.locator(".v3-explore h1"),
   ).toBeVisible();
   const before = await appearance();
   await page.locator(".brand").click();
   await expect(page.locator(".v3-home")).toBeVisible();
   await page.getByRole("link", { name: "旅行灵感", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "旅行灵感广场" }),
+    page.locator(".v3-explore h1"),
   ).toBeVisible();
   expect(await appearance()).toEqual(before);
   await expect(page.locator(".v3-shell")).toHaveCount(0);
