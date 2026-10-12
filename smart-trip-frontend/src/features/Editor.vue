@@ -61,7 +61,10 @@ function releaseModal() {
   modalDialog.value?.close();
   releaseScroll?.();
   releaseScroll = undefined;
-  if (modalTrigger?.isConnected) modalTrigger.focus({ preventScroll: true });
+  const collapsedMenu = modalTrigger?.closest("details:not([open])");
+  const target =
+    collapsedMenu?.querySelector<HTMLElement>("summary") || modalTrigger;
+  if (target?.isConnected) target.focus({ preventScroll: true });
   modalTrigger = undefined;
 }
 watch(
@@ -73,6 +76,16 @@ watch(
   },
   { flush: "post" },
 );
+function closeMoreMenu(event: MouseEvent | KeyboardEvent) {
+  if (
+    event.type === "click" &&
+    !(event.target instanceof Element && event.target.closest("button"))
+  )
+    return;
+  const menu = event.currentTarget as HTMLDetailsElement;
+  menu.open = false;
+  menu.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
+}
 function onModalBackdrop(event: MouseEvent) {
   const dialog = modalDialog.value;
   if (event.target !== dialog || !dialog) return;
@@ -527,7 +540,11 @@ function print() {
           ><button class="button secondary" :disabled="busy" @click="history">
             历史版本
           </button>
-          <details class="wb-more-actions">
+          <details
+            class="wb-more-actions"
+            @click="closeMoreMenu"
+            @keydown.esc.stop.prevent="closeMoreMenu"
+          >
             <summary>更多操作</summary>
             <div class="wb-more-content">
               <button

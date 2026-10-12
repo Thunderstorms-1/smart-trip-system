@@ -77,7 +77,12 @@ test("map page reuses current route, explicitly refreshes and shows query time",
 }) => {
   const fixture = await setup(page);
   await page.getByRole("button", { name: "查询路线", exact: true }).click();
-  await expect(page.locator(".wb-map-source")).toContainText("2026-10-04");
+  await expect(page.locator(".wb-map-source")).toContainText(
+    "路线查询时间 2026-10-04T12:00:00Z",
+  );
+  await expect(
+    page.getByRole("region", { name: "路线与天气查询面板" }),
+  ).toContainText("路书版本 7 · 查询时间 2026-10-04T12:00:00Z");
   await expect
     .poll(() =>
       page.evaluate(
