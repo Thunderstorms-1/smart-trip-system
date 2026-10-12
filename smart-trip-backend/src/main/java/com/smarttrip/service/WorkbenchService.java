@@ -187,6 +187,15 @@ public class WorkbenchService {
 
   @Transactional
   public TripDetailVO create(TripDetailVO t) {
+    return createInternal(t, false);
+  }
+
+  @Transactional
+  public TripDetailVO createGenerated(TripDetailVO t) {
+    return createInternal(t, true);
+  }
+
+  private TripDetailVO createInternal(TripDetailVO t, boolean generated) {
     validate(t);
     clearIds(t);
     normalize(t);
@@ -194,7 +203,7 @@ public class WorkbenchService {
         insert(
             "INSERT INTO"
                 + " trip_plan(user_id,title,destination,start_date,total_days,total_budget,trip_style,travel_group,summary,is_public,is_ai_generated,version)"
-                + " VALUES(?,?,?,?,?,?,?,?,?,0,0,0)",
+                + " VALUES(?,?,?,?,?,?,?,?,?,0,?,0)",
             access.userId(),
             t.getTitle(),
             t.getDestination(),
@@ -203,7 +212,8 @@ public class WorkbenchService {
             t.getTotalBudget(),
             t.getTripStyle(),
             t.getTravelGroup(),
-            t.getSummary());
+            t.getSummary(),
+            generated ? 1 : 0);
     t.setId(id);
     t.setVersion(0L);
     persistChanges(t, null);

@@ -104,11 +104,7 @@ function submit() {
       const t = await api<Trip>("/workbench", "POST", trip);
       router.push("/trip/edit/" + t.id);
     } else {
-      const prompt =
-        "请规划" +
-        JSON.stringify(form) +
-        "。旅行偏好：" +
-        (s.profile?.travelPreferences || "无");
+      const prompt = "请规划" + JSON.stringify(form);
       task.value = await api<Task>("/ai/tasks", "POST", {
         requestKey: requestKey(),
         type: "GENERATE",

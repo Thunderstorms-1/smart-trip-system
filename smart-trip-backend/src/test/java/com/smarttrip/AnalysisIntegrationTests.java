@@ -28,6 +28,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Import(AnalysisIntegrationTests.Fixtures.class)
 class AnalysisIntegrationTests {
   static AtomicInteger calls = new AtomicInteger();
+  static final java.util.concurrent.atomic.AtomicReference<String> modelInput =
+      new java.util.concurrent.atomic.AtomicReference<>();
 
   @TestConfiguration
   static class Fixtures {
@@ -43,6 +45,7 @@ class AnalysisIntegrationTests {
         @Override
         public String complete(String input) {
           calls.incrementAndGet();
+          modelInput.set(input);
           try {
             var mapper = new ObjectMapper();
             var payload =
@@ -364,5 +367,20 @@ class AnalysisIntegrationTests {
         id);
     assertFalse(((Map<?, ?>) store.get(id).get("proposal")).containsKey("qualityComparison"));
     assertNotNull(store.apply(id));
+  }
+
+  @Test
+  void adjustmentUsesAuthenticatedPreferencesWithoutChangingStoredQualityInput() throws Exception {
+    db.update("UPDATE sys_user SET travel_preferences=? WHERE id=?", "ADJUST_偏好步行", user);
+    String id = submit(report());
+    assertEquals("PREVIEW", store.get(id).get("status"));
+    assertTrue(modelInput.get().contains("USER_TRAVEL_PREFERENCES_JSON"));
+    assertEquals(1, modelInput.get().split("ADJUST_偏好步行", -1).length - 1);
+    String persisted =
+        db.queryForObject("SELECT input_json FROM ai_task WHERE id=?", String.class, id);
+    assertTrue(new ObjectMapper().readTree(persisted).has("base"));
+    assertFalse(persisted.contains("USER_TRAVEL_PREFERENCES_JSON"));
+    var saved = store.apply(id);
+    assertEquals("11:00", saved.getDays().get(0).getItems().get(1).getStartTime());
   }
 }

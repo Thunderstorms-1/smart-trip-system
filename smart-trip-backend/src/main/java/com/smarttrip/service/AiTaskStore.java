@@ -77,10 +77,9 @@ public class AiTaskStore {
   public void complete(String id, TripDetailVO t) {
     var task = db.queryForMap("SELECT * FROM ai_task WHERE id=? FOR UPDATE", id);
     if (!"RUNNING".equals(task.get("status"))) return;
-    trips.validate(t);
     String type = (String) task.get("task_type");
     if ("GENERATE".equals(type)) {
-      var created = trips.create(t);
+      var created = trips.createGenerated(t);
       db.update(
           "UPDATE ai_task SET status='SUCCEEDED',trip_id=?,result_json=?,quota_reserved=0 WHERE"
               + " id=?",
@@ -89,7 +88,11 @@ public class AiTaskStore {
           id);
     } else {
       Long trip = ((Number) task.get("trip_id")).longValue();
-      access.read(trip);
+      var current = access.writeLocked(trip);
+      if (!Objects.equals(current.getVersion(), ((Number) task.get("base_version")).longValue()))
+        throw new BusinessException(409, "路书已变化，请重新生成提案");
+      AiModificationGuard.verify(trips.load(trip), t);
+      trips.validate(t);
       t.setId(trip);
       t.setVersion(((Number) task.get("base_version")).longValue());
       db.update(
@@ -164,6 +167,8 @@ public class AiTaskStore {
           (String) t.get("input_json"),
           proposal,
           (Map<?, ?>) trips.parseObject((String) t.get("proposal_meta_json")));
+    if ("MODIFY".equals(t.get("task_type")))
+      AiModificationGuard.verify(trips.load(current.getId()), proposal);
     var saved = trips.save(((Number) t.get("trip_id")).longValue(), proposal);
     db.update("UPDATE ai_task SET status='APPLIED' WHERE id=?", id);
     return saved;

@@ -197,7 +197,9 @@ test("AI builder uses existing task request and real task status without synthet
   await expect(page.locator(".builder-task")).toContainText("正在构建旅行草稿");
   expect(submitted?.type).toBe("GENERATE");
   expect(submitted?.requestKey).toBeTruthy();
-  expect(submitted?.prompt).toContain("喜欢博物馆");
+  expect(submitted?.prompt).not.toContain("喜欢博物馆");
+  expect(submitted?.prompt).not.toContain("旅行偏好");
+  expect(submitted?.prompt).toContain("成都");
   expect(
     await page.evaluate(() => localStorage.getItem("SMARTTRIP_TASK")),
   ).toBe("task-71");
