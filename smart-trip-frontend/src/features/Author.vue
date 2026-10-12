@@ -9,33 +9,73 @@ import HomeIcon from "./HomeIcon.vue";
 import JourneyBackdrop from "./JourneyBackdrop.vue";
 const route = useRoute(),
   author = ref<PublicAuthor>(),
-  posts = ref<Post[]>([]);
+  posts = ref<Post[]>([]),
+  cursor = ref<string>(),
+  hasMore = ref(false);
 const { loading: busy, error, query } = useLatestQuery();
-watch(
-  () => route.params.id,
-  () => {
-    const id = String(route.params.id);
-    author.value = undefined;
-    posts.value = [];
-    void query(
-      async (signal) =>
-        Promise.all([
-          api<PublicAuthor>("/user/public/" + id, "GET", undefined, signal),
-          api<PostPage>(
-            "/community/posts?author=" + id,
-            "GET",
-            undefined,
-            signal,
-          ),
-        ]),
-      ([a, p]) => {
-        author.value = a;
-        posts.value = p.items;
-      },
-    );
-  },
-  { immediate: true },
-);
+const {
+  loading: moreBusy,
+  error: moreError,
+  query: queryMore,
+  cancel: cancelMore,
+} = useLatestQuery();
+function load() {
+  const id = String(route.params.id);
+  cancelMore();
+  moreError.value = "";
+  author.value = undefined;
+  posts.value = [];
+  cursor.value = undefined;
+  hasMore.value = false;
+  void query(
+    (signal) =>
+      Promise.all([
+        api<PublicAuthor>(
+          "/user/public/" + encodeURIComponent(id),
+          "GET",
+          undefined,
+          signal,
+        ),
+        api<PostPage>(
+          "/community/posts?author=" + encodeURIComponent(id),
+          "GET",
+          undefined,
+          signal,
+        ),
+      ]),
+    ([a, p]) => {
+      author.value = a;
+      posts.value = p.items;
+      cursor.value = p.nextCursor;
+      hasMore.value = p.hasMore;
+    },
+  );
+}
+function loadMore() {
+  if (busy.value || moreBusy.value || !hasMore.value || !cursor.value) return;
+  const id = String(route.params.id),
+    requestCursor = cursor.value;
+  void queryMore(
+    (signal) =>
+      api<PostPage>(
+        "/community/posts?author=" +
+          encodeURIComponent(id) +
+          "&cursor=" +
+          encodeURIComponent(requestCursor),
+        "GET",
+        undefined,
+        signal,
+      ),
+    (p) => {
+      const byId = new Map(posts.value.map((post) => [post.id, post]));
+      for (const post of p.items) byId.set(post.id, post);
+      posts.value = [...byId.values()];
+      cursor.value = p.nextCursor;
+      hasMore.value = p.hasMore;
+    },
+  );
+}
+watch(() => route.params.id, load, { immediate: true });
 </script>
 <template>
   <div class="v3-author v3-content">
@@ -43,6 +83,7 @@ watch(
     <div v-else-if="error" class="v3-state" role="alert">
       <h2>暂时无法打开旅行者主页</h2>
       <p>{{ error }}</p>
+      <button class="button secondary" @click="load">重新加载</button>
       <RouterLink to="/square" class="button secondary"
         >返回旅行广场</RouterLink
       >
@@ -82,6 +123,17 @@ watch(
           /></RouterLink>
         </div>
         <ExploreFeed :posts="posts" featured />
+        <p v-if="moreError" class="form-error" role="alert">{{ moreError }}</p>
+        <button
+          v-if="hasMore"
+          class="button secondary v3-load-more"
+          :disabled="moreBusy"
+          @click="loadMore"
+        >
+          {{
+            moreBusy ? "加载中…" : moreError ? "重试加载更多" : "查看更多作品"
+          }}
+        </button>
         <div v-if="!posts.length" class="v3-state">
           <h3>故事，留给下一次出发</h3>
           <p>这位旅行者还没有发布路书。</p>

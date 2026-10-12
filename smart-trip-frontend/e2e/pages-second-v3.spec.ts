@@ -236,7 +236,7 @@ test("Login preserves registration, session and protected redirect", async ({
   await page
     .getByRole("button", { name: "注册并开始旅行", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/profile$/);
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/profile");
   expect(calls).toEqual(["/api/auth/register", "/api/auth/login"]);
   expect(await page.evaluate(() => localStorage.getItem("AUTH_TOKEN"))).toBe(
     "new-session",

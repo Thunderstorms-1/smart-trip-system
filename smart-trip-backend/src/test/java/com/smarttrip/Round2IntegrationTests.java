@@ -298,4 +298,43 @@ class Round2IntegrationTests {
       worker.shutdownNow();
     }
   }
+  @Test
+  void likedAndFavoriteAssetsHideDisabledAuthors() {
+    assertAssetsHideInactiveAuthor(0, 0);
+  }
+
+  @Test
+  void likedAndFavoriteAssetsHideDeletedAuthors() {
+    assertAssetsHideInactiveAuthor(1, 1);
+  }
+
+  void assertAssetsHideInactiveAuthor(int authorStatus, int authorDeleted) {
+    new TransactionTemplate(tm).executeWithoutResult(transaction -> {
+      try {
+        Long author = account();
+        UserContext.setUserId(author);
+        long hiddenPost = ((Number) community.publish(trips.create(draft(1, 0)).getId()).get("id")).longValue();
+        UserContext.setUserId(user);
+        long visiblePost = ((Number) community.publish(trips.create(draft(1, 0)).getId()).get("id")).longValue();
+        for (String type : List.of("LIKE", "FAVORITE")) {
+          community.interact(hiddenPost, type, true);
+          community.interact(visiblePost, type, true);
+          assertEquals(2, community.assets(type).size());
+        }
+        db.update("UPDATE sys_user SET status=?,is_deleted=? WHERE id=?", authorStatus, authorDeleted, author);
+        for (String type : List.of("LIKE", "FAVORITE")) {
+          var assets = community.assets(type);
+          assertEquals(1, assets.size());
+          assertEquals(visiblePost, ((Number) assets.get(0).get("id")).longValue());
+        }
+        assertEquals(404, assertThrows(BusinessException.class, () -> community.detail(hiddenPost)).getCode());
+        assertEquals(2, db.queryForObject("SELECT COUNT(*) FROM post_interaction WHERE user_id=? AND post_id=?", Integer.class, user, hiddenPost));
+        db.update("UPDATE sys_user SET status=1,is_deleted=0 WHERE id=?", author);
+        for (String type : List.of("LIKE", "FAVORITE")) assertEquals(2, community.assets(type).size());
+      } finally {
+        UserContext.setUserId(user);
+        transaction.setRollbackOnly();
+      }
+    });
+  }
 }

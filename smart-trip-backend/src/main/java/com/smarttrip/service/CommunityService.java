@@ -201,7 +201,8 @@ public class CommunityService {
         "SELECT "
             + columns()
             + " FROM square_post p JOIN sys_user u ON u.id=p.user_id JOIN post_interaction i ON"
-            + " i.post_id=p.id WHERE i.user_id=? AND i.action_type=? AND p.is_deleted=0 ORDER BY"
+            + " i.post_id=p.id WHERE i.user_id=? AND i.action_type=? AND p.is_deleted=0"
+            + " AND u.is_deleted=0 AND u.status=1 ORDER BY"
             + " i.create_time DESC LIMIT 200",
         user(),
         type);
