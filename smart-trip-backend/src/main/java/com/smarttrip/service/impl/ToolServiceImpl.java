@@ -1,7 +1,6 @@
 package com.smarttrip.service.impl;
 
 import com.smarttrip.common.BusinessException;
-import com.smarttrip.common.UserContext;
 import com.smarttrip.entity.*;
 import com.smarttrip.mapper.ToolMapper;
 import com.smarttrip.mapper.TripMapper;
@@ -22,6 +21,7 @@ public class ToolServiceImpl implements ToolService {
   private final ToolMapper toolMapper;
   private final TripMapper tripMapper;
   private final com.smarttrip.service.ResourceAccess access;
+  private final com.smarttrip.service.TravelToolsService tools;
 
   /** 一键将行程中的预估花费卡片批量导入为记账流水 */
   @Override
@@ -51,11 +51,7 @@ public class ToolServiceImpl implements ToolService {
   @Override
   public void addExpense(TripExpense expense) {
     access.write(expense.getTripId());
-    if (expense.getAmount() == null || expense.getAmount().signum() < 0)
-      throw new BusinessException(400, "金额必须为非负数");
-    expense.setUserId(UserContext.getUserId());
-    toolMapper.insertExpense(expense);
-    log.info("记账成功: tripId={}, amount={}", expense.getTripId(), expense.getAmount());
+    throw new BusinessException(410, "请通过携带请求标识的统一记账入口创建账单");
   }
 
   @Override
@@ -95,10 +91,9 @@ public class ToolServiceImpl implements ToolService {
   public void togglePackingItem(Long itemId, Integer isChecked) {
     Long tripId = toolMapper.selectPackingTripId(itemId);
     if (tripId == null) throw new BusinessException(404, "清单条目不存在");
-    access.write(tripId);
     if (isChecked == null || (isChecked != 0 && isChecked != 1))
       throw new BusinessException(400, "勾选状态无效");
-    toolMapper.updatePackingItemCheckStatus(itemId, isChecked);
+    tools.packingItem(itemId, isChecked == 1, false);
   }
 
   private List<TripPackingItem> generateDefaultPackingItems(Long tripId) {
