@@ -10,9 +10,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
   @Autowired private JwtAuthInterceptor jwtAuthInterceptor;
+  @Autowired private AuthRateLimitInterceptor authRateLimitInterceptor;
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
+    registry.addInterceptor(authRateLimitInterceptor).addPathPatterns("/api/auth/**").order(-10);
     registry
         .addInterceptor(jwtAuthInterceptor)
         .addPathPatterns("/api/**")

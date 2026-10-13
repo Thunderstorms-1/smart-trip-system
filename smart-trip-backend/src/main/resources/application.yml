@@ -1,4 +1,6 @@
 server:
+  # Auth IP resolution only trusts explicitly configured proxy addresses.
+  forward-headers-strategy: none
   port: ${SMARTTRIP_PORT:8080}
 spring:
   config:
@@ -26,6 +28,16 @@ mybatis:
     map-underscore-to-camel-case: true
 security:
   jwt-secret: ${SMARTTRIP_JWT_SECRET:}
+  auth-limits:
+    login-ip-limit: 30
+    login-ip-window-seconds: 60
+    register-ip-limit: 5
+    register-ip-window-seconds: 3600
+    pair-failure-limit: 5
+    account-failure-limit: 20
+    failure-window-seconds: 900
+    cooldown-seconds: 300
+    trusted-proxies: []
 ai:
   llm:
     enabled: ${SMARTTRIP_AI_ENABLED:false}

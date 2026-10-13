@@ -30,12 +30,12 @@ public class UserServiceImpl implements UserService {
     // 1. 查询数据库是否存在该用户
     User user = userMapper.findByUsername(loginDTO.getUsername());
     if (user == null) {
-      throw new BusinessException(400, "账号或密码错误");
+      throw new com.smarttrip.common.AuthenticationFailedException();
     }
 
     // 2. 校验密码
     if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
-      throw new BusinessException(400, "账号或密码错误");
+      throw new com.smarttrip.common.AuthenticationFailedException();
     }
 
     // 3. 校验账号状态

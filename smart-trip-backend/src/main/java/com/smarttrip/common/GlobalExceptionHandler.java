@@ -12,9 +12,10 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Result<?>> business(BusinessException e) {
     int status = e.getCode();
     if (status < 400 || status > 599) status = 400;
-    return ResponseEntity.status(status)
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(Result.error(status, e.getMessage()));
+    var response = ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON);
+    if (e instanceof AuthRateLimitException limit)
+      response.header(HttpHeaders.RETRY_AFTER, Long.toString(limit.getRetryAfter()));
+    return response.body(Result.error(status, e.getMessage()));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
