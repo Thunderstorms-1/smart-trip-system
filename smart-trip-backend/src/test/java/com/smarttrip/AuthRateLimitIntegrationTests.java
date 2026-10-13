@@ -65,7 +65,10 @@ class AuthRateLimitIntegrationTests {
     r.setUsername(username);
     r.setPassword("LimitTest2026!");
     user = users.register(r);
-    mvc = MockMvcBuilders.webAppContextSetup(context).build();
+    mvc =
+        MockMvcBuilders.webAppContextSetup(context)
+            .addFilters(context.getBean(com.smarttrip.config.TraceIdFilter.class))
+            .build();
   }
 
   @AfterEach

@@ -43,8 +43,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Result<?>> other(Exception e) {
-    org.slf4j.LoggerFactory.getLogger(getClass())
-        .error("Request failed: {}", e.getClass().getSimpleName());
+    org.slf4j.LoggerFactory.getLogger(getClass()).error("Unhandled server exception", e);
     return ResponseEntity.internalServerError().body(Result.error(500, "服务暂时不可用，请稍后重试"));
   }
 }

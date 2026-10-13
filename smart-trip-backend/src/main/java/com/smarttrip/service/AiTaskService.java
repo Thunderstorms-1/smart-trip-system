@@ -13,6 +13,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class AiTaskService {
+  private static final org.slf4j.Logger LOG =
+      org.slf4j.LoggerFactory.getLogger(AiTaskService.class);
   private final JdbcTemplate db;
   private final AiProvider provider;
   private final AiTaskStore store;
@@ -130,7 +132,7 @@ public class AiTaskService {
       return existing(rows.get(0), fingerprint, type, trip, prompt);
     }
     try {
-      pool.execute(() -> run(id, user, request, null));
+      pool.execute(TraceContext.task(id, () -> run(id, user, request, null)));
     } catch (RejectedExecutionException e) {
       store.fail(id, "任务繁忙，请稍后重试");
     }
@@ -186,7 +188,7 @@ public class AiTaskService {
       return store.get((String) rows.get(0).get("id"));
     }
     try {
-      pool.execute(() -> run(id, user, modelInput, prepared));
+      pool.execute(TraceContext.task(id, () -> run(id, user, modelInput, prepared)));
     } catch (RejectedExecutionException e) {
       store.fail(id, "任务繁忙，请稍后重试");
     }
@@ -273,6 +275,8 @@ public class AiTaskService {
     UserContext.setUserId(user);
     String lock = "smarttrip:ai:user:" + user;
     boolean acquired = false;
+    long started = System.nanoTime();
+    String outcome = "SKIPPED";
     try {
       acquired = acquire(lock, id, user);
       if (!acquired) {
@@ -280,10 +284,16 @@ public class AiTaskService {
         return;
       }
       if (!store.start(id)) return;
+      outcome = "FAILED";
+      LOG.info("AI task started");
       String answer = provider.parse(provider.complete(input)).json();
       if (adjustment == null) store.complete(id, trips.decode(answer));
       else store.completeAdjustment(id, analyses.build(adjustment, answer));
+      outcome = "COMPLETED";
     } catch (Exception e) {
+      if (e instanceof BusinessException business)
+        LOG.warn("AI task failed code={}", business.getCode());
+      else LOG.error("AI task failed", e);
       store.fail(id, e instanceof BusinessException ? e.getMessage() : "任务异常，配额已退回");
     } finally {
       if (acquired)
@@ -291,6 +301,10 @@ public class AiTaskService {
           release(lock, id);
         } catch (Exception ignored) {
         }
+      LOG.info(
+          "AI task finished outcome={} durationMs={}",
+          outcome,
+          (System.nanoTime() - started) / 1_000_000);
       UserContext.clear();
     }
   }

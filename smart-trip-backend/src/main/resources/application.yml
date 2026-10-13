@@ -1,3 +1,9 @@
+logging:
+  pattern:
+    level: "%5p [traceId=%X{traceId:-none} taskId=%X{taskId:-none}]"
+observability:
+  request-timing-enabled: true
+  slow-request-millis: 500
 server:
   # Auth IP resolution only trusts explicitly configured proxy addresses.
   forward-headers-strategy: none

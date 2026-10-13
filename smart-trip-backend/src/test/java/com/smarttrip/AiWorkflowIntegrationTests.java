@@ -29,6 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Import(AiWorkflowIntegrationTests.FixtureConfig.class)
 class AiWorkflowIntegrationTests {
   static final List<String> modelInputs = new CopyOnWriteArrayList<>();
+  static final List<Map<String, String>> modelContexts = new CopyOnWriteArrayList<>();
   static volatile CountDownLatch entered, release;
 
   static String modificationResponse(String input) {
@@ -78,6 +79,7 @@ class AiWorkflowIntegrationTests {
         @Override
         public String complete(String input) {
           modelInputs.add(input);
+          modelContexts.add(org.slf4j.MDC.getCopyOfContextMap());
           if (input.startsWith("修改要求：")) return modificationResponse(input);
           if (input.contains("FAIL_FIXTURE")) throw new BusinessException(502, "本地测试模拟上游失败");
           if (input.contains("BAD_FIXTURE"))
@@ -98,6 +100,7 @@ class AiWorkflowIntegrationTests {
   @BeforeEach
   void setup() {
     modelInputs.clear();
+    modelContexts.clear();
     RegisterDTO r = new RegisterDTO();
     r.setUsername("ai_test_" + System.nanoTime());
     r.setPassword("IntegrationTest2026!");
@@ -111,6 +114,7 @@ class AiWorkflowIntegrationTests {
   void clear() {
     if (release != null) release.countDown();
     UserContext.clear();
+    org.slf4j.MDC.clear();
   }
 
   Map<String, Object> await(String id) throws InterruptedException {
@@ -355,5 +359,20 @@ class AiWorkflowIntegrationTests {
     assertEquals("正在运行期间手动保存", trips.load(trip.getId()).getTitle());
     assertEquals(
         0, db.queryForObject("SELECT ai_quota_used FROM sys_user WHERE id=?", Integer.class, user));
+  }
+
+  @Test
+  void backgroundTaskCarriesSubmissionTraceAndTaskId() throws Exception {
+    org.slf4j.MDC.put("traceId", "ai_submission_trace_2026");
+    String id =
+        (String)
+            tasks
+                .submit(UUID.randomUUID().toString(), "GENERATE", null, "GENERATE_FIXTURE")
+                .get("id");
+    assertEquals("SUCCEEDED", await(id).get("status"));
+    assertEquals("ai_submission_trace_2026", modelContexts.get(0).get("traceId"));
+    assertEquals(id, modelContexts.get(0).get("taskId"));
+    assertEquals("ai_submission_trace_2026", org.slf4j.MDC.get("traceId"));
+    assertNull(org.slf4j.MDC.get("taskId"));
   }
 }

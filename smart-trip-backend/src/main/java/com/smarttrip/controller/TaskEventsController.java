@@ -68,28 +68,30 @@ public class TaskEventsController {
     emitter.onError(e -> cleanup.run());
     future.set(
         events.scheduleAtFixedRate(
-            () -> {
-              if (closed.get()) return;
-              UserContext.setUserId(user);
-              try {
-                var t = store.get(id);
-                String status = (String) t.get("status");
-                emitter.send(
-                    SseEmitter.event()
-                        .name("task")
-                        .id(id)
-                        .data(trips.encode(t), MediaType.APPLICATION_JSON));
-                if (!Set.of("QUEUED", "RUNNING").contains(status)) {
-                  cleanup.run();
-                  emitter.complete();
-                }
-              } catch (Exception e) {
-                cleanup.run();
-                emitter.completeWithError(e);
-              } finally {
-                UserContext.clear();
-              }
-            },
+            TraceContext.task(
+                id,
+                () -> {
+                  if (closed.get()) return;
+                  UserContext.setUserId(user);
+                  try {
+                    var t = store.get(id);
+                    String status = (String) t.get("status");
+                    emitter.send(
+                        SseEmitter.event()
+                            .name("task")
+                            .id(id)
+                            .data(trips.encode(t), MediaType.APPLICATION_JSON));
+                    if (!Set.of("QUEUED", "RUNNING").contains(status)) {
+                      cleanup.run();
+                      emitter.complete();
+                    }
+                  } catch (Exception e) {
+                    cleanup.run();
+                    emitter.completeWithError(e);
+                  } finally {
+                    UserContext.clear();
+                  }
+                }),
             0,
             1,
             TimeUnit.SECONDS));
