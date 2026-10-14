@@ -4,8 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import { useSession } from "./session";
 import { api } from "./api";
 import { useAction } from "./ui";
-import JourneyBackdrop from "./JourneyBackdrop.vue";
-import HomeIcon from "./HomeIcon.vue";
 const s = useSession(),
   route = useRoute(),
   router = useRouter(),
@@ -32,62 +30,354 @@ async function submit() {
     router.push(redirect);
   });
 }
+
+const backgroundFailed = ref(false);
+const passwordVisible = ref(false);
+function toggleMode() {
+  if (busy.value) return;
+  register.value = !register.value;
+  error.value = "";
+}
+function logout() {
+  s.logout();
+  router.push("/");
+}
 </script>
 <template>
-  <section class="v3-entry">
-    <JourneyBackdrop />
-    <div class="entry-copy">
-      <h1>下一段旅程，<br />从这里开始。</h1>
-      <p>收藏心动的路线，写下自己的旅行。</p>
-      <RouterLink to="/square"
-        >先探索旅行灵感 <HomeIcon name="arrow"
-      /></RouterLink>
+  <section
+    class="login-v3 entry-scene v3-entry"
+    :class="{ 'image-failed': backgroundFailed }"
+  >
+    <svg
+      class="svg-library"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="login-i-route" viewBox="0 0 24 24">
+          <path d="M6 5a2 2 0 1 0 0 .1M18 19a2 2 0 1 0 0 .1M6 7v5h12v5" />
+        </symbol>
+        <symbol id="login-i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-5-5 5 5-5 5" />
+        </symbol>
+        <symbol id="login-i-user" viewBox="0 0 24 24">
+          <path
+            d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21v-2a8 8 0 0 1 16 0v2"
+          />
+        </symbol>
+        <symbol id="login-i-lock" viewBox="0 0 24 24">
+          <rect x="5" y="10" width="14" height="11" rx="2" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3" />
+        </symbol>
+        <symbol id="login-i-eye" viewBox="0 0 24 24">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="login-i-compass" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="m16 8-2 6-6 2 2-6Z" />
+        </symbol>
+        <symbol id="login-i-map" viewBox="0 0 24 24">
+          <path d="m3 5 6-3 6 3 6-3v17l-6 3-6-3-6 3Zm6-3v17m6-14v17" />
+        </symbol>
+        <symbol id="login-i-people" viewBox="0 0 24 24">
+          <circle cx="9" cy="7" r="3" />
+          <path
+            d="M3 21v-3a6 6 0 0 1 12 0v3ZM16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v3"
+          />
+        </symbol>
+        <symbol id="login-i-spark" viewBox="0 0 24 24">
+          <path
+            d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3ZM3 3v2m17 15v2"
+          />
+        </symbol>
+        <symbol id="login-i-pin" viewBox="0 0 24 28">
+          <path d="M21 11c0 6-9 15-9 15S3 17 3 11a9 9 0 0 1 18 0Z" />
+          <circle cx="12" cy="11" r="3" />
+        </symbol>
+      </defs>
+    </svg>
+    <a class="skip-link" href="#auth-panel">跳到登录</a>
+
+    <div class="landscape" aria-hidden="true">
+      <img
+        src="/design-v3/login-scenery.png"
+        alt=""
+        width="1672"
+        height="941"
+        fetchpriority="high"
+        @error="backgroundFailed = true"
+      />
     </div>
-    <form class="entry-form" @submit.prevent="submit">
-      <h2>{{ register ? "创建你的账号" : "欢迎回来" }}</h2>
-      <p>
-        {{ register ? "拥有自己的旅行空间。" : "登录，继续你的旅行计划。" }}
-      </p>
-      <fieldset :disabled="busy">
-        <legend class="sr-only">
-          {{ register ? "注册账号" : "登录账号" }}
-        </legend>
-        <label
-          >用户名<input
-            v-model="username"
-            autocomplete="username"
-            required
-            pattern="[a-zA-Z0-9_]{3,32}"
-            placeholder="3–32位字母、数字或下划线" /></label
-        ><label v-if="register"
-          >昵称<input
-            v-model="nickname"
-            maxlength="50"
-            placeholder="路上怎么称呼你" /></label
-        ><label
-          >密码<input
-            v-model="password"
-            :autocomplete="register ? 'new-password' : 'current-password'"
-            type="password"
-            required
-            minlength="8"
-            maxlength="72"
-            placeholder="至少8位"
-        /></label>
-        <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-        <button class="button full">
-          {{ busy ? "请稍候…" : register ? "注册并开始旅行" : "登录" }}</button
-        ><button
-          type="button"
-          class="text-button full"
-          @click="
-            register = !register;
-            error = '';
-          "
+    <header class="entry-header">
+      <RouterLink class="brand" to="/" aria-label="SmartTrip 智游伴路首页"
+        ><svg class="icon" aria-hidden="true"><use href="#login-i-route" /></svg
+        ><span>SmartTrip<small>智游伴路</small></span></RouterLink
+      >
+      <nav class="main-nav" aria-label="主导航">
+        <RouterLink to="/square">旅行灵感</RouterLink
+        ><RouterLink to="/ai-generate">规划旅行</RouterLink
+        ><RouterLink to="/my-trips">我的路书</RouterLink>
+      </nav>
+      <a v-if="!s.token" class="auth-shortcut" href="#auth-panel"
+        >登录 / 注册</a
+      >
+      <div v-else class="login-account">
+        <RouterLink to="/profile" aria-label="个人中心"
+          ><img
+            v-if="s.profile?.avatar"
+            :src="s.profile.avatar"
+            alt="我的头像"
+          /><span v-else class="account-letter">{{
+            s.profile?.nickname?.slice(0, 1) || "我"
+          }}</span
+          ><span class="account-name">{{
+            s.profile?.nickname || "个人中心"
+          }}</span></RouterLink
+        ><button type="button" @click="logout">退出</button>
+      </div>
+      <RouterLink v-if="!s.token" class="mobile-explore" to="/square"
+        >探索灵感<svg class="icon" aria-hidden="true">
+          <use href="#login-i-arrow" /></svg
+      ></RouterLink>
+    </header>
+    <div class="entry-main">
+      <div class="journey-intro">
+        <p class="journey-slogan">
+          <svg class="icon" aria-hidden="true">
+            <use href="#login-i-spark" /></svg
+          >让旅行更简单，更有意义
+        </p>
+        <h1>下一段旅程，<br /><span>从这里</span>开始。</h1>
+        <p class="journey-description">
+          收藏心动的路线，规划专属的旅行，<br />遇见更大的世界。
+        </p>
+        <RouterLink class="journey-link" to="/square"
+          ><span class="explore-circle"
+            ><svg class="icon" aria-hidden="true">
+              <use href="#login-i-compass" /></svg></span
+          ><span>探索旅行灵感</span
+          ><svg class="icon" aria-hidden="true">
+            <use href="#login-i-arrow" /></svg
+        ></RouterLink>
+      </div>
+      <div
+        class="journey-route"
+        aria-label="山间、湖畔和小城的旅行灵感示意，非真实地理路线"
+      >
+        <svg
+          class="route-thread"
+          viewBox="0 0 340 450"
+          preserveAspectRatio="none"
+          fill="none"
+          aria-hidden="true"
         >
-          {{ register ? "已有账号？去登录" : "还没有账号？创建一个" }}
-        </button>
-      </fieldset>
-    </form>
+          <path
+            d="M14 8C-30 77 28 84 107 130S188 173 169 223 65 278 98 332 178 374 190 419"
+          />
+        </svg>
+        <div class="route-stop stop-mountain">
+          <span class="stop-label"
+            ><svg class="pin" aria-hidden="true">
+              <use href="#login-i-pin" /></svg
+            >山间 · 灵感示意</span
+          >
+          <div class="route-photo">
+            <img
+              class="photo-mountain"
+              src="/design-v3/login-scenery.png"
+              alt="概念影像中的雪山"
+              width="1672"
+              height="941"
+            />
+          </div>
+        </div>
+        <div class="route-stop stop-lake">
+          <span class="stop-label"
+            ><svg class="pin" aria-hidden="true">
+              <use href="#login-i-pin" /></svg
+            >湖畔 · 灵感示意</span
+          >
+          <div class="route-photo">
+            <img
+              class="photo-lake"
+              src="/design-v3/login-scenery.png"
+              alt="概念影像中的湖面与帆船"
+              width="1672"
+              height="941"
+            />
+          </div>
+        </div>
+        <div class="route-stop stop-town">
+          <span class="stop-label"
+            ><svg class="pin" aria-hidden="true">
+              <use href="#login-i-pin" /></svg
+            >小城 · 灵感示意</span
+          >
+          <div class="route-photo">
+            <img
+              class="photo-town"
+              src="/design-v3/login-scenery.png"
+              alt="概念影像中的湖畔小城"
+              width="1672"
+              height="941"
+            />
+          </div>
+        </div>
+      </div>
+      <section
+        class="auth-panel"
+        id="auth-panel"
+        :class="{ 'is-register': register }"
+        aria-labelledby="auth-title"
+        tabindex="-1"
+      >
+        <svg class="travel-stamp" viewBox="0 0 150 95" aria-hidden="true">
+          <circle cx="49" cy="46" r="36" />
+          <circle cx="49" cy="46" r="29" stroke-dasharray="2 5" />
+          <path
+            d="m30 44 16 1 12-16 5 2-7 18 12 6-2 4-14-4-8 14-4-1 3-17-14-3Zm54-20c10 8 21-8 34-2m-31 8c10 8 23-8 34-2m-32 8c10 8 23-8 34-2m-33 8c10 8 23-8 34-2m-34 8c10 8 23-8 34-2"
+          />
+        </svg>
+        <h2 id="auth-title">{{ register ? "创建你的账号" : "欢迎回来" }}</h2>
+        <p class="auth-intro" id="auth-intro">
+          {{ register ? "拥有自己的旅行空间。" : "登录，继续你的旅行计划。" }}
+        </p>
+        <form id="auth-form" @submit.prevent="submit" :aria-busy="busy">
+          <fieldset id="auth-fields" :disabled="busy">
+            <legend class="sr-only" id="auth-legend">
+              {{ register ? "注册账号" : "登录账号" }}
+            </legend>
+            <div class="field">
+              <label for="username">用户名</label>
+              <div class="input-wrap">
+                <svg class="input-icon icon" aria-hidden="true">
+                  <use href="#login-i-user" /></svg
+                ><input
+                  v-model="username"
+                  id="username"
+                  autocomplete="username"
+                  placeholder="3–32位字母、数字或下划线"
+                  pattern="[a-zA-Z0-9_]{3,32}"
+                  minlength="3"
+                  maxlength="32"
+                  required
+                  aria-describedby="username-hint"
+                />
+              </div>
+              <p id="username-hint" class="field-hint" v-show="register">
+                3–32 位字母、数字或下划线
+              </p>
+            </div>
+            <div class="field" id="nickname-field" v-if="register">
+              <label for="nickname"
+                >昵称<span class="optional">选填</span></label
+              >
+              <div class="input-wrap">
+                <svg class="input-icon icon" aria-hidden="true">
+                  <use href="#login-i-user" /></svg
+                ><input
+                  v-model="nickname"
+                  id="nickname"
+                  autocomplete="nickname"
+                  placeholder="旅行中，怎么称呼你？"
+                  maxlength="50"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="password">密码</label>
+              <div class="input-wrap password-input">
+                <svg class="input-icon icon" aria-hidden="true">
+                  <use href="#login-i-lock" /></svg
+                ><input
+                  v-model="password"
+                  id="password"
+                  :type="passwordVisible ? 'text' : 'password'"
+                  :autocomplete="register ? 'new-password' : 'current-password'"
+                  placeholder="输入你的密码，至少8位"
+                  minlength="8"
+                  maxlength="72"
+                  required
+                  aria-describedby="password-hint"
+                /><button
+                  class="password-toggle"
+                  type="button"
+                  :aria-label="passwordVisible ? '隐藏密码' : '显示密码'"
+                  :aria-pressed="passwordVisible"
+                  @click="passwordVisible = !passwordVisible"
+                >
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#login-i-eye" />
+                  </svg>
+                </button>
+              </div>
+              <p id="password-hint" class="field-hint" v-show="register">
+                8–72 个字符
+              </p>
+            </div>
+            <p v-if="error" id="auth-error" class="form-error" role="alert">
+              {{ error }}
+            </p>
+            <button class="submit-button" type="submit" id="auth-submit">
+              <span>{{
+                busy ? "请稍候…" : register ? "注册并登录" : "登录"
+              }}</span
+              ><svg class="icon" aria-hidden="true">
+                <use href="#login-i-arrow" />
+              </svg>
+            </button>
+          </fieldset>
+        </form>
+
+        <p class="account-switch">
+          <span id="switch-prompt">{{
+            register ? "已经有账号？" : "还没有账号？"
+          }}</span
+          ><button
+            id="mode-switch"
+            type="button"
+            :disabled="busy"
+            @click="toggleMode"
+          >
+            {{ register ? "返回登录" : "创建账号" }}
+          </button>
+        </p>
+      </section>
+      <nav class="journey-tools" aria-label="旅行功能">
+        <RouterLink to="/square"
+          ><svg class="icon" aria-hidden="true">
+            <use href="#login-i-compass" /></svg
+          ><span
+            ><strong>收藏灵感</strong><small>寻找心动的风景</small></span
+          ></RouterLink
+        ><RouterLink to="/ai-generate"
+          ><svg class="icon" aria-hidden="true"><use href="#login-i-map" /></svg
+          ><span
+            ><strong>规划路线</strong><small>构建自己的旅程</small></span
+          ></RouterLink
+        ><RouterLink to="/my-trips"
+          ><svg class="icon" aria-hidden="true">
+            <use href="#login-i-people" /></svg
+          ><span
+            ><strong>分享路书</strong><small>记录走过的世界</small></span
+          ></RouterLink
+        >
+      </nav>
+      <div class="journey-signature" aria-hidden="true">
+        去看更大的世界<svg viewBox="0 0 290 32" preserveAspectRatio="none">
+          <path d="M7 26C67 9 207-8 161 9S125 30 276 20" />
+        </svg>
+      </div>
+    </div>
+    <footer class="entry-footer">
+      <span>智游伴路 · 把灵感走成风景</span
+      ><span id="image-caption">{{
+        backgroundFailed
+          ? "旅行概念影像暂不可用"
+          : "旅行概念影像 · 非目的地实拍"
+      }}</span>
+    </footer>
   </section>
 </template>
+<style scoped src="./login-v3.css"></style>

@@ -230,13 +230,13 @@ test("Login preserves registration, session and protected redirect", async ({
   });
   await page.goto("/login?redirect=/profile");
   await page
-    .getByRole("button", { name: "还没有账号？创建一个", exact: true })
+    .getByRole("button", { name: "创建账号", exact: true })
     .click();
   await page.getByLabel("用户名", { exact: true }).fill("traveler_17");
-  await page.getByLabel("昵称", { exact: true }).fill("旅人");
+  await page.getByLabel(/^昵称/).fill("旅人");
   await page.getByLabel("密码", { exact: true }).fill("password123");
   await page
-    .getByRole("button", { name: "注册并开始旅行", exact: true })
+    .getByRole("button", { name: "注册并登录", exact: true })
     .click();
   await expect.poll(() => new URL(page.url()).pathname).toBe("/profile");
   expect(calls).toEqual(["/api/auth/register", "/api/auth/login"]);

@@ -3,11 +3,11 @@ test("real backend saves node constraints and runs offline analysis on mobile", 
   page,
 }) => {
   await page.goto("/login");
-  await page.getByRole("button", { name: "还没有账号？创建一个" }).click();
+  await page.getByRole("button", { name: "创建账号" }).click();
   await page.getByLabel("用户名").fill("analysis_e2e_" + Date.now());
   await page.getByLabel("昵称", { exact: true }).fill("行程诊断游客");
   await page.getByLabel("密码", { exact: true }).fill("E2eAnalysis2026!");
-  await page.getByRole("button", { name: "注册并开始旅行" }).click();
+  await page.getByRole("button", { name: "注册并登录" }).click();
   await page.waitForURL("**/my-trips");
   await page
     .locator(".v3-page-heading")

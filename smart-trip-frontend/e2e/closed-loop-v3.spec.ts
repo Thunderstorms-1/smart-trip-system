@@ -200,13 +200,13 @@ for (const mobile of [false, true]) {
     try {
       await page.goto("/login");
       await page
-        .getByRole("button", { name: "还没有账号？创建一个", exact: true })
+        .getByRole("button", { name: "创建账号", exact: true })
         .click();
       await page.getByLabel("用户名", { exact: true }).fill(username);
       await page.getByLabel("昵称", { exact: true }).fill("闭环旅人");
       await page.getByLabel("密码", { exact: true }).fill(password);
       await page
-        .getByRole("button", { name: "注册并开始旅行", exact: true })
+        .getByRole("button", { name: "注册并登录", exact: true })
         .click();
       await expect(page).toHaveURL(/\/my-trips$/);
       ownerToken = await page.evaluate(

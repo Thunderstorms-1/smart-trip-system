@@ -162,11 +162,11 @@ test("mock POI selection persists only a reference through the real backend and 
     });
   });
   await page.goto("/login");
-  await page.getByRole("button", { name: "还没有账号？创建一个" }).click();
+  await page.getByRole("button", { name: "创建账号" }).click();
   await page.getByLabel("用户名").fill("provider_e2e_" + Date.now());
   await page.getByLabel("昵称", { exact: true }).fill("地点验收游客");
   await page.getByLabel("密码", { exact: true }).fill("ProviderE2e2026!");
-  await page.getByRole("button", { name: "注册并开始旅行" }).click();
+  await page.getByRole("button", { name: "注册并登录" }).click();
   await page.waitForURL("**/my-trips");
   await page.locator(".v3-page-heading").getByRole("button", { name: "新建路书" }).click();
   await page.getByLabel("目的地", { exact: true }).fill("成都");

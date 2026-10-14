@@ -19,11 +19,11 @@ test("register, create, save and delete a private itinerary", async ({
   page,
 }) => {
   await page.goto("/login");
-  await page.getByRole("button", { name: "还没有账号？创建一个" }).click();
+  await page.getByRole("button", { name: "创建账号" }).click();
   await page.getByLabel("用户名").fill("e2e_" + Date.now());
   await page.getByLabel("昵称", { exact: true }).fill("路书验收游客");
   await page.getByLabel("密码", { exact: true }).fill("E2eTravel2026!");
-  await page.getByRole("button", { name: "注册并开始旅行" }).click();
+  await page.getByRole("button", { name: "注册并登录" }).click();
   await page.waitForURL("**/my-trips");
   await page.locator(".v3-page-heading").getByRole("button", { name: "新建路书" }).click();
   await page.getByLabel("目的地", { exact: true }).fill("杭州");

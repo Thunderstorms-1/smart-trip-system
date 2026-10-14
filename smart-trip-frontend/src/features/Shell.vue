@@ -11,7 +11,7 @@ const s = useSession(),
 const route = useRoute();
 const v3Second = computed(
   () =>
-    ["/ai-generate", "/login"].includes(route.path.replace(/\/$/, "")) ||
+    ["/ai-generate"].includes(route.path.replace(/\/$/, "")) ||
     /^\/(posts|authors|share)\/[^/]+\/?$/.test(route.path),
 );
 const v3Pages = computed(
@@ -21,6 +21,7 @@ const v3Pages = computed(
       route.path.replace(/\/$/, ""),
     ),
 );
+const login = computed(() => route.path.replace(/\/$/, "") === "/login");
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
 function expired() {
@@ -47,13 +48,14 @@ function logout() {
   <div
     :class="{
       'v3-shell': home,
+      'login-route-shell': login,
       'workbench-v3-shell': workbench,
       'pages-v3-shell': v3Pages,
       'pages-second-v3-shell': v3Second,
     }"
   >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
-    <header :class="home ? 'home-header' : 'site-header'">
+    <header v-if="!login" :class="home ? 'home-header' : 'site-header'">
       <RouterLink to="/" class="brand"
         ><HomeIcon v-if="home || workbench || v3Pages" /><span
           v-else
@@ -95,12 +97,20 @@ function logout() {
     </header>
     <main
       id="main-content"
-      :class="home ? 'home-main' : workbench ? 'workbench-main' : 'site-main'"
+      :class="
+        login
+          ? 'login-main'
+          : home
+            ? 'home-main'
+            : workbench
+              ? 'workbench-main'
+              : 'site-main'
+      "
       tabindex="-1"
     >
       <RouterView />
     </main>
-    <footer v-if="!home && !workbench" class="site-footer">
+    <footer v-if="!login && !home && !workbench" class="site-footer">
       <span>智游伴路 · 把灵感走成风景</span
       ><span>行程费用为预估，实际消费以你的记账为准。</span>
     </footer>
@@ -121,3 +131,12 @@ function logout() {
     >
   </div>
 </template>
+
+<style scoped>
+.login-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+</style>
