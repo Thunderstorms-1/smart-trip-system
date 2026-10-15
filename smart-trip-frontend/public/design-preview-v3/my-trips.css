@@ -74,8 +74,12 @@ input::placeholder { opacity:1; color:var(--muted); }
 #close-invite { position:absolute; right:12px; top:12px; display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:6px; background:transparent; color:var(--ink); }
 #close-invite>.icon { width:19px; height:19px; }
 #join-result { grid-column:1/-1; margin:0; padding-top:12px; border-top:1px solid #d1dfe7; }
-.library-workspace { position:relative; isolation:isolate; margin-top:22px; padding:21px 23px 19px; border:1px solid rgba(255,255,255,.42); border-radius:20px; background:rgba(255,255,255,.16); -webkit-backdrop-filter:blur(16px) saturate(1.18); backdrop-filter:blur(16px) saturate(1.18); box-shadow:0 10px 28px rgba(7,23,35,.12); }
-.library-workspace::before { content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; background:rgba(8,22,32,.08); pointer-events:none; }
+.library-workspace { position:relative; isolation:isolate; margin-top:22px; padding:21px 23px 19px; border:1px solid var(--library-panel-edge,rgba(255,255,255,.42)); border-radius:20px; background:var(--library-panel-surface,rgba(255,255,255,.16)); -webkit-backdrop-filter:var(--library-panel-optics,blur(16px) saturate(1.18)); backdrop-filter:var(--library-panel-optics,blur(16px) saturate(1.18)); box-shadow:var(--library-panel-shadow,0 10px 28px rgba(7,23,35,.12)); }
+.library-workspace[aria-labelledby="tab-trips"] { --library-panel-surface:rgba(255,255,255,.06); --library-panel-optics:none; --library-panel-edge:rgba(255,255,255,.5); --library-panel-shadow:inset 0 1px 0 rgba(255,255,255,.62),0 10px 28px rgba(7,23,35,.12); }
+.library-workspace:not([aria-labelledby="tab-trips"])::before { content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; background:rgba(8,22,32,.08); pointer-events:none; }
+.library-workspace[aria-labelledby="tab-trips"] :is(.workspace-heading>p,.example-note>span) { border-radius:4px; background:rgba(8,22,32,.6); }
+.library-workspace[aria-labelledby="tab-trips"] :is(.section-heading h2,.library-empty h2,.library-empty p,.library-empty>.icon) { border-radius:4px; background:rgba(255,255,255,.84); color:#102b3b; }
+.library-workspace[aria-labelledby="tab-trips"] .library-empty :is(h2,p) { width:fit-content; max-width:100%; margin-inline:auto; }
 .workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:16px; }
 .workspace-heading>p { color:#fff; font-size:13px; }
 .workspace-controls { display:flex; gap:16px; align-items:center; }
