@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>从想法到旅程 · SmartTrip 规划页设计预览</title>
+    <link rel="preload" href="assets/generate-title.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="generate.css" />
+    <script src="generate.js" defer></script>
+  </head>
+  <body>
+    <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <symbol id="i-route" viewBox="0 0 24 24"><path d="M6 5a2 2 0 1 0 0 .1M18 19a2 2 0 1 0 0 .1M6 7v5h12v5" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="2.8" /></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8m-8 4h8M8 7h2" /></symbol>
+        <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3ZM20 2v4m-2-2h4" /></symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Zm0 0 1-6m-1 6 5-1M3 4h4M5 2v4" /></symbol>
+        <symbol id="i-light" viewBox="0 0 24 24"><path d="M8 17c0-4-3-4-3-9a7 7 0 0 1 14 0c0 5-3 5-3 9ZM8 20h8m-7 3h6M1 9h1m20 0h1M3 2l2 2m14 0 2-2" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      </defs>
+    </svg>
+    <a class="skip-link" href="#planner">跳到旅行规划</a>
+    <div class="planning-scene">
+      <div class="landscape" aria-hidden="true"><img src="assets/generate-scenery.png" alt="" width="1672" height="941" fetchpriority="high" /></div>
+      <header class="glass-nav">
+        <a class="brand" href="/" aria-label="SmartTrip 智游伴路首页"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg><span>SmartTrip<small>智游伴路</small></span></a>
+        <nav class="main-nav" aria-label="主导航"><a href="/square">旅行灵感</a><a href="#planner" aria-current="page">规划旅行</a><a href="/my-trips">我的路书</a></nav>
+        <a class="login-link" href="/login?redirect=/ai-generate">登录 / 注册</a>
+      </header>
+      <main class="planning-main">
+        <div class="planning-invitation">
+          <svg class="paper-plane" viewBox="0 0 150 100" fill="none" aria-hidden="true"><path class="plane-trail" d="M3 90c55-2 64-34 45-32-20 2-2 24 20 7l33-30" /><path d="m87 25 58-19-24 48-10-24-24-5Zm24 5L145 6m-34 24-9 17 2-20" /></svg>
+          <h1><span>从一个想法，</span><span>到一段难忘的<em>旅程<svg viewBox="0 0 190 24" preserveAspectRatio="none" aria-hidden="true"><path d="M3 20C57 2 126 3 185 4" /></svg></em>。</span></h1>
+          <p>告诉我们你想去的地方，<br />剩下的，交给 <span lang="en">SmartTrip</span>。</p>
+        </div>
+        <section class="planner-panel" id="planner" aria-label="构建一段旅程" tabindex="-1">
+          <div class="creation-modes" role="group" aria-label="创建方式预览">
+            <button type="button" data-mode="manual" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-pencil" /></svg>手动创建路书</button>
+            <button type="button" data-mode="ai" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-spark" /></svg>AI 生成草稿</button>
+          </div>
+          <p class="planner-intro" id="mode-description">从一个目的地开始，填写旅行偏好，把想法慢慢变成行程。</p>
+          <nav class="planning-steps" aria-label="旅程创建步骤">
+            <button type="button" data-step="1" aria-current="step"><span>1</span><b>选择目的地</b></button><i aria-hidden="true">›</i>
+            <button type="button" data-step="2" disabled><span>2</span><b>安排旅行节奏</b></button><i aria-hidden="true">›</i>
+            <button type="button" data-step="3" disabled><span>3</span><b>确认并创建</b></button>
+          </nav>
+          <form id="planning-form" novalidate>
+            <fieldset class="planning-stage" data-stage="1">
+              <legend class="sr-only">选择目的地</legend>
+              <h2 tabindex="-1"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg>想去哪里？</h2>
+              <p class="stage-description">先确定目的地，再给这次旅行取个名字吧。</p>
+              <div class="stage-fields">
+                <label for="destination">目的地<span class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><input id="destination" name="destination" placeholder="例如 成都、东京、京都…" maxlength="100" required autocomplete="off" /></span></label>
+                <label for="trip-title">路书标题<span class="input-wrap"><svg class="icon" aria-hidden="true"><use href="#i-file" /></svg><input id="trip-title" name="title" placeholder="给这次旅行取个名字" maxlength="100" autocomplete="off" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="planning-stage" data-stage="2" hidden disabled>
+              <legend class="sr-only">安排旅行节奏</legend>
+              <h2 tabindex="-1">按自己的节奏出发</h2>
+              <p class="stage-description">决定停留的时间，以及和谁一起走。</p>
+              <div class="stage-fields pace-fields">
+                <label for="start-date">出发日期<input id="start-date" name="startDate" type="date" /></label>
+                <label for="total-days">旅行天数<input id="total-days" name="totalDays" type="number" min="1" max="30" value="3" required /></label>
+                <label for="trip-style">旅行风格<select id="trip-style" name="tripStyle"><option>城市漫步</option><option>自然山野</option><option>美食探索</option><option>亲子休闲</option><option>文化博物馆</option></select></label>
+                <label for="travel-group">同行人群<select id="travel-group" name="travelGroup"><option>朋友同行</option><option>独自旅行</option><option>情侣出游</option><option>家庭亲子</option><option>带长辈出行</option></select></label>
+              </div>
+            </fieldset>
+            <fieldset class="planning-stage" data-stage="3" hidden disabled>
+              <legend class="sr-only">确认旅行构想</legend>
+              <h2 tabindex="-1">为旅程留一点期待</h2>
+              <p class="stage-description" id="review-description">正式创建私密路书后，可以逐天填写地点、时间和费用。</p>
+              <div class="stage-fields"><label for="requirements">这次旅行的小期待<textarea id="requirements" name="requirements" maxlength="500" rows="3" placeholder="想去的地点、预算、节奏，或需要避开的安排"></textarea></label></div>
+              <dl class="planning-review"><div><dt>目的地</dt><dd id="review-destination"></dd></div><div><dt>路书标题</dt><dd id="review-title"></dd></div><div><dt>出发日期</dt><dd id="review-date"></dd></div><div><dt>旅行安排</dt><dd id="review-pace"></dd></div></dl>
+            </fieldset>
+            <p id="preview-result" class="preview-result" role="status" hidden></p>
+            <div class="planning-controls"><button type="button" class="back-button" id="back-button" hidden>上一步</button><button type="submit" class="continue-button"><span id="continue-label">继续</span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></button></div>
+          </form>
+          <p class="privacy-note"><svg class="icon" aria-hidden="true"><use href="#i-light" /></svg><span>新建路书默认私密，仅你和受邀成员可查看。费用为预估，实际花费由记账记录。</span></p>
+        </section>
+      </main>
+      <footer class="preview-footer"><span>交互设计预览 · 不创建路书、不调用 AI</span><a href="/ai-generate?mode=manual">进入正式规划页<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></footer>
+    </div>
+    <noscript><p class="no-script">当前为静态设计预览。开启 JavaScript 后可体验三个规划步骤；也可以<a href="/ai-generate?mode=manual">进入正式规划页</a>。</p></noscript>
+  </body>
+</html>
