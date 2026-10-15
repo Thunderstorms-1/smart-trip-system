@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, reactive, onBeforeUnmount, onMounted } from "vue";
+import {
+  computed,
+  ref,
+  reactive,
+  onBeforeUnmount,
+  onMounted,
+  nextTick,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api, requestKey } from "./api";
 import { followTask } from "./task-stream";
@@ -7,7 +15,7 @@ import { useSession } from "./session";
 import { useAction } from "./ui";
 import type { Trip, Task } from "./types";
 import HomeIcon from "./HomeIcon.vue";
-import JourneyBackdrop from "./JourneyBackdrop.vue";
+import "./generate-v3.css";
 const route = useRoute(),
   router = useRouter(),
   s = useSession(),
@@ -23,10 +31,32 @@ const route = useRoute(),
   }),
   task = ref<Task>(),
   { busy, error, run } = useAction();
+const imageFailed = ref(false);
+const avatarFailed = ref(false);
+const entranceKey = ref(0);
+function replayEntrance(event: PageTransitionEvent) {
+  if (
+    event.persisted &&
+    !matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
+    entranceKey.value++;
+}
+function logout() {
+  s.logout();
+  router.push("/");
+}
 const step = ref(1);
 const builderForm = ref<HTMLFormElement>();
 const destinationInput = ref<HTMLInputElement>();
 const daysInput = ref<HTMLInputElement>();
+watch(step, async () => {
+  await nextTick();
+  const heading = builderForm.value?.querySelector<HTMLElement>(
+    '[data-stage="' + step.value + '"] h2',
+  );
+  heading?.focus({ preventScroll: true });
+  heading?.scrollIntoView({ block: "nearest", behavior: "instant" });
+});
 const creating = computed(
   () =>
     busy.value ||
@@ -64,10 +94,12 @@ function aiUnavailableReason() {
   }
 }
 onBeforeUnmount(() => {
+  window.removeEventListener("pageshow", replayEntrance);
   clearTimeout(timer);
   stream.abort();
 });
 onMounted(async () => {
+  window.addEventListener("pageshow", replayEntrance);
   await s.loadCapabilities().catch(() => {});
   if (route.query.mode !== "manual" && s.capabilities.ai) mode.value = "ai";
   const pending = localStorage.getItem("SMARTTRIP_TASK");
@@ -130,109 +162,209 @@ function submit() {
 }
 </script>
 <template>
-  <div class="v3-builder v3-content">
-    <section class="v3-page-heading">
-      <div>
-        <h1>构建一段旅程</h1>
-        <p>从一个目的地开始，把时间留给沿途。</p>
+  <div
+    class="generate-v3 planning-scene"
+    :class="{ 'image-failed': imageFailed }"
+  >
+    <a class="skip-link" href="#planner">跳到旅行规划</a>
+    <div class="landscape" aria-hidden="true">
+      <img
+        v-if="!imageFailed"
+        src="/design-v3/generate-scenery.png"
+        alt=""
+        width="1672"
+        height="941"
+        fetchpriority="high"
+        @error="imageFailed = true"
+      />
+    </div>
+    <header class="glass-nav">
+      <RouterLink class="brand" to="/" aria-label="SmartTrip 智游伴路首页"
+        ><HomeIcon /><span>SmartTrip<small>智游伴路</small></span></RouterLink
+      >
+      <nav class="main-nav" aria-label="主导航">
+        <RouterLink to="/square">旅行灵感</RouterLink
+        ><RouterLink to="/ai-generate">规划旅行</RouterLink
+        ><RouterLink to="/my-trips">我的路书</RouterLink>
+      </nav>
+      <div v-if="s.token" class="planning-account">
+        <RouterLink
+          to="/profile"
+          aria-label="个人中心"
+          :title="s.profile?.nickname || '个人中心'"
+        >
+          <img
+            v-if="s.profile?.avatar && !avatarFailed"
+            :src="s.profile.avatar"
+            alt="我的头像"
+            @error="avatarFailed = true"
+          />
+          <span v-else class="account-letter">{{
+            s.profile?.nickname?.slice(0, 1) || "我"
+          }}</span>
+          <span class="planning-account-name">{{
+            s.profile?.nickname || "个人中心"
+          }}</span>
+        </RouterLink>
+        <button type="button" @click="logout">退出</button>
       </div>
-      <RouterLink to="/my-trips" class="text-button"
-        >打开旅行库 <HomeIcon name="arrow"
-      /></RouterLink>
-    </section>
-    <div class="builder-layout">
-      <aside class="builder-scene" aria-label="当前旅程构想">
-        <JourneyBackdrop />
-        <div class="builder-scene-copy">
-          <HomeIcon name="pin" />
-          <h2>{{ form.destination || "下一站，由你决定" }}</h2>
-          <p>{{ form.title || "给心动的地方，一段属于自己的时间。" }}</p>
-          <div class="builder-intentions">
-            <span>{{ form.totalDays }} 天旅行</span
-            ><span>{{ form.tripStyle }}</span
-            ><span>{{ form.travelGroup }}</span>
-          </div>
-          <p class="builder-scene-note">
-            {{ form.startDate || "出发日期待定" }}
-          </p>
-          <small>内容来自当前输入，尚未创建路书。</small>
-        </div>
-      </aside>
-      <div class="builder-workspace">
-        <div class="v3-tabs" role="group" aria-label="创建方式">
+      <RouterLink
+        v-else
+        class="login-link"
+        :to="{ path: '/login', query: { redirect: route.fullPath } }"
+        >登录 / 注册</RouterLink
+      >
+    </header>
+    <div class="planning-main">
+      <div :key="entranceKey" class="planning-invitation">
+        <svg
+          class="paper-plane"
+          viewBox="0 0 150 100"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            class="plane-trail"
+            d="M3 90c55-2 64-34 45-32-20 2-2 24 20 7l33-30"
+          />
+          <path
+            d="m87 25 58-19-24 48-10-24-24-5Zm24 5L145 6m-34 24-9 17 2-20"
+          />
+        </svg>
+        <h1>
+          <span>从一个想法，</span
+          ><span
+            >到一段难忘的<em
+              >旅程<svg
+                viewBox="0 0 190 24"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path d="M3 20C57 2 126 3 185 4" /></svg></em
+            >。</span
+          >
+        </h1>
+        <p>
+          告诉我们你想去的地方，<br />剩下的，交给
+          <span lang="en">SmartTrip</span>。
+        </p>
+      </div>
+      <section
+        class="planner-panel"
+        id="planner"
+        aria-label="构建一段旅程"
+        tabindex="-1"
+      >
+        <div class="creation-modes" role="group" aria-label="创建方式">
           <button
-            :class="{ active: mode === 'manual' }"
+            type="button"
             :aria-pressed="mode === 'manual'"
             :disabled="creating"
             @click="mode = 'manual'"
           >
-            手动创建路书</button
-          ><button
-            :class="{ active: mode === 'ai' }"
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14Zm0 0 1-6m-1 6 5-1M3 4h4M5 2v4"
+              /></svg
+            >手动创建路书
+          </button>
+          <button
+            type="button"
             :aria-pressed="mode === 'ai'"
             :disabled="!s.capabilities.ai || creating"
+            :aria-describedby="
+              !s.capabilities.ai ? 'ai-unavailable' : undefined
+            "
             @click="mode = 'ai'"
           >
-            AI 生成草稿
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3ZM20 2v4m-2-2h4"
+              /></svg
+            >AI 生成草稿
           </button>
         </div>
-        <p v-if="!s.capabilities.ai" class="builder-notice">
+        <p class="planner-intro">
+          从一个目的地开始，填写旅行偏好，把想法慢慢变成行程。
+        </p>
+        <p v-if="!s.capabilities.ai" class="builder-notice" id="ai-unavailable">
           {{
             aiUnavailableReason()
           }}你可以先手动创建路书，填写地点和每天的安排。
         </p>
-        <nav class="builder-steps" aria-label="旅程创建步骤">
-          <button
+        <nav class="planning-steps" aria-label="旅程创建步骤">
+          <template
             v-for="(label, i) in ['选择目的地', '安排旅行节奏', '确认并创建']"
             :key="label"
-            :aria-current="step === i + 1 ? 'step' : undefined"
-            :disabled="i + 1 > step || creating"
-            @click="step = i + 1"
           >
-            <span>{{ i + 1 }}</span
-            >{{ label }}
-          </button>
+            <i v-if="i" aria-hidden="true">›</i>
+            <button
+              type="button"
+              :aria-current="step === i + 1 ? 'step' : undefined"
+              :class="{ complete: i + 1 < step }"
+              :disabled="i + 1 > step || creating"
+              @click="step = i + 1"
+            >
+              <span>{{ i + 1 }}</span
+              ><b>{{ label }}</b>
+            </button>
+          </template>
         </nav>
         <form
           ref="builderForm"
           class="builder-form"
+          id="planning-form"
+          :aria-busy="creating"
           novalidate
           @submit.prevent="advance"
         >
           <fieldset :disabled="creating">
             <legend class="sr-only">构建旅行</legend>
-            <section v-show="step === 1" class="builder-stage">
-              <h2>想去哪里？</h2>
-              <p>先确定目的地，再给这次旅行取个名字。</p>
-              <label
-                >目的地<input
-                  ref="destinationInput"
-                  v-model="form.destination"
-                  maxlength="100"
-                  required
-                  placeholder="例如 成都" /></label
-              ><label
-                >路书标题<input
-                  v-model="form.title"
-                  maxlength="100"
-                  placeholder="给这次旅行取个名字"
-              /></label>
-            </section>
-            <section v-show="step === 2" class="builder-stage">
-              <h2>按自己的节奏出发</h2>
-              <p>决定停留的时间，以及和谁一起走。</p>
-              <div class="builder-fields">
+            <section v-show="step === 1" class="planning-stage" data-stage="1">
+              <h2 tabindex="-1"><HomeIcon name="pin" />想去哪里？</h2>
+              <p class="stage-description">
+                先确定目的地，再给这次旅行取个名字吧。
+              </p>
+              <div class="stage-fields">
                 <label
-                  >出发日期<input v-model="form.startDate" type="date" /></label
-                ><label
+                  >目的地<span class="input-wrap"
+                    ><HomeIcon name="pin" /><input
+                      ref="destinationInput"
+                      v-model="form.destination"
+                      maxlength="100"
+                      required
+                      placeholder="例如 成都、东京、京都…" /></span
+                ></label>
+                <label
+                  >路书标题<span class="input-wrap"
+                    ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M14 3H5v18h14V8Zm0 0v5h5M8 12h8m-8 4h8M8 7h2"
+                      /></svg
+                    ><input
+                      v-model="form.title"
+                      maxlength="100"
+                      placeholder="给这次旅行取个名字" /></span
+                ></label>
+              </div>
+            </section>
+            <section v-show="step === 2" class="planning-stage" data-stage="2">
+              <h2 tabindex="-1">按自己的节奏出发</h2>
+              <p class="stage-description">决定停留的时间，以及和谁一起走。</p>
+              <div class="stage-fields pace-fields">
+                <label
+                  >出发日期<input v-model="form.startDate" type="date"
+                /></label>
+                <label
                   >旅行天数<input
                     ref="daysInput"
                     v-model.number="form.totalDays"
                     type="number"
                     min="1"
                     max="30"
-                    required /></label
-                ><label
+                    required
+                /></label>
+                <label
                   >旅行风格<select v-model="form.tripStyle">
                     <option>城市漫步</option>
                     <option>自然山野</option>
@@ -240,7 +372,8 @@ function submit() {
                     <option>亲子休闲</option>
                     <option>文化博物馆</option>
                   </select></label
-                ><label
+                >
+                <label
                   >同行人群<select v-model="form.travelGroup">
                     <option>朋友同行</option>
                     <option>独自旅行</option>
@@ -251,27 +384,33 @@ function submit() {
                 >
               </div>
             </section>
-            <section v-show="step === 3" class="builder-stage">
-              <h2>为旅程留一点期待</h2>
-              <p>
+            <section v-show="step === 3" class="planning-stage" data-stage="3">
+              <h2 tabindex="-1">为旅程留一点期待</h2>
+              <p class="stage-description">
                 {{
                   mode === "manual"
                     ? "创建私密路书后，再逐天填写地点、时间和费用。"
                     : "根据这些输入生成草稿，完成后进入工作台继续完善。"
                 }}
               </p>
-              <label
-                >这次旅行的小期待<textarea
-                  v-model="form.requirements"
-                  :maxlength="mode === 'manual' ? 500 : 1500"
-                  rows="4"
-                  placeholder="想去的地点、预算、节奏，或需要避开的安排"
-                ></textarea>
-              </label>
-              <dl class="builder-review">
+              <div class="stage-fields">
+                <label
+                  >这次旅行的小期待<textarea
+                    v-model="form.requirements"
+                    :maxlength="mode === 'manual' ? 500 : 1500"
+                    rows="4"
+                    placeholder="想去的地点、预算、节奏，或需要避开的安排"
+                  ></textarea>
+                </label>
+              </div>
+              <dl class="builder-review planning-review">
                 <div>
                   <dt>目的地</dt>
                   <dd>{{ form.destination }}</dd>
+                </div>
+                <div>
+                  <dt>路书标题</dt>
+                  <dd>{{ form.title || form.destination + "的旅行" }}</dd>
                 </div>
                 <div>
                   <dt>出发日期</dt>
@@ -309,16 +448,17 @@ function submit() {
               </p>
             </div>
           </div>
-          <div class="builder-controls">
+          <div class="builder-controls planning-controls">
             <button
               v-if="step > 1"
               type="button"
-              class="button secondary"
+              class="back-button"
               :disabled="creating"
               @click="step--"
             >
-              上一步</button
-            ><button class="button" :disabled="creating">
+              上一步
+            </button>
+            <button type="submit" class="continue-button" :disabled="creating">
               {{
                 creating
                   ? "请稍候…"
@@ -327,15 +467,26 @@ function submit() {
                     : mode === "manual"
                       ? "创建私密路书"
                       : "生成 AI 草稿"
-              }}
-              <HomeIcon name="arrow" />
+              }}<HomeIcon name="arrow" />
             </button>
           </div>
         </form>
-        <p class="builder-privacy">
-          新建路书默认私密，仅你和受邀成员可查看。费用为预估，实际花费由记账记录。
+        <p class="privacy-note">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M8 17c0-4-3-4-3-9a7 7 0 0 1 14 0c0 5-3 5-3 9ZM8 20h8m-7 3h6M1 9h1m20 0h1M3 2l2 2m14 0 2-2"
+            /></svg
+          ><span
+            >新建路书默认私密，仅你和受邀成员可查看。费用为预估，实际花费由记账记录。</span
+          >
         </p>
-      </div>
+      </section>
     </div>
+    <footer class="planning-footer">
+      <span>把一个想法，变成自己的旅程。</span
+      ><RouterLink to="/my-trips"
+        >打开旅行库<HomeIcon name="arrow"
+      /></RouterLink>
+    </footer>
   </div>
 </template>

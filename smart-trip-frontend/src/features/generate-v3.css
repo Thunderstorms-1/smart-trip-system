@@ -1,0 +1,1092 @@
+.generate-v3 label {
+  margin: 0;
+}
+.generate-v3 .input-wrap input {
+  margin: 0;
+  min-height: 0;
+}
+.generate-v3 {
+  font-size: 16px;
+}
+.generate-v3 p {
+  color: inherit;
+}
+.generate-v3 .brand small {
+  color: inherit;
+}
+.generate-v3 fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.generate-v3 button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.generate-v3 .planning-steps button:disabled {
+  opacity: 1;
+}
+.generate-v3 .builder-notice {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.generate-v3 .builder-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 16px;
+  background: #dce9f1;
+  border-radius: 8px;
+  color: var(--ink);
+}
+.generate-v3 .builder-task p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.generate-v3 .builder-form .form-error {
+  margin-top: 20px;
+  color: #a13519;
+  font-size: 14px;
+}
+.generate-v3 .planning-account {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.generate-v3 .planning-account > a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.generate-v3 .planning-account img,
+.generate-v3 .account-letter {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+}
+.generate-v3 .account-letter {
+  display: grid;
+  place-items: center;
+  background: #e0ebf1;
+  color: var(--ink);
+  font-size: 17px;
+}
+.generate-v3 .planning-account-name {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.generate-v3 .planning-account button {
+  min-height: 40px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+}
+.generate-v3 .planning-account button:hover {
+  text-decoration: underline;
+}
+@media (max-width: 760px) {
+  .generate-v3 .planning-account {
+    gap: 10px;
+  }
+  .generate-v3 .planning-account-name {
+    display: none;
+  }
+  .generate-v3 .planning-account img,
+  .generate-v3 .account-letter {
+    width: 32px;
+    height: 32px;
+  }
+  .generate-v3 .planning-account button {
+    font-size: 12px;
+  }
+}
+
+@font-face {
+  font-family: "PlanningJourneyDisplay";
+  src: url("/design-v3/generate-title.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+.generate-v3 {
+  --ink: #183448;
+  --muted: #526c7e;
+  --accent: #c64e1e;
+  --focus: #a33c14;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-synthesis: none;
+  color: var(--ink);
+  line-height: 1.5;
+  color-scheme: light;
+}
+.generate-v3 * {
+  box-sizing: border-box;
+}
+.generate-route-shell {
+  margin: 0;
+  background: #cbdbe4;
+}
+.generate-v3 h1,
+.generate-v3 h2,
+.generate-v3 p {
+  margin: 0;
+}
+.generate-v3 a {
+  color: inherit;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.generate-v3 button,
+.generate-v3 input,
+.generate-v3 select,
+.generate-v3 textarea {
+  font: inherit;
+}
+.generate-v3 button,
+.generate-v3 a {
+  -webkit-tap-highlight-color: transparent;
+}
+.generate-v3 button {
+  cursor: pointer;
+}
+.generate-v3 button:disabled {
+  cursor: default;
+}
+.generate-v3 [hidden] {
+  display: none !important;
+}
+.generate-v3 ::selection {
+  color: #173344;
+  background: #ffcfad;
+}
+.generate-v3 input,
+.generate-v3 textarea {
+  caret-color: var(--accent);
+}
+.generate-v3 ::-webkit-scrollbar {
+  width: 7px;
+}
+.generate-v3 ::-webkit-scrollbar-thumb {
+  background: #7793a3;
+  border-radius: 4px;
+}
+.generate-v3 :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+.generate-v3 .icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.generate-v3 .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.generate-v3 .skip-link {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  padding: 12px 20px;
+  z-index: 10;
+  background: #fff;
+  border-radius: 8px;
+  transform: translateY(-180%);
+}
+.generate-v3 .skip-link:focus {
+  transform: none;
+}
+.generate-v3 {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+}
+.generate-v3 .landscape {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: #345e76;
+}
+.generate-v3 .landscape img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+.generate-v3 .landscape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 48% 37% at 24% 32%,
+      rgba(8, 31, 47, 0.58),
+      rgba(8, 31, 47, 0.42) 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(8, 31, 47, 0.22),
+      rgba(8, 31, 47, 0.04) 50%,
+      transparent 76%
+    );
+}
+.generate-v3 .glass-nav {
+  width: 87.2%;
+  min-height: clamp(72px, 4.55vw, 76px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 18px auto 0;
+  padding: 12px 26px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(245, 250, 255, 0.68)
+  );
+  /* Keep the standard declaration last for production CSS compatibility. */
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  color: #122d3d;
+}
+.generate-v3 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  font-size: clamp(24px, 1.8vw, 30px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+.generate-v3 .brand > .icon {
+  width: 34px;
+  height: 34px;
+  stroke-width: 2;
+}
+.generate-v3 .brand small {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.generate-v3 .main-nav {
+  display: flex;
+  gap: clamp(28px, 3vw, 50px);
+  font-size: 18px;
+}
+.generate-v3 .main-nav a {
+  position: relative;
+  padding-block: 8px;
+}
+.generate-v3 .main-nav a:hover {
+  text-decoration: underline;
+}
+.generate-v3 .main-nav [aria-current] {
+  color: #a43c13;
+  font-weight: 600;
+}
+.generate-v3 .main-nav [aria-current]::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 2px;
+  left: calc(50% - 11px);
+  bottom: 1px;
+  background: #a43c13;
+}
+.generate-v3 .login-link {
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: #c84b15;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 160ms var(--ease);
+}
+.generate-v3 .login-link:hover {
+  background: #a63b10;
+}
+.generate-v3 .planning-main {
+  width: 87.2%;
+  max-width: 1580px;
+  margin: 40px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  gap: clamp(32px, 3.5vw, 58px);
+  align-items: start;
+  flex: 1;
+}
+.generate-v3 .planning-invitation {
+  position: relative;
+  color: #fff;
+  padding-top: 38px;
+}
+.generate-v3 .planning-invitation h1 {
+  font-family: "PlanningJourneyDisplay", "KaiTi", serif;
+  font-size: clamp(48px, 4.35vw, 78px);
+  line-height: 1.3;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-shadow: 0 3px 18px rgba(4, 28, 45, 0.32);
+}
+.generate-v3 .planning-invitation h1 > span {
+  display: block;
+  white-space: nowrap;
+}
+.generate-v3 .planning-invitation em {
+  position: relative;
+  display: inline-block;
+  font-style: normal;
+  color: #ffb364;
+}
+.generate-v3 .planning-invitation em svg {
+  position: absolute;
+  width: 113%;
+  height: 20px;
+  left: -4%;
+  bottom: -3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+.generate-v3 .planning-invitation > p {
+  margin-top: 24px;
+  font-family: "PlanningJourneyDisplay", "KaiTi", serif;
+  font-size: clamp(23px, 1.75vw, 29px);
+  line-height: 1.55;
+  letter-spacing: 0.025em;
+  text-shadow: 0 2px 8px rgba(4, 28, 45, 0.6);
+}
+.generate-v3 .planning-invitation > p span {
+  font-size: 1.1em;
+}
+.generate-v3 .paper-plane {
+  position: absolute;
+  top: 0;
+  right: 12%;
+  width: 134px;
+  height: 90px;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.generate-v3 .plane-trail {
+  stroke-width: 1;
+}
+.generate-v3 .planning-invitation {
+  animation: planning-arrive 680ms var(--ease) both;
+}
+@keyframes planning-arrive {
+  from {
+    transform: translateX(-92px);
+    opacity: 0.12;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.generate-v3 .planner-panel {
+  min-width: 0;
+  padding: 36px clamp(26px, 2.7vw, 46px) 28px;
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 28px;
+  background: rgba(240, 247, 251, 0.93);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 56px rgba(8, 35, 52, 0.16);
+}
+.generate-v3 .creation-modes {
+  display: flex;
+  gap: 14px;
+}
+.generate-v3 .creation-modes button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  border: 0;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 600;
+  transition:
+    background 160ms var(--ease),
+    color 160ms var(--ease);
+}
+.generate-v3 .creation-modes button[aria-pressed="true"] {
+  background: #173347;
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(8, 35, 52, 0.17);
+}
+.generate-v3 .creation-modes button[aria-pressed="true"] > .icon {
+  color: #ffb364;
+}
+.generate-v3 .creation-modes button:hover {
+  background: #d8e6ee;
+}
+.generate-v3 .creation-modes button[aria-pressed="true"]:hover {
+  background: #254c64;
+}
+.generate-v3 .planner-intro {
+  min-height: 26px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.generate-v3 .planning-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding-bottom: 24px;
+  margin-top: 24px;
+  border-bottom: 1px solid #ccdce6;
+}
+.generate-v3 .planning-steps button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  min-height: 42px;
+  color: var(--muted);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.generate-v3 .planning-steps button > span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.generate-v3 .planning-steps button > b {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.generate-v3 .planning-steps button[aria-current] {
+  color: #a84317;
+}
+.generate-v3 .planning-steps button[aria-current] > span {
+  color: #fff;
+  background: var(--accent);
+}
+.generate-v3 .planning-steps button[aria-current] > b {
+  font-weight: 600;
+}
+.generate-v3 .planning-steps button:not(:disabled):hover > b {
+  text-decoration: underline;
+}
+.generate-v3 .planning-steps button.complete > span {
+  color: var(--ink);
+  background: #d2e2ec;
+}
+.generate-v3 .planning-steps i {
+  color: #8ba3b3;
+  font-size: 23px;
+  font-style: normal;
+}
+.generate-v3 #planning-form {
+  margin-top: 28px;
+}
+.generate-v3 .planning-stage {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.generate-v3 .planning-stage h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.generate-v3 .planning-stage h2:focus {
+  outline: none;
+}
+.generate-v3 .planning-stage h2 > .icon {
+  color: var(--accent);
+  width: 28px;
+  height: 30px;
+}
+.generate-v3 .stage-description {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.generate-v3 .stage-fields {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+.generate-v3 .stage-fields label {
+  display: block;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.generate-v3 .input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-top: 8px;
+  padding-inline: 16px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 10px;
+}
+.generate-v3 .input-wrap input {
+  border: 0;
+  border-radius: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 0;
+  color: var(--ink);
+  background: transparent;
+  font-weight: 400;
+  font-size: 17px;
+}
+.generate-v3 .input-wrap:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.generate-v3 .input-wrap input:focus {
+  outline: none;
+}
+.generate-v3 input::placeholder,
+.generate-v3 textarea::placeholder {
+  opacity: 1;
+  color: var(--muted);
+}
+.generate-v3 .stage-fields > label > input,
+.generate-v3 .stage-fields select,
+.generate-v3 .stage-fields textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+  min-height: 56px;
+  padding: 13px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 400;
+}
+.generate-v3 .stage-fields textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+.generate-v3 .pace-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.generate-v3 .planning-review {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid #ccdce6;
+  font-size: 14px;
+}
+.generate-v3 .planning-review > div {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 16px;
+}
+.generate-v3 .planning-review dt {
+  color: var(--muted);
+}
+.generate-v3 .planning-review dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+.generate-v3 .planning-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-top: 24px;
+}
+.generate-v3 .continue-button {
+  min-width: 230px;
+  min-height: 56px;
+  padding: 14px 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(115deg, #df5719, #c94410);
+  transition: background 160ms var(--ease);
+}
+.generate-v3 .continue-button:hover {
+  background: #b03f15;
+}
+.generate-v3 .continue-button .icon {
+  width: 21px;
+  height: 21px;
+}
+.generate-v3 .back-button {
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  padding: 13px 6px;
+  min-height: 48px;
+}
+.generate-v3 .back-button:hover {
+  text-decoration: underline;
+}
+.generate-v3 .privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 22px;
+  border-top: 1px solid #ccdce6;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.generate-v3 .privacy-note > .icon {
+  width: 19px;
+  height: 21px;
+}
+.generate-v3 .planning-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 87.2%;
+  max-width: 1580px;
+  margin: 22px auto 18px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 1px 5px rgba(4, 25, 39, 0.7);
+}
+.generate-v3 .planning-footer > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+.generate-v3 .planning-footer > a:hover {
+  text-decoration: underline;
+}
+.generate-v3 .planning-footer > a:focus-visible {
+  outline-color: #fff0de;
+}
+.generate-v3 .planning-footer .icon {
+  width: 17px;
+  height: 17px;
+}
+.generate-v3.image-failed .landscape {
+  background: linear-gradient(135deg, #244d68, #517b94);
+}
+@media (min-width: 1800px) {
+  .generate-v3 .glass-nav {
+    max-width: 1580px;
+  }
+}
+@media (max-width: 1200px) {
+  .generate-v3 .glass-nav {
+    width: calc(100% - 48px);
+    padding-inline: 22px;
+  }
+  .generate-v3 .brand {
+    font-size: 24px;
+    gap: 9px;
+  }
+  .generate-v3 .main-nav {
+    font-size: 15px;
+    gap: 22px;
+  }
+  .generate-v3 .login-link {
+    font-size: 14px;
+    padding-inline: 16px;
+  }
+  .generate-v3 .planning-main {
+    width: calc(100% - 64px);
+    gap: 28px;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+  .generate-v3 .planning-invitation h1 {
+    font-size: clamp(34px, 3.8vw, 46px);
+  }
+  .generate-v3 .planning-invitation > p {
+    font-size: 23px;
+  }
+  .generate-v3 .paper-plane {
+    width: 100px;
+    top: -10px;
+    right: 8%;
+  }
+  .generate-v3 .planner-panel {
+    padding: 28px 24px 24px;
+  }
+  .generate-v3 .creation-modes {
+    gap: 10px;
+  }
+  .generate-v3 .creation-modes button {
+    padding-inline: 16px;
+    font-size: 15px;
+  }
+  .generate-v3 .planning-steps {
+    gap: 5px;
+  }
+  .generate-v3 .planning-steps button {
+    gap: 7px;
+  }
+  .generate-v3 .planning-steps button > span {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+  .generate-v3 .planning-steps button > b {
+    font-size: 12px;
+  }
+  .generate-v3 .planning-footer {
+    width: calc(100% - 64px);
+  }
+}
+@media (max-width: 900px) and (min-width: 761px) {
+  .generate-v3 .planning-main {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 24px;
+  }
+  .generate-v3 .planning-invitation h1 {
+    font-size: 40px;
+  }
+  .generate-v3 .planning-invitation h1 > span {
+    white-space: normal;
+  }
+  .generate-v3 .planning-invitation > p {
+    font-size: 21px;
+  }
+  .generate-v3 .paper-plane {
+    right: 0;
+  }
+  .generate-v3 .planner-panel {
+    padding-inline: 20px;
+  }
+}
+@media (max-width: 760px) {
+  .generate-v3 .landscape {
+    height: 520px;
+    bottom: auto;
+  }
+  .generate-v3 .landscape img {
+    object-position: 51% center;
+  }
+  .generate-v3 .landscape::after {
+    background: linear-gradient(
+      180deg,
+      rgba(8, 31, 47, 0.12),
+      rgba(8, 31, 47, 0.44) 45%,
+      #cbdbe4 100%
+    );
+  }
+  .generate-v3 .glass-nav {
+    width: calc(100% - 32px);
+    min-height: 66px;
+    margin-top: max(12px, env(safe-area-inset-top));
+    padding: 12px 14px;
+    gap: 12px;
+    border-radius: 16px;
+    flex-wrap: wrap;
+  }
+  .generate-v3 .brand {
+    gap: 9px;
+    font-size: 21px;
+  }
+  .generate-v3 .brand > .icon {
+    width: 27px;
+    height: 27px;
+  }
+  .generate-v3 .brand small {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .generate-v3 .login-link {
+    padding: 10px 12px;
+    font-size: 12px;
+    border-radius: 9px;
+  }
+  .generate-v3 .main-nav {
+    order: 3;
+    width: 100%;
+    justify-content: space-around;
+    gap: 12px;
+    padding-top: 2px;
+    font-size: 14px;
+  }
+  .generate-v3 .planning-main {
+    display: block;
+    width: auto;
+    margin: 24px
+      max(16px, env(safe-area-inset-left), env(safe-area-inset-right)) 0;
+  }
+  .generate-v3 .planning-invitation {
+    padding: 0 5px;
+  }
+  .generate-v3 .planning-invitation h1 {
+    font-size: clamp(30px, 8.1vw, 48px);
+    line-height: 1.32;
+  }
+  .generate-v3 .planning-invitation h1 > span {
+    white-space: nowrap;
+  }
+  .generate-v3 .planning-invitation > p {
+    font-size: 20px;
+    line-height: 1.45;
+    margin-top: 15px;
+  }
+  .generate-v3 .planning-invitation em svg {
+    height: 11px;
+    bottom: -2px;
+  }
+  .generate-v3 .paper-plane {
+    top: 0;
+    right: 9px;
+    width: 66px;
+    height: 47px;
+  }
+  .generate-v3 .planner-panel {
+    margin-top: 26px;
+    padding: 22px 20px 20px;
+    border-radius: 20px;
+    background: rgba(242, 248, 251, 0.97);
+    box-shadow: 0 14px 35px rgba(8, 35, 52, 0.1);
+  }
+  .generate-v3 .creation-modes {
+    gap: 8px;
+  }
+  .generate-v3 .creation-modes button {
+    flex: 1;
+    min-height: 49px;
+    gap: 7px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .generate-v3 .creation-modes .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .generate-v3 .planner-intro {
+    margin-top: 16px;
+    font-size: 13px;
+    min-height: 0;
+  }
+  .generate-v3 .planning-steps {
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 20px;
+    padding-bottom: 20px;
+  }
+  .generate-v3 .planning-steps button {
+    flex: 1;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .generate-v3 .planning-steps button > span {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+  .generate-v3 .planning-steps button > b {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .generate-v3 .planning-steps i {
+    padding-top: 1px;
+    font-size: 20px;
+  }
+  .generate-v3 #planning-form {
+    margin-top: 23px;
+  }
+  .generate-v3 .planning-stage h2 {
+    font-size: 23px;
+    gap: 8px;
+  }
+  .generate-v3 .planning-stage h2 > .icon {
+    width: 24px;
+    height: 27px;
+  }
+  .generate-v3 .stage-description {
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .generate-v3 .stage-fields {
+    margin-top: 22px;
+    gap: 20px;
+  }
+  .generate-v3 .stage-fields label {
+    font-size: 14px;
+  }
+  .generate-v3 .input-wrap {
+    gap: 9px;
+    padding-inline: 12px;
+    min-height: 52px;
+  }
+  .generate-v3 .input-wrap > .icon {
+    width: 21px;
+    height: 21px;
+  }
+  .generate-v3 .input-wrap input {
+    font-size: 16px;
+    padding-block: 14px;
+  }
+  .generate-v3 .input-wrap input::placeholder {
+    font-size: 14px;
+  }
+  .generate-v3 .stage-fields > label > input,
+  .generate-v3 .stage-fields select,
+  .generate-v3 .stage-fields textarea {
+    min-height: 52px;
+    padding: 12px 10px;
+  }
+  .generate-v3 .pace-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .generate-v3 .planning-controls {
+    margin-top: 24px;
+    gap: 15px;
+  }
+  .generate-v3 .continue-button {
+    flex: 1;
+    min-width: 0;
+    min-height: 52px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  .generate-v3 .back-button {
+    font-size: 14px;
+    padding-inline: 0;
+  }
+  .generate-v3 .privacy-note {
+    margin-top: 22px;
+    padding-top: 16px;
+    font-size: 11px;
+    gap: 8px;
+  }
+  .generate-v3 .privacy-note > .icon {
+    width: 17px;
+    height: 19px;
+  }
+  .generate-v3 .planning-review {
+    font-size: 13px;
+    gap: 11px;
+  }
+  .generate-v3 .planning-review > div {
+    grid-template-columns: 65px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .generate-v3 .planning-footer {
+    width: auto;
+    margin: 16px
+      max(20px, env(safe-area-inset-left), env(safe-area-inset-right))
+      max(14px, env(safe-area-inset-bottom));
+    color: #425e72;
+    text-shadow: none;
+    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .generate-v3 .planning-footer > a:focus-visible {
+    outline-color: var(--focus);
+  }
+  @keyframes planning-arrive {
+    from {
+      transform: translateX(-40px);
+      opacity: 0.2;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+@media (max-width: 360px) {
+  .generate-v3 .creation-modes button {
+    padding-inline: 6px;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .generate-v3 .creation-modes .icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .generate-v3 .planning-invitation {
+    animation: none;
+  }
+  .generate-v3 .creation-modes button,
+  .generate-v3 .continue-button,
+  .generate-v3 .login-link {
+    transition: none;
+  }
+}

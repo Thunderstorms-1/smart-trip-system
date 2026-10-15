@@ -9,10 +9,8 @@ import "./pages-second-v3.css";
 const s = useSession(),
   router = useRouter();
 const route = useRoute();
-const v3Second = computed(
-  () =>
-    ["/ai-generate"].includes(route.path.replace(/\/$/, "")) ||
-    /^\/(posts|authors|share)\/[^/]+\/?$/.test(route.path),
+const v3Second = computed(() =>
+  /^\/(posts|authors|share)\/[^/]+\/?$/.test(route.path),
 );
 const v3Pages = computed(
   () =>
@@ -20,6 +18,9 @@ const v3Pages = computed(
     ["/my-trips", "/profile"].includes(route.path.replace(/\/$/, "")),
 );
 const login = computed(() => route.path.replace(/\/$/, "") === "/login");
+const planning = computed(
+  () => route.path.replace(/\/$/, "") === "/ai-generate",
+);
 const square = computed(() => route.path.replace(/\/$/, "") === "/square");
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
@@ -49,6 +50,7 @@ function logout() {
       'v3-shell': home,
       'login-route-shell': login,
       'square-route-shell': square,
+      'generate-route-shell': planning,
       'workbench-v3-shell': workbench,
       'pages-v3-shell': v3Pages,
       'pages-second-v3-shell': v3Second,
@@ -56,7 +58,7 @@ function logout() {
   >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
     <header
-      v-if="!login && !square"
+      v-if="!login && !square && !planning"
       :class="home ? 'home-header' : 'site-header'"
     >
       <RouterLink to="/" class="brand"
@@ -105,17 +107,22 @@ function logout() {
           ? 'login-main'
           : square
             ? 'square-main'
-            : home
-              ? 'home-main'
-              : workbench
-                ? 'workbench-main'
-                : 'site-main'
+            : planning
+              ? 'generate-main'
+              : home
+                ? 'home-main'
+                : workbench
+                  ? 'workbench-main'
+                  : 'site-main'
       "
       tabindex="-1"
     >
       <RouterView />
     </main>
-    <footer v-if="!login && !square && !home && !workbench" class="site-footer">
+    <footer
+      v-if="!login && !square && !planning && !home && !workbench"
+      class="site-footer"
+    >
       <span>智游伴路 · 把灵感走成风景</span
       ><span>行程费用为预估，实际消费以你的记账为准。</span>
     </footer>
@@ -139,7 +146,8 @@ function logout() {
 
 <style scoped>
 .login-main,
-.square-main {
+.square-main,
+.generate-main {
   width: 100%;
   max-width: none;
   margin: 0;

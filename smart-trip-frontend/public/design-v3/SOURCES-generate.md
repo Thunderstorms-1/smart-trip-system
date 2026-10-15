@@ -1,0 +1,10 @@
+# Production planning assets
+
+Byte-identical copies of the user-approved independent planning preview at commit c2ace75, migrated 2026-10-15 Asia/Shanghai. The original prototype remains under /design-preview-v3/generate.html.
+
+# Planning preview assets
+
+- `generate-scenery.png`: user's Image 2, `codex-clipboard-ea5ccbf6-11c7-4a91-84f0-00bfb95c068b.png`, supplied 2026-10-15 Asia/Shanghai. Volcano/cloudscape environmental artwork, preserved visually unchanged; no claim of real-time weather, selected destination or route. Photographer/generation prompt not provided. Origin is also embedded in PNG metadata.
+- `generate-title.woff2`: locally hosted Ma Shan Zheng 400 subset for the exact planning headline and invitation. Source: https://fonts.google.com/specimen/Ma+Shan+Zheng ; official project/license: https://github.com/google/fonts/tree/main/ofl/mashanzheng . Copyright 2018 The Ma Shan Zheng Project Authors. Existing `OFL-MaShanZheng.txt` in this directory carries SIL Open Font License 1.1. Font fetched with the Google Fonts `text=` subset endpoint; all requests at runtime are local.
+- Structural composition comes from user Image 1, `codex-clipboard-410138cf-bcdf-4525-8a03-e1591404a364.png`, with the explicit Image 2 background override. No pixels from the mockup, invented avatar, fake trip, generated result or aggregate metric are inserted into the page.
+- SVG symbols reuse the approved route/arrow/location line vocabulary; the paper plane is simple authored geometry. No external icon/font/image dependency at runtime.
