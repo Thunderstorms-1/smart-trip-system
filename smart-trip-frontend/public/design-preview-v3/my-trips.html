@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>我的路书 · SmartTrip 旅行库设计预览</title>
+    <link rel="preload" href="assets/library-title.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="my-trips.css" />
+    <script src="my-trips.js" defer></script>
+  </head>
+  <body>
+    <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+      <symbol id="i-route" viewBox="0 0 24 24"><path d="M6 5a2 2 0 1 0 0 .1M18 19a2 2 0 1 0 0 .1M6 7v5h12v5" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="2.8" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5" /><path d="m15 15 6 6" /></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6c-2-2.2-5.6-2.1-8.8 1.3C8.8 2.5 5.2 2.4 3.2 4.6c-2.3 2.5-1.4 6 1 8.3L12 21l7.8-8.1c2.4-2.3 3.3-5.8 1-8.3Z" /></symbol>
+      <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4Z" /></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M7 2v6m10-6v6M3 11h18m-13 4h3m3 0h3" /></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1" /><rect x="15" y="3" width="6" height="6" rx="1" /><rect x="3" y="15" width="6" height="6" rx="1" /><rect x="15" y="15" width="6" height="6" rx="1" /></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 5h13M8 12h13M8 19h13M3 5h1m-1 7h1m-1 7h1" /></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6" /></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3" /><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v3" /></symbol>
+    </defs></svg>
+    <a class="skip-link" href="#library-panel">跳到旅行库</a>
+    <div class="library-scene">
+      <div class="landscape" aria-hidden="true"><img id="library-landscape" src="assets/library-scenery.png" alt="" width="1672" height="941" fetchpriority="high" /></div>
+      <header class="glass-nav">
+        <a class="brand" href="/" aria-label="SmartTrip 智游伴路首页"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg><span>SmartTrip<small>智游伴路</small></span></a>
+        <nav class="main-nav" aria-label="主导航"><a href="/square">旅行灵感</a><a href="/ai-generate">规划旅行</a><a href="#library-panel" aria-current="page">我的路书</a></nav>
+        <a class="login-link" href="/login?redirect=/my-trips">登录 / 注册</a>
+      </header>
+      <main class="library-main">
+        <div class="library-heading">
+          <div class="library-title"><h1 aria-label="我的路书">我的路书<em aria-hidden="true" lang="en">My Trips</em></h1><p id="library-description">计划、心动与走过的路，都在这里。</p></div>
+          <div class="heading-actions"><button id="join-toggle" class="join-toggle" type="button" aria-expanded="false" aria-controls="library-invite"><svg class="icon" aria-hidden="true"><use href="#i-users" /></svg>加入同行</button><a class="create-link" href="/ai-generate?mode=manual">新建路书<svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg></a></div>
+        </div>
+        <div class="library-tools">
+          <div class="library-tabs" role="tablist" aria-label="旅行库分类">
+            <a id="tab-trips" href="?view=trips" role="tab" aria-selected="true" aria-controls="library-panel" data-tab="trips"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg>我的路书<span class="tab-count" aria-label="5份布局示例">5</span></a>
+            <a id="tab-favorites" href="?view=favorites" role="tab" aria-selected="false" aria-controls="library-panel" tabindex="-1" data-tab="favorites"><svg class="icon" aria-hidden="true"><use href="#i-bookmark" /></svg>我的收藏<span class="tab-count" aria-label="6份布局示例">6</span></a>
+            <a id="tab-likes" href="?view=likes" role="tab" aria-selected="false" aria-controls="library-panel" tabindex="-1" data-tab="likes"><svg class="icon" aria-hidden="true"><use href="#i-heart" /></svg>我的点赞<span class="tab-count" aria-label="6份布局示例">6</span></a>
+          </div>
+          <form id="library-search-form" class="library-search" role="search"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg><input id="library-search" type="search" aria-label="搜索我的路书" maxlength="100" placeholder="搜索我的路书…" /><button id="clear-search" type="button" aria-label="清空搜索" hidden><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button><button class="search-submit" type="submit">搜索</button></form>
+        </div>
+        <section class="library-invite" id="library-invite" aria-labelledby="invite-title" hidden>
+          <div><h2 id="invite-title">和同行的人，共写一段旅程</h2><p>正式旅行库支持通过邀请口令加入同行。</p></div>
+          <form id="invite-form"><label class="sr-only" for="invite-code">同行邀请口令</label><input id="invite-code" required minlength="43" maxlength="43" placeholder="输入43位同行邀请口令" autocomplete="off" /><button class="invite-submit" type="submit">预览加入</button></form>
+          <button id="close-invite" type="button" aria-label="关闭同行邀请"><svg class="icon" aria-hidden="true"><use href="#i-close" /></svg></button>
+          <p id="join-result" role="status" hidden></p>
+        </section>
+        <section class="library-workspace" id="library-panel" role="tabpanel" aria-labelledby="tab-trips" tabindex="0">
+          <div class="workspace-heading"><p id="library-results" role="status">当前展示5份布局示例。</p><div class="workspace-controls"><label class="sr-only" for="library-sort">路书排序</label><select id="library-sort" aria-label="路书排序"><option value="recent">最近更新</option><option value="title">按标题排序</option><option value="date">按出发日期</option></select><div class="layout-toggle" role="group" aria-label="展示方式"><button type="button" data-layout="grid" aria-label="卡片展示" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg></button><button type="button" data-layout="list" aria-label="列表展示" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-list" /></svg></button></div></div></div>
+          <div id="library-content"></div>
+          <div id="library-empty" class="library-empty" hidden><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg><h2>还没有找到这段旅程</h2><p>换个关键词，或清空搜索继续看看。</p><button type="button" id="reset-search">清空搜索</button></div>
+          <div class="example-note"><span>路书、互动数为布局示例，配图为概念影像。</span><button type="button" id="cover-toggle" aria-pressed="false">查看无封面效果</button></div>
+        </section>
+      </main>
+      <footer class="library-footer"><span>独立设计预览 · 不读取或保存账号数据</span><a href="/my-trips">查看正式旅行库<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></footer>
+    </div>
+    <noscript><p class="no-script">开启 JavaScript 后可切换三种旅行库视图。也可以<a href="/my-trips">进入正式旅行库</a>查看自己的路书。</p></noscript>
+  </body>
+</html>
