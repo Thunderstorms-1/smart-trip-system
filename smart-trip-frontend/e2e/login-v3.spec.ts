@@ -160,7 +160,7 @@ test("Login mobile preserves values and focus; page styles disappear on navigati
   await expect(page.locator("#auth-panel")).toBeFocused();
   await page.locator(".mobile-explore").click();
   await expect(page).toHaveURL(/\/square$/);
-  await expect(page.locator(".site-header")).toBeVisible();
+  await expect(page.locator(".square-page .glass-nav")).toBeVisible();
   await expect(page.locator(".login-v3")).toHaveCount(0);
-  await expect(page.locator(".pages-v3-shell")).toBeVisible();
+  await expect(page.locator(".square-route-shell")).toBeVisible();
 });

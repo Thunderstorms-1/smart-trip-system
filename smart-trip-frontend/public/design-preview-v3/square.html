@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>把世界变成你的下一段旅程 · SmartTrip 广场预览</title>
+  <link rel="preload" href="assets/square-title.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="square.css" />
+  <script src="square.js" defer></script>
+</head>
+<body>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="sq-route" viewBox="0 0 24 24"><path d="M6 5a2 2 0 1 0 0 .1M18 19a2 2 0 1 0 0 .1M6 7v5h12v5" /></symbol>
+    <symbol id="sq-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5" /></symbol>
+    <symbol id="sq-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="3" /></symbol>
+    <symbol id="sq-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5" /><path d="m15 15 6 6" /></symbol>
+    <symbol id="sq-book" viewBox="0 0 24 24"><path d="M3 4h6a4 4 0 0 1 3 2 4 4 0 0 1 3-2h6v16h-6a4 4 0 0 0-3 2 4 4 0 0 0-3-2H3Zm9 2v16" /></symbol>
+    <symbol id="sq-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+  </defs></svg>
+  <a class="skip-link" href="#stories">跳到路书内容</a>
+  <main>
+    <section class="square-hero" aria-labelledby="square-title">
+      <div class="hero-photo" aria-hidden="true"><img src="assets/square-scenery.png" alt="" width="1448" height="1086" fetchpriority="high" /></div>
+      <header class="glass-nav">
+        <a class="brand" href="/" aria-label="SmartTrip 智游伴路首页"><svg class="icon" aria-hidden="true"><use href="#sq-route" /></svg><span>SmartTrip<small>智游伴路</small></span></a>
+        <nav class="main-nav" aria-label="主导航"><a href="/square" aria-current="page">旅行灵感</a><a href="/ai-generate">规划旅行</a><a href="/my-trips">我的路书</a></nav>
+        <a class="login-link" href="/login?redirect=%2Fsquare">登录 / 注册</a>
+      </header>
+      <div class="hero-copy">
+        <h1 id="square-title" aria-label="把世界变成你的下一段旅程"><span>把世界变成</span><span>你的下一段旅程</span></h1>
+        <p>探索旅行灵感广场，沿着真实路书找到自己的方向。</p>
+        <form class="square-search" id="search-form"><svg class="icon" aria-hidden="true"><use href="#sq-pin" /></svg><input id="query" maxlength="100" aria-label="搜索城市或路书" placeholder="想去哪里？搜索城市或路书" /><button type="submit"><svg class="icon" aria-hidden="true"><use href="#sq-search" /></svg>搜索</button></form>
+        <div class="hero-ways"><span><strong>公开路书</strong><small>沿着真实行程探索</small></span><span><strong>目的地搜索</strong><small>寻找想去的地方</small></span><span><strong>旅行者分享</strong><small>发现不同的旅行方式</small></span></div>
+      </div>
+    </section>
+
+    <section class="stories-section" id="stories" tabindex="-1" aria-labelledby="stories-heading">
+      <div class="section-heading"><div><h2 id="stories-heading">最近更新的路书</h2><p id="section-description">从一段旅程，找到下一次出发的方向。</p></div><a class="text-link" id="more-link" href="#more-stories" hidden>更多旅行灵感<svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></div>
+      <p id="search-status" class="search-status" role="status" hidden></p>
+      <div class="featured-stories" id="featured-stories" hidden></div>
+      <div class="empty-state" id="empty-state"><svg class="icon" aria-hidden="true"><use href="#sq-book" /></svg><h3>等待下一段真实旅程</h3><p>这里将呈现旅行者公开分享的路书。</p><button id="reset-search" type="button" hidden>清空搜索</button></div>
+    </section>
+    <section class="stories-section continuation" id="more-stories" aria-labelledby="more-heading" hidden><div class="section-heading"><div><h2 id="more-heading">旅行灵感 · 发现更多目的地</h2><p>在旅行者的故事里，找到下一次出发的理由。</p></div><a class="text-link" href="/square">浏览正式广场<svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></div><div class="compact-stories" id="compact-stories"></div></section>
+    <section class="travel-close" aria-labelledby="close-heading"><img src="../design-v3/login-scenery.png" alt="" width="1672" height="941" /><div class="close-content"><div><h2 id="close-heading">用真实的旅行路书，连接更大的世界</h2><p>来自旅行者，回到旅行者。让每一次出发，都更有方向。</p></div><a href="/">了解 SmartTrip<svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></div></section>
+  </main>
+  <template id="featured-story-template"><article class="story-card"><div class="story-photo" aria-hidden="true"></div><div class="story-copy"><div class="story-destination"><svg class="icon" aria-hidden="true"><use href="#sq-pin" /></svg><span data-field="destination"></span><span data-field="days"></span></div><h3 data-field="title"></h3><p data-field="summary"></p><div class="story-bottom"><span><svg class="icon" aria-hidden="true"><use href="#sq-book" /></svg><span data-field="author"></span></span><a class="open-story"><svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></div></div></article></template>
+  <template id="compact-story-template"><article class="compact-card"><div class="compact-photo"><span class="compact-destination"><svg class="icon" aria-hidden="true"><use href="#sq-pin" /></svg><span data-field="destination"></span></span></div><div class="compact-copy"><h3 data-field="title"></h3><p data-field="summary"></p><div class="compact-bottom"><span><span data-field="author"></span><span data-field="days"></span></span><a class="open-story"><svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></div></div></article></template>
+  <footer class="preview-footer"><a class="brand" href="/"><svg class="icon" aria-hidden="true"><use href="#sq-route" /></svg><span>SmartTrip<small>智游伴路</small></span></a><p>独立设计预览 · 已保留卡片模板，尚未接入社区数据。</p><a href="login.html">查看已批准的登录设计<svg class="icon" aria-hidden="true"><use href="#sq-arrow" /></svg></a></footer>
+  <noscript><p class="no-script">卡片模板需要 JavaScript；<a href="/square">前往正式广场</a>可浏览真实路书。</p></noscript>
+</body>
+</html>

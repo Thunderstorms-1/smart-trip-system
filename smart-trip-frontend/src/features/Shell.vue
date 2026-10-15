@@ -17,11 +17,10 @@ const v3Second = computed(
 const v3Pages = computed(
   () =>
     v3Second.value ||
-    ["/square", "/my-trips", "/profile"].includes(
-      route.path.replace(/\/$/, ""),
-    ),
+    ["/my-trips", "/profile"].includes(route.path.replace(/\/$/, "")),
 );
 const login = computed(() => route.path.replace(/\/$/, "") === "/login");
+const square = computed(() => route.path.replace(/\/$/, "") === "/square");
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
 function expired() {
@@ -49,13 +48,17 @@ function logout() {
     :class="{
       'v3-shell': home,
       'login-route-shell': login,
+      'square-route-shell': square,
       'workbench-v3-shell': workbench,
       'pages-v3-shell': v3Pages,
       'pages-second-v3-shell': v3Second,
     }"
   >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
-    <header v-if="!login" :class="home ? 'home-header' : 'site-header'">
+    <header
+      v-if="!login && !square"
+      :class="home ? 'home-header' : 'site-header'"
+    >
       <RouterLink to="/" class="brand"
         ><HomeIcon v-if="home || workbench || v3Pages" /><span
           v-else
@@ -100,17 +103,19 @@ function logout() {
       :class="
         login
           ? 'login-main'
-          : home
-            ? 'home-main'
-            : workbench
-              ? 'workbench-main'
-              : 'site-main'
+          : square
+            ? 'square-main'
+            : home
+              ? 'home-main'
+              : workbench
+                ? 'workbench-main'
+                : 'site-main'
       "
       tabindex="-1"
     >
       <RouterView />
     </main>
-    <footer v-if="!login && !home && !workbench" class="site-footer">
+    <footer v-if="!login && !square && !home && !workbench" class="site-footer">
       <span>智游伴路 · 把灵感走成风景</span
       ><span>行程费用为预估，实际消费以你的记账为准。</span>
     </footer>
@@ -133,7 +138,8 @@ function logout() {
 </template>
 
 <style scoped>
-.login-main {
+.login-main,
+.square-main {
   width: 100%;
   max-width: none;
   margin: 0;
