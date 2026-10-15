@@ -213,7 +213,6 @@ onBeforeUnmount(() => {
       <div class="wb-canvas-title">
         <strong>{{ trip.destination || "你的目的地" }}</strong>
       </div>
-      <div class="wb-canvas-surface" aria-hidden="true"></div>
       <p class="wb-canvas-notice">规划画布 · 不表示地理位置、真实道路或路线</p>
     </div>
     <div

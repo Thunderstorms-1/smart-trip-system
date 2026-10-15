@@ -72,7 +72,11 @@ function logout() {
       >
       <nav aria-label="主导航">
         <RouterLink to="/square">旅行灵感</RouterLink
-        ><RouterLink to="/ai-generate">规划旅行</RouterLink
+        ><RouterLink
+          to="/ai-generate"
+          :class="{ 'wb-current-nav': workbench }"
+          :aria-current="workbench ? 'location' : undefined"
+          >规划旅行</RouterLink
         ><RouterLink to="/my-trips">我的路书</RouterLink>
       </nav>
       <div class="account">
