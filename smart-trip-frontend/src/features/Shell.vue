@@ -13,15 +13,14 @@ const v3Second = computed(() =>
   /^\/(posts|authors|share)\/[^/]+\/?$/.test(route.path),
 );
 const v3Pages = computed(
-  () =>
-    v3Second.value ||
-    ["/my-trips", "/profile"].includes(route.path.replace(/\/$/, "")),
+  () => v3Second.value || route.path.replace(/\/$/, "") === "/profile",
 );
 const login = computed(() => route.path.replace(/\/$/, "") === "/login");
 const planning = computed(
   () => route.path.replace(/\/$/, "") === "/ai-generate",
 );
 const square = computed(() => route.path.replace(/\/$/, "") === "/square");
+const library = computed(() => route.path.replace(/\/$/, "") === "/my-trips");
 const home = computed(() => route.path === "/");
 const workbench = computed(() => /^\/trip\/edit\/[^/]+\/?$/.test(route.path));
 function expired() {
@@ -51,6 +50,7 @@ function logout() {
       'login-route-shell': login,
       'square-route-shell': square,
       'generate-route-shell': planning,
+      'library-route-shell': library,
       'workbench-v3-shell': workbench,
       'pages-v3-shell': v3Pages,
       'pages-second-v3-shell': v3Second,
@@ -58,7 +58,7 @@ function logout() {
   >
     <a v-if="home" class="skip-link" href="#main-content">跳到主要内容</a>
     <header
-      v-if="!login && !square && !planning"
+      v-if="!login && !square && !planning && !library"
       :class="home ? 'home-header' : 'site-header'"
     >
       <RouterLink to="/" class="brand"
@@ -109,18 +109,20 @@ function logout() {
             ? 'square-main'
             : planning
               ? 'generate-main'
-              : home
-                ? 'home-main'
-                : workbench
-                  ? 'workbench-main'
-                  : 'site-main'
+              : library
+                ? 'library-route-main'
+                : home
+                  ? 'home-main'
+                  : workbench
+                    ? 'workbench-main'
+                    : 'site-main'
       "
       tabindex="-1"
     >
       <RouterView />
     </main>
     <footer
-      v-if="!login && !square && !planning && !home && !workbench"
+      v-if="!login && !square && !planning && !library && !home && !workbench"
       class="site-footer"
     >
       <span>智游伴路 · 把灵感走成风景</span
@@ -147,7 +149,8 @@ function logout() {
 <style scoped>
 .login-main,
 .square-main,
-.generate-main {
+.generate-main,
+.library-route-main {
   width: 100%;
   max-width: none;
   margin: 0;

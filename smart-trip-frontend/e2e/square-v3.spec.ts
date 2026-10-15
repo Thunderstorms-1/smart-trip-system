@@ -411,9 +411,9 @@ test("Square mobile keeps auth and navigation usable and restores other route sh
   await nav.getByRole("link", { name: "我的路书", exact: true }).click();
   await expect(page).toHaveURL(/\/my-trips$/);
   await expect(
-    page.getByRole("heading", { name: "我的旅行库", exact: true }),
+    page.getByRole("heading", { name: "我的路书", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".site-header")).toBeVisible();
+  await expect(page.locator(".v3-library .glass-nav")).toBeVisible();
   await expect(page.locator(".square-page")).toHaveCount(0);
   await page.goBack();
   await expect(page.locator(".square-page")).toBeVisible();

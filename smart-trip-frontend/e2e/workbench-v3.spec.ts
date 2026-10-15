@@ -297,7 +297,7 @@ test("editor CSS stays isolated on other routes after client navigation", async 
     "/square": ".v3-explore h1",
     "/login": ".v3-entry",
     "/profile": ".v3-traveler",
-    "/ai-generate": ".v3-builder",
+    "/ai-generate": ".generate-v3",
     "/my-trips": ".v3-library h1",
   };
   async function waitReady(path: string) {

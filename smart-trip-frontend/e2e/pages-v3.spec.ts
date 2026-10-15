@@ -147,10 +147,12 @@ test("mobile Travel Library keeps recent order, unknown budget, assets and join"
   );
   await page.getByRole("button", { name: "我的路书", exact: true }).click();
   await expect(page.locator(".library-recent")).toBeVisible();
-  await page.getByLabel("同行邀请口令").fill("invite-code");
   await page.getByRole("button", { name: "加入同行", exact: true }).click();
+  const inviteCode = "a".repeat(41) + "_-";
+  await page.getByLabel("同行邀请口令").fill(inviteCode);
+  await page.getByRole("button", { name: "确认加入", exact: true }).click();
   await expect(page).toHaveURL(/\/trip\/edit\/71$/);
-  expect(joined).toEqual({ inviteCode: "invite-code" });
+  expect(joined).toEqual({ inviteCode });
 });
 
 test("Traveler Dashboard shows identity, cancels edits and persists original profile fields", async ({
