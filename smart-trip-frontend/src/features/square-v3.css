@@ -897,3 +897,14 @@ button:disabled {
 .square-page .square-search input {
   min-height: 0;
 }
+
+.text-link[type="button"] {
+  border: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+.hot-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}

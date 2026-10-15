@@ -40,7 +40,44 @@ function search(reset = true) {
     },
   );
 }
-onMounted(() => search());
+const browsingAll = ref(false);
+const popularPosts = ref<Post[]>([]);
+const {
+  loading: popularBusy,
+  error: popularError,
+  query: popularQuery,
+  cancel: cancelPopular,
+} = useLatestQuery();
+const isExplore = computed(() => !browsingAll.value && !activeSearch.value);
+const popularAllZero = computed(
+  () =>
+    popularPosts.value.length > 0 &&
+    popularPosts.value.every((post) => post.likeCount === 0),
+);
+function loadPopular() {
+  popularPosts.value = [];
+  void popularQuery(
+    (signal) =>
+      api<PostPage>("/community/posts?sort=popular", "GET", undefined, signal),
+    (result) => {
+      popularPosts.value = result.items;
+    },
+  );
+}
+function submitSearch() {
+  browsingAll.value = Boolean(q.value.trim());
+  search();
+  if (isExplore.value) loadPopular();
+  else cancelPopular();
+}
+function showAllLatest() {
+  browsingAll.value = true;
+  cancelPopular();
+}
+onMounted(() => {
+  search();
+  loadPopular();
+});
 
 const s = useSession();
 const router = useRouter();
@@ -48,10 +85,14 @@ const backgroundFailed = ref(false);
 const avatarFailed = ref(false);
 const queryInput = ref<HTMLInputElement | null>(null);
 const featuredPosts = computed(() => posts.value.slice(0, 3));
-const compactPosts = computed(() => posts.value.slice(3));
+const compactPosts = computed(() =>
+  browsingAll.value ? posts.value.slice(3) : [],
+);
 function clearSearch() {
   q.value = "";
+  browsingAll.value = false;
   search();
+  loadPopular();
   queryInput.value?.focus();
 }
 function logout() {
@@ -114,7 +155,7 @@ function logout() {
           <span>把世界变成</span><span>你的下一段旅程</span>
         </h1>
         <p>探索旅行灵感广场，沿着真实路书找到自己的方向。</p>
-        <form class="square-search" @submit.prevent="search()">
+        <form class="square-search" @submit.prevent="submitSearch">
           <HomeIcon name="pin" /><input
             ref="queryInput"
             v-model="q"
@@ -153,12 +194,22 @@ function logout() {
             </h2>
             <p>从一段旅程，找到下一次出发的方向。</p>
           </div>
-          <a
-            v-if="compactPosts.length"
+          <button
+            v-if="isExplore && posts.length"
+            type="button"
             class="text-link"
-            href="#square-more-stories"
-            >更多旅行灵感<HomeIcon name="arrow"
-          /></a>
+            @click="showAllLatest"
+          >
+            查看更多最新路书<HomeIcon name="arrow" />
+          </button>
+          <button
+            v-else-if="!isExplore"
+            type="button"
+            class="text-link"
+            @click="clearSearch"
+          >
+            返回广场推荐<HomeIcon name="arrow" />
+          </button>
         </div>
         <div v-if="error" class="request-error" role="alert">
           <p>{{ error }}</p>
@@ -210,7 +261,9 @@ function logout() {
       >
         <div class="section-heading">
           <div>
-            <h2 id="more-heading">旅行灵感 · 发现更多目的地</h2>
+            <h2 id="more-heading">
+              {{ activeSearch ? "更多搜索结果" : "更多最新路书" }}
+            </h2>
             <p>在旅行者的故事里，找到下一次出发的理由。</p>
           </div>
         </div>
@@ -223,7 +276,42 @@ function logout() {
           />
         </div>
       </section>
-      <div v-if="hasMore" class="square-pagination">
+      <section
+        v-if="isExplore"
+        class="stories-section continuation"
+        id="square-popular"
+        aria-labelledby="popular-heading"
+        :aria-busy="popularBusy"
+      >
+        <div class="section-heading">
+          <div>
+            <h2 id="popular-heading">最近热门的路书</h2>
+            <p>近30天发布 · 按点赞数排序</p>
+          </div>
+        </div>
+        <p v-if="popularBusy" class="loading-state" role="status">
+          正在加载热门路书…
+        </p>
+        <div v-else-if="popularError" class="request-error" role="alert">
+          <p>{{ popularError }}</p>
+          <button type="button" @click="loadPopular">重新加载热门路书</button>
+        </div>
+        <template v-else-if="popularPosts.length"
+          ><p v-if="popularAllZero" class="hot-note">近期路书暂未收到点赞。</p>
+          <div class="square-compact-stories square-popular-stories">
+            <SquareStoryCard
+              v-for="post in popularPosts"
+              :key="post.id"
+              :post="post"
+              compact
+            /></div
+        ></template>
+        <div v-else class="empty-state">
+          <h3>近30天还没有公开路书</h3>
+          <p>新的旅行分享将在这里与你相遇。</p>
+        </div>
+      </section>
+      <div v-if="browsingAll && hasMore" class="square-pagination">
         <button type="button" :disabled="busy" @click="search(false)">
           {{ busy ? "加载中…" : "查看更多" }}
         </button>

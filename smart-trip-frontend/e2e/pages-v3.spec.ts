@@ -41,6 +41,13 @@ async function fixture(
   );
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
+    if (
+      url.pathname === "/api/community/posts" &&
+      url.searchParams.get("sort") === "popular"
+    )
+      return route.fulfill({
+        json: { code: 200, data: { items: [], hasMore: false } },
+      });
     if (handle && (await handle(route, url))) return;
     let data: unknown;
     switch (url.pathname) {

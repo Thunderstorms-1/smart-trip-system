@@ -1,6 +1,7 @@
 package com.smarttrip.controller;
 
 import com.smarttrip.common.Result;
+import com.smarttrip.common.BusinessException;
 import com.smarttrip.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,13 @@ public class CommunityController {
   public Result<?> feed(
       @RequestParam(defaultValue = "") String q,
       @RequestParam(required = false) Long author,
-      @RequestParam(required = false) String cursor) {
-    return Result.success(social.feed(q, author, cursor));
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "recent") String sort) {
+    return Result.success(switch (sort) {
+      case "recent" -> social.feed(q, author, cursor);
+      case "popular" -> social.popular(q, author, cursor);
+      default -> throw new BusinessException(400, "路书排序方式无效");
+    });
   }
 
   @GetMapping("/posts/{id}")

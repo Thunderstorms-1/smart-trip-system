@@ -48,7 +48,11 @@ async function fixture(
   // Every API call is fulfilled locally; these tests never reach a backend/provider.
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname === "/api/community/posts") return feed(route, url);
+    if (url.pathname === "/api/community/posts") {
+      if (url.searchParams.get("sort") === "popular")
+        return respond(route, { items: [], hasMore: false });
+      return feed(route, url);
+    }
     if (url.pathname === "/api/capabilities")
       return route.fulfill({
         json: { code: 200, data: { ai: false, geo: false, map: false } },
@@ -100,13 +104,17 @@ test("Square shows loading and honest empty state, then recovers from an API err
     await expect(
       page.getByRole("heading", { name: title, exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("正在加载路书…");
+    await expect(
+      page.locator("#square-stories").getByRole("status"),
+    ).toHaveText("正在加载路书…");
     await expect(cards(page)).toHaveCount(0);
     pending.resolve();
     await expect(
       page.getByRole("heading", { name: "等待下一段真实旅程", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(
+      page.locator("#square-stories").getByRole("status"),
+    ).toHaveCount(0);
     await expect(cards(page)).toHaveCount(0);
 
     await page.getByLabel("搜索城市或路书", { exact: true }).fill("杭州");
@@ -135,6 +143,10 @@ for (const count of [1, 2, 7]) {
     const items = Array.from({ length: count }, (_, index) => post(index + 1));
     await fixture(page, (route) => respond(route, { items, hasMore: false }));
     await page.goto("/square");
+    if (count > 3)
+      await page
+        .getByRole("button", { name: "查看更多最新路书", exact: true })
+        .click();
     await expect(cards(page)).toHaveCount(count);
     await expect(
       page.locator(".square-featured-stories").getByTestId("square-story"),
@@ -343,7 +355,9 @@ test("Square ignores a superseded response even when transport cancellation is u
     await expect(cards(page).getByRole("heading")).toHaveText(newer.title);
     await expect(page.getByText(older.title, { exact: true })).toHaveCount(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
-    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(
+      page.locator("#square-stories").getByRole("status"),
+    ).toHaveCount(0);
   } finally {
     pending.resolve();
   }
@@ -363,7 +377,7 @@ test("Square mobile keeps auth and navigation usable and restores other route sh
     true,
   );
   await page.goto("/square");
-  await expect(cards(page)).toHaveCount(7);
+  await expect(cards(page)).toHaveCount(3);
   await expect(page.getByRole("main")).toHaveCount(1);
   const nav = page.getByRole("navigation", { name: "主导航", exact: true });
   for (const [name, href] of [

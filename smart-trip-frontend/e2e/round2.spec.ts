@@ -32,6 +32,13 @@ async function fixture(
   );
   await page.route("**/api/**", async (route) => {
     const pathname = new URL(route.request().url()).pathname;
+    if (
+      pathname === "/api/community/posts" &&
+      new URL(route.request().url()).searchParams.get("sort") === "popular"
+    )
+      return route.fulfill({
+        json: { code: 200, data: { items: [], hasMore: false } },
+      });
     if (handle && (await handle(route, pathname))) return;
     let data: unknown = {};
     if (pathname === "/api/user/info") data = { id: 1, nickname: "测试游客" };
@@ -169,6 +176,9 @@ test("failed load-more retries the same cursor and deduplicates cards", async ({
     return true;
   });
   await page.goto("/square");
+  await page
+    .getByRole("button", { name: "查看更多最新路书", exact: true })
+    .click();
   await page.getByRole("button", { name: "查看更多" }).click();
   await expect(page.getByText("翻页暂时失败")).toBeVisible();
   await page.getByRole("button", { name: "查看更多" }).click();

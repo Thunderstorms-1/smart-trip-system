@@ -133,6 +133,27 @@ public class CommunityService {
     return new PostPageDTO(items, next, more);
   }
 
+  public PostPageDTO popular(String q, Long author, String cursor) {
+    String search = q == null ? "" : q.trim();
+    if (search.length() > 100) throw new BusinessException(400, "搜索词过长");
+    if (cursor != null && !cursor.isBlank())
+      throw new BusinessException(400, "热门路书不支持翻页，请重新加载榜单");
+    String sql =
+        "SELECT " + columns()
+            + " FROM square_post p JOIN sys_user u ON u.id=p.user_id WHERE p.is_deleted=0"
+            + " AND u.is_deleted=0 AND u.status=1"
+            + " AND p.create_time>=DATE_SUB(NOW(), INTERVAL 30 DAY) AND p.create_time<=NOW()"
+            + " AND (p.title LIKE ? OR p.destination LIKE ?)";
+    List<Object> args = new ArrayList<>(List.of("%" + search + "%", "%" + search + "%"));
+    if (author != null) {
+      sql += " AND p.user_id=?";
+      args.add(author);
+    }
+    sql += " ORDER BY likeCount DESC,p.create_time DESC,p.id DESC LIMIT 4";
+    var items = db.query(sql, BeanPropertyRowMapper.newInstance(PostSummaryDTO.class), args.toArray());
+    return new PostPageDTO(items, null, false);
+  }
+
   private void active(Long id) {
     if (db.queryForObject(
             "SELECT COUNT(*) FROM square_post p JOIN sys_user u ON u.id=p.user_id WHERE p.id=? AND"
