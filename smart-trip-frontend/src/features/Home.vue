@@ -86,10 +86,15 @@ const current = computed(() => seasons[activeSeason.value] || seasons[0]);
 </script>
 
 <template>
-  <div ref="root" class="season-journey" data-motion="pending">
-    <h1 class="season-sr-only">四季流转 · A Journey Through Seasons</h1>
+  <div
+    ref="root"
+    class="season-journey"
+    data-motion="pending"
+    :data-season="current.key"
+  >
+    <h1 class="season-sr-only">让旅程随季节展开 · SmartTrip</h1>
 
-    <div ref="stage" class="season-stage" aria-label="四季流转，向下滚动探索">
+    <div ref="stage" class="season-stage" aria-label="春夏秋冬，向下滚动探索">
       <div class="season-scenes">
         <section
           v-for="(season, index) in seasons"
@@ -100,28 +105,30 @@ const current = computed(() => seasons[activeSeason.value] || seasons[0]);
           :class="'season-scene--' + season.key"
           :aria-labelledby="'season-title-' + season.key"
         >
-          <img
-            v-if="!failedPhotos[season.key]"
-            data-season-photo
-            class="season-photo"
-            :src="season.image"
-            :srcset="`${season.compact} 960w, ${season.image} ${season.width}w`"
-            sizes="(max-aspect-ratio: 3/4) 150vw, 100vw"
-            :width="season.width"
-            :height="season.height"
-            :alt="season.alt"
-            :loading="index === 0 ? 'eager' : 'lazy'"
-            :fetchpriority="index === 0 ? 'high' : 'low'"
-            decoding="async"
-            @error="failedPhotos[season.key] = true"
-          />
-          <div class="season-scene-shade" aria-hidden="true" />
-          <div
-            data-season-atmosphere
-            class="season-atmosphere"
-            aria-hidden="true"
-          >
-            <i /><i /><i />
+          <div class="season-landscape">
+            <img
+              v-if="!failedPhotos[season.key]"
+              data-season-photo
+              class="season-photo"
+              :src="season.image"
+              :srcset="`${season.compact} 960w, ${season.image} ${season.width}w`"
+              sizes="(max-aspect-ratio: 3/4) 150vw, 100vw"
+              :width="season.width"
+              :height="season.height"
+              :alt="season.alt"
+              :loading="index === 0 ? 'eager' : 'lazy'"
+              :fetchpriority="index === 0 ? 'high' : 'low'"
+              decoding="async"
+              @error="failedPhotos[season.key] = true"
+            />
+            <div class="season-scene-shade" aria-hidden="true" />
+            <div
+              data-season-atmosphere
+              class="season-atmosphere"
+              aria-hidden="true"
+            >
+              <i /><i /><i />
+            </div>
           </div>
           <span data-season-glyph class="season-glyph" aria-hidden="true">{{
             season.glyph
@@ -136,7 +143,17 @@ const current = computed(() => seasons[activeSeason.value] || seasons[0]);
                 <span data-season-line>{{ line }}</span>
               </span>
             </h2>
-            <p class="season-story">{{ season.note }}</p>
+            <p class="season-story">
+              <span class="season-note-script"
+                ><span
+                  v-for="(phrase, phraseIndex) in season.note.match(
+                    /[^。]+。?/g,
+                  ) || [season.note]"
+                  :key="phraseIndex"
+                  >{{ phrase }}</span
+                ></span
+              >
+            </p>
           </div>
           <div class="season-scene-caption" aria-hidden="true">
             <span>{{ season.english }}</span>
@@ -150,13 +167,6 @@ const current = computed(() => seasons[activeSeason.value] || seasons[0]);
             这一季的影像暂时未能加载，仍可继续探索或开始规划。
           </p>
         </section>
-      </div>
-
-      <div class="season-wayfinding">
-        <span class="season-wayfinding-name">四季流转</span>
-        <span class="season-wayfinding-english" lang="en"
-          >A Journey Through Seasons</span
-        >
       </div>
 
       <nav class="season-rail" aria-label="选择季节">

@@ -1,4 +1,12 @@
 @font-face {
+  font-family: "SmartTripSeasonNotes";
+  src: url("../assets/seasons/season-notes.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "SmartTripSeasons";
   src: url("../assets/seasons/season-display.woff2") format("woff2");
   font-weight: 400;
@@ -9,18 +17,18 @@
 /* The existing Shell owns navigation and session state. Only Home wears this skin. */
 .v3-shell {
   --ink: #142e3b;
-  --muted: #b8c8c9;
   --accent: #c84b17;
   --paper: #fff;
   --season-orange: #f39a64;
   position: relative;
   min-height: 100vh;
-  background: #12292d;
-  color: #f8f8f0;
   font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
   font-synthesis: none;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  background: #fffaf1;
+  color: #203f50;
+  --muted: #526c79;
 }
 .v3-shell *,
 .v3-shell *::before,
@@ -40,8 +48,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 .v3-shell :is(a, button):focus-visible {
-  outline: 2px solid #ffc69c;
   outline-offset: 5px;
+  outline: 2px solid #a43c13;
 }
 .v3-shell ::selection {
   color: #172e34;
@@ -94,16 +102,49 @@
   min-height: 76px;
   margin: 0;
   padding: 12px 26px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 20px;
-  background: linear-gradient(
-    110deg,
-    rgba(255, 255, 255, 0.8),
-    rgba(245, 250, 255, 0.68)
-  );
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
   color: #122d3d;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.72),
+    rgba(245, 252, 255, 0.6) 52%,
+    rgba(255, 255, 255, 0.68)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 1px 0 0 rgba(255, 255, 255, 0.44),
+    inset 0 -1px 0 rgba(224, 244, 255, 0.46),
+    0 7px 24px rgba(18, 45, 61, 0.07);
+  -webkit-backdrop-filter: blur(5px) saturate(1.12) brightness(1.16);
+  backdrop-filter: blur(5px) saturate(1.12) brightness(1.16);
+  isolation: isolate;
+}
+.v3-shell .home-header::before,
+.v3-shell .home-header::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.v3-shell .home-header::before {
+  background: linear-gradient(
+    112deg,
+    rgba(255, 255, 255, 0.46),
+    transparent 24%,
+    transparent 72%,
+    rgba(255, 255, 255, 0.12)
+  );
+}
+.v3-shell .home-header::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.24),
+    transparent 46%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .v3-shell .brand {
   display: inline-flex;
@@ -208,7 +249,7 @@
 
 .v3-shell .season-journey {
   --season-progress: 0;
-  background: #142e32;
+  background: #edf6fb;
 }
 .v3-shell .season-stage {
   position: relative;
@@ -218,6 +259,51 @@
   width: 100%;
   overflow: clip;
   color: #fffdf4;
+  background: #edf6fb;
+}
+.v3-shell .season-landscape {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  isolation: isolate;
+  pointer-events: none;
+}
+.v3-shell .season-scene--winter .season-landscape {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 73%,
+    rgba(0, 0, 0, 0.72) 85%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 73%,
+    rgba(0, 0, 0, 0.72) 85%,
+    transparent 100%
+  );
+}
+.v3-shell .season-stage :is(a, button):focus-visible {
+  outline-color: #ffe3c7;
+}
+.v3-shell .season-journey[data-season="winter"] .season-bottom-bar {
+  color: #234757;
+}
+.v3-shell .season-journey[data-season="winter"] .season-scroll-cue small {
+  color: #365a6b;
+}
+.v3-shell .season-journey[data-season="winter"] .season-scroll-line {
+  background: linear-gradient(transparent, #365a6b);
+}
+.v3-shell
+  .season-journey[data-season="winter"]
+  .season-bottom-bar
+  :is(a, button):focus-visible {
+  outline-color: #a43c13;
+}
+.v3-shell .season-scene--winter .season-scene-caption {
+  color: #234757;
 }
 .v3-shell .season-scenes {
   position: relative;
@@ -245,7 +331,7 @@
   background: #35463f;
 }
 .v3-shell .season-scene--winter {
-  background: #354a5b;
+  background: transparent;
 }
 .v3-shell .season-photo {
   position: absolute;
@@ -344,12 +430,35 @@
   margin-left: 0.5em;
 }
 .v3-shell .season-copy .season-story {
-  max-width: 31ch;
   margin-top: 25px;
-  font-size: clamp(14px, 1.15vw, 18px);
-  line-height: 1.9;
   color: #fffef8;
   text-wrap: pretty;
+  max-width: 26em;
+  font-family: "SmartTripSeasonNotes", "KaiTi", serif;
+  font-size: clamp(20px, 1.5vw, 26px);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0.035em;
+  text-shadow: 0 1px 7px rgba(0, 15, 20, 0.25);
+}
+.v3-shell .season-note-script {
+  display: inline-block;
+  transform: rotate(-1.5deg);
+  transform-origin: 0 50%;
+}
+.v3-shell .season-note-script > span {
+  display: block;
+}
+.v3-shell .season-note-script > span + span {
+  margin-left: 0.9em;
+}
+.v3-shell .season-scene-caption > span:last-child {
+  font-family: "SmartTripSeasonNotes", "KaiTi", serif;
+  font-size: clamp(19px, 1.7vw, 28px);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  transform: rotate(-3deg);
+  text-align: right;
 }
 .v3-shell .season-scene--summer .season-copy {
   left: 47%;
@@ -507,23 +616,6 @@
   font-size: 12px;
   color: #fff;
 }
-.v3-shell .season-wayfinding {
-  position: absolute;
-  top: 136px;
-  left: 6.4%;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  font-size: 12px;
-  text-shadow: 0 1px 8px rgba(0, 15, 20, 0.5);
-}
-.v3-shell .season-wayfinding-name {
-  letter-spacing: 0.22em;
-}
-.v3-shell .season-wayfinding-english {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
 .v3-shell .season-rail {
   position: absolute;
   top: 42%;
@@ -568,8 +660,9 @@
   max-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  font-size: 10px;
   transition: max-width 0.25s;
+  font-family: "SmartTripSeasonNotes", "KaiTi", serif;
+  font-size: 16px;
 }
 .v3-shell .season-rail :is(.is-current, button:hover, button:focus-visible) {
   color: #ffd0af;
@@ -594,8 +687,10 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  min-width: 190px;
-  font-size: 13px;
+  min-width: 230px;
+  font-family: "SmartTripSeasonNotes", "KaiTi", serif;
+  font-size: 24px;
+  letter-spacing: 0.045em;
 }
 .v3-shell .season-scroll-line {
   height: 36px;
@@ -604,9 +699,10 @@
 }
 .v3-shell .season-scroll-cue small {
   display: block;
-  margin-top: 3px;
-  font-size: 10px;
   color: #e0e8e6;
+  font-size: 17px;
+  line-height: 1.55;
+  margin-top: 5px;
 }
 .v3-shell .season-action-dock {
   position: relative;
@@ -672,12 +768,41 @@
   position: relative;
   min-height: 82svh;
   padding: 120px 9% 70px;
-  background: #12292d;
   scroll-margin-top: 115px;
+  background: #edf6fb url("../assets/seasons/journey-paper.webp") center / cover
+    no-repeat;
+  color: #203f50;
+  isolation: isolate;
+}
+
+.v3-shell .season-closing::before,
+.v3-shell .season-closing::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  height: clamp(90px, 15vh, 160px);
+}
+
+.v3-shell .season-closing::before {
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    #edf6fb,
+    rgba(237, 246, 251, 0.62) 32%,
+    transparent
+  );
+}
+
+.v3-shell .season-closing::after {
+  bottom: 0;
+  background: linear-gradient(0deg, #fffaf1, transparent);
 }
 .v3-shell .season-closing-intro > p {
-  color: #d2dedb;
   font-size: 14px;
+  color: #486574;
 }
 .v3-shell .season-closing h2 {
   margin-top: 28px;
@@ -688,7 +813,7 @@
   letter-spacing: -0.025em;
 }
 .v3-shell .season-closing h2 span {
-  color: #f3a170;
+  color: #b74a1e;
 }
 .v3-shell .season-closing-actions {
   display: flex;
@@ -716,8 +841,8 @@
   align-items: center;
   min-height: 44px;
   padding-block: 6px;
-  color: #e0e9e6;
   font-size: 13px;
+  color: #365364;
 }
 .v3-shell .season-explore:hover {
   text-decoration: underline;
@@ -729,12 +854,12 @@
   gap: 24px;
   margin-top: 80px;
   padding: 27px 0;
-  border-block: 1px solid rgba(223, 241, 234, 0.19);
+  border-block: 1px solid rgba(71, 104, 119, 0.23);
 }
 .v3-shell .season-return > .icon {
   width: 28px;
   height: 28px;
-  color: #f2a172;
+  color: #b54b22;
 }
 .v3-shell .season-return > div {
   flex: 1;
@@ -747,8 +872,8 @@
 .v3-shell .season-return p {
   margin-top: 5px;
   font-size: 12px;
-  color: #d0ded8;
   overflow-wrap: anywhere;
+  color: #526b76;
 }
 .v3-shell .season-return > a {
   display: inline-flex;
@@ -759,15 +884,15 @@
   font-size: 13px;
 }
 .v3-shell .season-return > a:hover {
-  color: #ffbd91;
+  color: #9e3c16;
 }
 .v3-shell .season-retry {
   padding: 8px 0;
   border: 0;
   background: none;
   text-decoration: underline;
-  color: #ffbd91;
   font-size: 13px;
+  color: #984222;
 }
 .v3-shell .home-footer {
   display: flex;
@@ -775,7 +900,8 @@
   justify-content: space-between;
   gap: 30px;
   padding: 32px 6.4% 38px;
-  background: #12292d;
+  background: #fffaf1;
+  color: #203f50;
 }
 .v3-shell .home-footer .brand {
   font-size: 22px;
@@ -789,7 +915,7 @@
 }
 .v3-shell .home-footer > span {
   font-size: 12px;
-  color: #c4d4ce;
+  color: #526b76;
 }
 .v3-shell .home-footer > a:last-child {
   display: inline-flex;
@@ -821,13 +947,7 @@
 }
 .v3-shell
   .season-journey:is([data-motion="reduced"], [data-motion="static"])
-  :is(
-    .season-wayfinding,
-    .season-rail,
-    .season-scroll-cue,
-    .season-atmosphere,
-    .season-skip
-  ) {
+  :is(.season-rail, .season-scroll-cue, .season-atmosphere, .season-skip) {
   display: none;
 }
 .v3-shell
@@ -837,7 +957,8 @@
   inset: auto;
   justify-content: center;
   padding: 22px 20px;
-  background: #12292d;
+  background: #edf6fb;
+  color: #234757;
 }
 
 @media (max-width: 1100px) {
@@ -877,7 +998,7 @@
   }
   .v3-shell .season-scroll-cue {
     min-width: 0;
-    font-size: 12px;
+    font-size: 21px;
   }
   .v3-shell .season-skip {
     display: none;
@@ -931,14 +1052,6 @@
   .v3-shell .season-stage {
     min-height: 560px;
   }
-  .v3-shell .season-wayfinding {
-    top: 149px;
-    left: 24px;
-    gap: 12px;
-  }
-  .v3-shell .season-wayfinding-english {
-    font-size: 9px;
-  }
   .v3-shell .season-copy {
     left: 24px;
     right: 24px;
@@ -950,8 +1063,9 @@
   }
   .v3-shell .season-copy .season-story {
     margin-top: 21px;
-    max-width: 25ch;
-    font-size: 12px;
+    font-size: 19px;
+    max-width: 100%;
+    line-height: 1.55;
   }
   .v3-shell .season-scene--spring .season-photo {
     object-position: 67% 50%;
@@ -1112,14 +1226,21 @@
   .v3-shell .home-footer > a:last-child {
     width: 100%;
     justify-content: space-between;
-    border-top: 1px solid rgba(223, 241, 234, 0.17);
     padding-top: 18px;
+    border-top: 1px solid rgba(71, 104, 119, 0.2);
   }
   .v3-shell .season-photo-error {
     bottom: 20%;
     left: 24px;
     right: 24px;
     font-size: 10px;
+  }
+  .v3-shell .season-scene-caption > span:last-child {
+    font-size: 18px;
+    max-width: 70%;
+  }
+  .v3-shell .season-closing {
+    background-image: url("../assets/seasons/journey-paper-compact.webp");
   }
 }
 @media (max-height: 580px) {
@@ -1131,9 +1252,6 @@
     min-height: 64px;
     padding-block: 6px;
   }
-  .v3-shell .season-wayfinding {
-    display: none;
-  }
   .v3-shell .season-copy {
     bottom: 24%;
   }
@@ -1142,7 +1260,7 @@
   }
   .v3-shell .season-copy .season-story {
     margin-top: 12px;
-    font-size: 12px;
+    font-size: 18px;
   }
   .v3-shell .season-glyph {
     font-size: 120px;
