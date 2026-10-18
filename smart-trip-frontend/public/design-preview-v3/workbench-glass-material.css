@@ -1,0 +1,524 @@
+/* Static glass study. The production header and workspace geometry are untouched. */
+.workbench-v3-shell.glass-preview,
+.wb-modal.glass-preview {
+  --glass-fg: #f8fcff;
+  --glass-muted: #e0ecf2;
+  --glass-line: rgba(239, 250, 255, 0.24);
+  --glass-hover: rgba(255, 255, 255, 0.15);
+  --glass-focus: #d6fcf2;
+  --glass-shadow:
+    0 10px 28px rgba(3, 15, 26, 0.17), 0 2px 7px rgba(4, 17, 28, 0.08);
+  --glass-text-shadow:
+    0 1px 3px rgba(0, 13, 24, 0.7), 0 2px 10px rgba(0, 13, 24, 0.19);
+}
+
+/* The low-blur body keeps the aurora, stars and mountain edges legible through it. */
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-tabs,
+    .wb-day-rail,
+    .wb-timeline-panel,
+    .wb-context-region,
+    .wb-geo-controls,
+    .wb-canvas-weather,
+    .wb-map-source,
+    .wb-map-navigation button,
+    .wb-more-content,
+    .wb-tool-panel,
+    .wb-inspector-dialog,
+    .glass-insight-card,
+    .glass-weather-card,
+    .glass-ai-card,
+    .glass-demo-chip,
+    .glass-map-mode,
+    .glass-place-filter
+  ),
+.wb-modal.glass-preview {
+  color: var(--glass-fg);
+  background: linear-gradient(
+    128deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.085) 38%,
+    rgba(255, 255, 255, 0.08) 72%,
+    rgba(255, 255, 255, 0.115) 100%
+  );
+  border: 1px solid;
+  border-color: rgba(255, 255, 255, 0.62) rgba(255, 255, 255, 0.2)
+    rgba(236, 248, 255, 0.25) rgba(255, 255, 255, 0.42);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 1px 0 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 rgba(229, 249, 255, 0.1);
+  -webkit-backdrop-filter: blur(3px) saturate(1.16);
+  backdrop-filter: blur(3px) saturate(1.16);
+  text-shadow: var(--glass-text-shadow);
+  isolation: isolate;
+}
+
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-tabs,
+    .wb-day-rail,
+    .wb-timeline-panel,
+    .wb-inspector-dialog,
+    .wb-map-navigation button
+  ) {
+  position: relative;
+}
+
+/* Long, faint light falloff is reflected on the glass, not painted on the scene. */
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-tabs,
+    .wb-day-rail,
+    .wb-timeline-panel,
+    .wb-context-region,
+    .wb-geo-controls,
+    .wb-canvas-weather,
+    .wb-map-source,
+    .wb-map-navigation button,
+    .wb-more-content,
+    .wb-tool-panel,
+    .wb-inspector-dialog,
+    .glass-insight-card,
+    .glass-weather-card,
+    .glass-ai-card,
+    .glass-demo-chip,
+    .glass-map-mode,
+    .glass-place-filter
+  )::before,
+.wb-modal.glass-preview::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    107deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.055) 12%,
+    transparent 25%,
+    transparent 68%,
+    rgba(255, 255, 255, 0.035) 84%,
+    transparent 100%
+  );
+}
+
+/* A restrained top-left glint and a quieter opposite edge describe thickness. */
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-tabs,
+    .wb-day-rail,
+    .wb-timeline-panel,
+    .wb-context-region,
+    .wb-geo-controls,
+    .wb-canvas-weather,
+    .wb-map-source,
+    .wb-map-navigation button,
+    .wb-more-content,
+    .wb-tool-panel,
+    .wb-inspector-dialog,
+    .glass-insight-card,
+    .glass-weather-card,
+    .glass-ai-card,
+    .glass-demo-chip,
+    .glass-map-mode,
+    .glass-place-filter
+  )::after,
+.wb-modal.glass-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 0 0, rgba(255, 255, 255, 0.3), transparent 30%),
+    radial-gradient(
+      ellipse at 100% 100%,
+      rgba(255, 255, 255, 0.08),
+      transparent 23%
+    );
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.18),
+    inset -1px -1px 0 rgba(225, 248, 255, 0.06);
+}
+
+/* The Inspector wrapper must not put a second sheet behind its dialog. */
+.workbench-v3-shell.glass-preview .wb-inspector-region {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.workbench-v3-shell.glass-preview .wb-inspector-dialog {
+  border-radius: inherit;
+}
+
+/* Remove local opaque foundations; reading and editing layers below stay stable. */
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-timeline-heading,
+    .wb-timeline-content,
+    .wb-timeline-overview,
+    .wb-timeline-nodes,
+    .wb-timeline-footer,
+    .wb-geo-controls > header,
+    .wb-inspector-heading,
+    .wb-inspector-footer,
+    .wb-tool-panel > .paper,
+    .wb-adjustment-inline > .paper
+  ) {
+  background: transparent;
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-timeline-overview,
+    .wb-analysis-link,
+    .wb-inspector-heading,
+    .wb-inspector-footer,
+    .wb-geo-actions,
+    .wb-insight-dimensions > div,
+    .wb-insight-findings article
+  ) {
+  border-color: var(--glass-line);
+}
+.workbench-v3-shell.glass-preview .wb-timeline-footer {
+  border-top: 1px solid var(--glass-line);
+}
+.workbench-v3-shell.glass-preview .wb-geo-controls > header {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+/* Existing explicit dark-ink labels need their glass equivalent locally. */
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-tabs > button,
+    .wb-rail-caption,
+    .wb-day-button,
+    .wb-timeline-heading p,
+    .wb-timeline-overview,
+    .wb-trip-details,
+    .wb-node-select,
+    .wb-node-meta,
+    .wb-node-cost,
+    .wb-lock,
+    .wb-timeline-footer p,
+    .wb-empty-day p,
+    .wb-drawer-toggle,
+    .wb-trip-overview dt,
+    .wb-overview-note,
+    .wb-analysis-link,
+    .wb-insight-score,
+    .wb-insight-score small,
+    .wb-insight-state,
+    .wb-insight-caption,
+    .wb-insight-dimensions p,
+    .wb-insight-findings details,
+    .wb-insight-target,
+    .wb-inspector-heading p,
+    .wb-inspector-footer p,
+    .wb-geo-controls .muted,
+    .wb-canvas-weather,
+    .wb-map-navigation button,
+    .wb-map-source
+  ) {
+  color: var(--glass-fg);
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-rail-caption,
+    .wb-timeline-heading p,
+    .wb-timeline-overview,
+    .wb-trip-details,
+    .wb-node-meta,
+    .wb-node-cost,
+    .wb-timeline-footer p,
+    .wb-empty-day p,
+    .wb-trip-overview dt,
+    .wb-overview-note,
+    .wb-insight-score small,
+    .wb-insight-state,
+    .wb-insight-caption,
+    .wb-insight-dimensions p,
+    .wb-insight-findings details,
+    .wb-inspector-heading p,
+    .wb-inspector-footer p,
+    .wb-geo-controls .muted
+  ) {
+  color: var(--glass-muted);
+}
+.workbench-v3-shell.glass-preview .wb-tabs > button.active {
+  color: #fff;
+  box-shadow: inset 0 -2px rgba(234, 255, 248, 0.95);
+}
+.workbench-v3-shell.glass-preview .wb-day-button.active {
+  background: rgba(7, 42, 52, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 2px 6px rgba(3, 19, 29, 0.12);
+  color: #fff;
+}
+.workbench-v3-shell.glass-preview .wb-day-button:hover:not(.active),
+.workbench-v3-shell.glass-preview .wb-node-select:hover {
+  background: var(--glass-hover);
+}
+.workbench-v3-shell.glass-preview .is-selected > .wb-node-select {
+  background: rgba(14, 47, 55, 0.24);
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 255, 252, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.workbench-v3-shell.glass-preview :is(.wb-add-day, .wb-add-node) {
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-shadow: var(--glass-text-shadow);
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-more-content .secondary,
+    .wb-geo-actions button,
+    .wb-geo-controls .form-error button,
+    .wb-tool-heading .secondary,
+    .wb-inspector-heading .secondary
+  ) {
+  color: #f9fdff;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  text-shadow: var(--glass-text-shadow);
+}
+.workbench-v3-shell.glass-preview .wb-insight-dimensions progress,
+.workbench-v3-shell.glass-preview
+  .wb-insight-dimensions
+  progress::-webkit-progress-bar {
+  background: rgba(245, 255, 255, 0.17);
+}
+.workbench-v3-shell.glass-preview
+  .wb-insight-dimensions
+  progress::-webkit-progress-value {
+  background: #caeee2;
+}
+.workbench-v3-shell.glass-preview
+  .wb-insight-dimensions
+  progress::-moz-progress-bar {
+  background: #caeee2;
+}
+
+/* Dense content has a quiet reading layer inside the clear external frame. */
+.workbench-v3-shell.glass-preview
+  :is(.glass-reading-surface, .wb-node-fields, .wb-inspector-content),
+.wb-modal.glass-preview .glass-reading-surface {
+  color: #f4faff;
+  background: rgba(13, 37, 49, 0.72);
+  text-shadow: none;
+  border-color: rgba(224, 247, 255, 0.18);
+}
+.workbench-v3-shell.glass-preview .wb-inspector-content .wb-node-fields {
+  background: transparent;
+}
+.workbench-v3-shell.glass-preview
+  :is(.glass-reading-surface, .wb-node-fields, .wb-inspector-content)
+  :is(label, .muted, .wb-field-note, .wb-text-button),
+.wb-modal.glass-preview .glass-reading-surface :is(label, .muted) {
+  color: #dbe9ef;
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .glass-reading-surface,
+    .wb-node-fields,
+    .wb-inspector-content,
+    .wb-trip-details
+  )
+  :is(input, textarea, select),
+.wb-modal.glass-preview :is(input, textarea, select) {
+  color: #173b4d;
+  background: rgba(248, 253, 255, 0.94);
+  border-color: rgba(222, 239, 246, 0.72);
+  text-shadow: none;
+  caret-color: #174c55;
+}
+.workbench-v3-shell.glass-preview
+  :is(.glass-reading-surface, .wb-node-fields, .wb-inspector-content)
+  :is(input, textarea)::placeholder,
+.wb-modal.glass-preview :is(input, textarea)::placeholder {
+  color: #56717e;
+}
+.workbench-v3-shell.glass-preview
+  :is(.wb-tool-panel > .paper, .wb-adjustment-inline > .paper) {
+  box-shadow: none;
+}
+
+/* Small preview modules use the same material, with role-specific light levels. */
+.workbench-v3-shell.glass-preview
+  :is(.glass-insight-card, .glass-weather-card, .glass-ai-card) {
+  overflow: hidden;
+  border-radius: 14px;
+}
+.workbench-v3-shell.glass-preview .glass-weather-card {
+  -webkit-backdrop-filter: blur(2px) saturate(1.2);
+  backdrop-filter: blur(2px) saturate(1.2);
+}
+.workbench-v3-shell.glass-preview
+  :is(.glass-demo-chip, .glass-map-mode, .glass-place-filter) {
+  border-radius: 9px;
+  -webkit-backdrop-filter: blur(2px) saturate(1.12);
+  backdrop-filter: blur(2px) saturate(1.12);
+}
+.workbench-v3-shell.glass-preview .wb-map-source {
+  border-radius: 6px;
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .glass-insight-card,
+    .glass-weather-card,
+    .glass-ai-card,
+    .glass-demo-chip,
+    .glass-map-mode,
+    .glass-place-filter
+  )
+  :is(h2, h3, p, strong, b, small, span, button) {
+  color: inherit;
+}
+.workbench-v3-shell.glass-preview
+  :is(.glass-map-mode, .glass-place-filter)
+  button {
+  background: transparent;
+  border-color: transparent;
+  text-shadow: inherit;
+}
+.workbench-v3-shell.glass-preview
+  :is(.glass-map-mode, .glass-place-filter)
+  button:is(.active, [aria-pressed="true"]) {
+  background: rgba(247, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.27);
+}
+.workbench-v3-shell.glass-preview .glass-reading-surface :is(p, small, span) {
+  color: inherit;
+}
+
+/* Browser details are scoped to the actual floating workspace. */
+.workbench-v3-shell.glass-preview .workbench-main ::selection,
+.wb-modal.glass-preview ::selection {
+  background: #d1f1e8;
+  color: #123b43;
+  text-shadow: none;
+}
+.workbench-v3-shell.glass-preview .workbench-main :focus-visible,
+.wb-modal.glass-preview :focus-visible {
+  outline: 2px solid var(--glass-focus);
+  outline-offset: 3px;
+}
+.workbench-v3-shell.glass-preview
+  :is(
+    .wb-timeline-nodes,
+    .wb-day-list,
+    .wb-tool-panel,
+    .wb-geo-controls,
+    .wb-context-region,
+    .wb-inspector-content
+  ) {
+  scrollbar-color: rgba(232, 249, 255, 0.44) transparent;
+  scrollbar-width: thin;
+}
+.wb-modal.glass-preview::backdrop,
+.workbench-v3-shell.glass-preview .wb-inspector-dialog::backdrop {
+  background: rgba(4, 20, 31, 0.45);
+}
+
+@media (min-width: 701px) {
+  .workbench-v3-shell.glass-preview .wb-inspector-dialog {
+    position: relative;
+  }
+}
+@media (max-width: 700px) {
+  .workbench-v3-shell.glass-preview .wb-inspector-dialog {
+    position: fixed;
+    border-radius: 16px 16px 0 0;
+  }
+  .workbench-v3-shell.glass-preview .wb-inspector-region {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .workbench-v3-shell.glass-preview
+    :is(
+      .wb-tabs,
+      .wb-day-rail,
+      .wb-timeline-panel,
+      .wb-context-region,
+      .wb-geo-controls,
+      .wb-canvas-weather,
+      .wb-map-source,
+      .wb-map-navigation button,
+      .wb-more-content,
+      .wb-tool-panel,
+      .wb-inspector-dialog,
+      .glass-insight-card,
+      .glass-weather-card,
+      .glass-ai-card,
+      .glass-demo-chip,
+      .glass-map-mode,
+      .glass-place-filter
+    ),
+  .wb-modal.glass-preview {
+    background: rgba(24, 52, 66, 0.91);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .workbench-v3-shell.glass-preview
+    :is(
+      .wb-tabs,
+      .wb-day-rail,
+      .wb-timeline-panel,
+      .wb-context-region,
+      .wb-geo-controls,
+      .wb-canvas-weather,
+      .wb-map-source,
+      .wb-map-navigation button,
+      .wb-more-content,
+      .wb-tool-panel,
+      .wb-inspector-dialog,
+      .glass-insight-card,
+      .glass-weather-card,
+      .glass-ai-card,
+      .glass-demo-chip,
+      .glass-map-mode,
+      .glass-place-filter
+    ),
+  .wb-modal.glass-preview {
+    background: #254250;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .workbench-v3-shell.glass-preview
+    :is(.glass-reading-surface, .wb-node-fields, .wb-inspector-content),
+  .wb-modal.glass-preview .glass-reading-surface {
+    background: #193947;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workbench-v3-shell.glass-preview
+    :is(
+      .wb-tabs,
+      .wb-day-rail,
+      .wb-timeline-panel,
+      .wb-context-region,
+      .wb-geo-controls,
+      .wb-tool-panel,
+      .wb-canvas-weather,
+      .wb-adjustment-inline
+    ) {
+    animation: none;
+    transition: none;
+  }
+}

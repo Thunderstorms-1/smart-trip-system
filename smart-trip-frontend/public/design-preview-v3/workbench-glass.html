@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>工作台 Clear Glass · SmartTrip 独立材质预览</title>
+    <link rel="stylesheet" href="workbench-glass-base.css" />
+    <link rel="stylesheet" href="workbench-glass-material.css" />
+    <link rel="stylesheet" href="workbench-glass.css" />
+    <script src="workbench-glass.js" defer></script>
+  </head>
+  <body>
+    <div data-v-d68cf8ad="" class="workbench-v3-shell glass-preview">
+      <!--v-if-->
+      <header data-v-d68cf8ad="" class="site-header">
+        <a data-v-d68cf8ad="" href="home.html" class="brand"
+          ><svg
+            data-v-d68cf8ad=""
+            class="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M6 5a2 2 0 1 0 0 .1M18 19a2 2 0 1 0 0 .1M6 7v5h12v5"
+            ></path></svg
+          ><span data-v-d68cf8ad=""
+            >SmartTrip<span data-v-d68cf8ad="" class="brand-cn"
+              >智游伴路</span
+            ></span
+          ></a
+        >
+        <nav data-v-d68cf8ad="" aria-label="主导航">
+          <a data-v-d68cf8ad="" href="square.html" class="">旅行灵感</a
+          ><a
+            data-v-d68cf8ad=""
+            href="generate.html"
+            class="wb-current-nav"
+            aria-current="location"
+            >规划旅行</a
+          ><a data-v-d68cf8ad="" href="my-trips.html" class="">我的路书</a>
+        </nav>
+        <div data-v-d68cf8ad="" class="account">
+          <a
+            data-v-d68cf8ad=""
+            href="#traveler-preview"
+            class="avatar-link"
+            aria-label="个人中心"
+            ><span data-v-d68cf8ad="" class="avatar-letter">旅</span
+            ><span data-v-d68cf8ad="" class="account-name">旅行者</span></a
+          ><button data-v-d68cf8ad="" class="text-button">退出</button>
+        </div>
+      </header>
+      <main
+        data-v-d68cf8ad=""
+        id="main-content"
+        class="workbench-main"
+        tabindex="-1"
+      >
+        <!--v-if--><!--v-if-->
+        <div class="workbench-v3 timeline-expanded">
+          <header class="wb-tripbar">
+            <div class="wb-trip-heading">
+              <a href="my-trips.html" class="wb-back" aria-label="返回我的路书"
+                ><svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14m-5-5 5 5-5 5"></path></svg
+              ></a>
+              <div>
+                <input
+                  maxlength="100"
+                  aria-label="路书标题"
+                  value="川西的风，慢慢走"
+                />
+                <p>成都 · 3 天 · 预估 ¥220<span>独立材质预览 · 不保存</span></p>
+              </div>
+              <span class="wb-visibility">私密路书</span>
+            </div>
+            <div class="wb-toolbar">
+              <button class="button">保存路书</button
+              ><button class="button secondary">AI 调整预览</button
+              ><button class="button secondary">行程诊断</button
+              ><button class="button secondary">历史版本</button>
+              <details class="wb-more-actions">
+                <summary>更多操作</summary>
+                <div class="wb-more-content">
+                  <button class="button secondary">发布到广场</button
+                  ><!--v-if--><button class="button secondary">分享</button
+                  ><button class="text-button">导出图片</button
+                  ><button class="text-button">打印 / 导出 PDF</button
+                  ><button class="text-button wb-danger">删除这份路书</button>
+                </div>
+              </details>
+            </div>
+          </header>
+          <!--v-if--><!--v-if-->
+          <nav class="wb-tabs" aria-label="工作台工具">
+            <button
+              class="wb-insight-toggle"
+              aria-expanded="false"
+              aria-controls="workbench-insight"
+            >
+              行程洞察</button
+            ><button data-wb-tab="plan" class="active">行程编辑</button
+            ><button data-wb-tab="map" class="">路线与天气</button
+            ><button data-wb-tab="analysis" class="">行程诊断</button
+            ><button data-wb-tab="tools" class="">记账与行李</button
+            ><button data-wb-tab="members" class="">同行成员</button
+            ><button data-wb-tab="read" class="">路书预览</button>
+          </nav>
+          <div class="workbench-workspace">
+            <div class="wb-planning-canvas">
+              <div class="wb-geo-canvas">
+                <div
+                  class="wb-real-map"
+                  aria-label="高德地图画布"
+                  style="display: none"
+                ></div>
+                <div
+                  class="wb-map-fallback"
+                  role="img"
+                  aria-label="成都行程规划画布，非地理地图"
+                >
+                  <div class="wb-canvas-title"><strong>成都</strong></div>
+                  <p class="wb-canvas-notice">
+                    独立材质预览 · 行程、评分、天气与建议均为示例
+                  </p>
+                </div>
+                <!--v-if--><!--v-if--><!--v-if-->
+                <section
+                  class="wb-geo-controls"
+                  tabindex="-1"
+                  aria-label="路线与天气查询面板"
+                  style="display: none"
+                >
+                  <p class="glass-query-note">
+                    独立预览 · 查询按钮仅展示反馈，不请求路线或天气服务。
+                  </p>
+                  <header>
+                    <h2>路线与天气</h2>
+                    <button class="wb-text-button">返回行程编辑</button>
+                  </header>
+                  <!--v-if-->
+                  <div class="wb-geo-actions"><button>加载地图</button></div>
+                  <!--v-if-->
+                  <div class="wb-geo-actions">
+                    <h3>当日路线</h3>
+                    <div class="button-row">
+                      <select aria-label="交通方式">
+                        <option value="walking" selected="">步行</option>
+                        <option value="driving">驾车</option></select
+                      ><button>查询路线</button
+                      ><!--v-if-->
+                    </div>
+                    <!--v-if--><!--v-if-->
+                  </div>
+                  <!--v-if-->
+                  <div class="wb-geo-actions">
+                    <h3>出行天气</h3>
+                    <button>查看 2026-10-20 天气</button
+                    ><!--v-if--><!--v-if--><!--v-if-->
+                  </div>
+                  <!--v-if-->
+                </section>
+                <div class="glass-canvas-tools">
+                  <div
+                    class="glass-map-mode"
+                    role="group"
+                    aria-label="预览视图"
+                  >
+                    <button
+                      type="button"
+                      class="active"
+                      aria-pressed="true"
+                      data-canvas-mode="canvas"
+                    >
+                      画布视图</button
+                    ><button
+                      type="button"
+                      aria-pressed="false"
+                      data-canvas-mode="list"
+                    >
+                      列表视图
+                    </button>
+                  </div>
+                  <div class="glass-place-filter">
+                    <label
+                      ><svg
+                        class="icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"
+                        ></path>
+                        <circle cx="12" cy="10" r="2.5"></circle></svg
+                      ><select aria-label="筛选演示安排">
+                        <option value="all">全部安排</option>
+                        <option value="SCENIC">景点</option>
+                        <option value="FOOD">餐饮</option>
+                      </select></label
+                    >
+                  </div>
+                </div>
+                <div
+                  class="wb-map-navigation glass-preview-map-tools"
+                  aria-label="画布预览操作"
+                >
+                  <button
+                    type="button"
+                    aria-label="放大预览"
+                    data-preview-zoom="1"
+                  >
+                    <svg
+                      class="icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 5v14M5 12h14"></path>
+                    </svg></button
+                  ><button
+                    type="button"
+                    aria-label="缩小预览"
+                    data-preview-zoom="-1"
+                  >
+                    <svg
+                      class="icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h14"></path>
+                    </svg></button
+                  ><button
+                    type="button"
+                    aria-label="查看全部安排"
+                    data-preview-zoom="0"
+                  >
+                    <svg
+                      class="icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 12h16M14 6l6 6-6 6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="wb-rail-region">
+              <nav class="wb-day-rail editor-sidebar" aria-label="行程天数">
+                <span class="wb-rail-caption">天数</span>
+                <div class="wb-day-list">
+                  <button
+                    type="button"
+                    class="wb-day-button active"
+                    aria-pressed="true"
+                    aria-label="第 1 天 · 在城市里，找一段慢时光"
+                    title="在城市里，找一段慢时光"
+                  >
+                    <small>DAY</small><strong>01</strong></button
+                  ><button
+                    type="button"
+                    class="wb-day-button"
+                    aria-pressed="false"
+                    aria-label="第 2 天 · 山与湖，留一点空白"
+                    title="山与湖，留一点空白"
+                  >
+                    <small>DAY</small><strong>02</strong></button
+                  ><button
+                    type="button"
+                    class="wb-day-button"
+                    aria-pressed="false"
+                    aria-label="第 3 天 · 沿途再见"
+                    title="沿途再见"
+                  >
+                    <small>DAY</small><strong>03</strong>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="wb-add-day"
+                  aria-label="＋ 添加一天"
+                  title="添加一天"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                </button>
+              </nav>
+            </div>
+            <div class="wb-timeline-region">
+              <section
+                class="wb-timeline-panel editor-panel"
+                aria-label="当日行程时间轴"
+              >
+                <header class="wb-timeline-heading">
+                  <div>
+                    <h1>在城市里，找一段慢时光</h1>
+                    <p>第 1 天 · 4 个安排<span> · 2026-10-20</span></p>
+                  </div>
+                  <button
+                    type="button"
+                    class="wb-drawer-toggle"
+                    aria-expanded="true"
+                    aria-controls="workbench-timeline-content"
+                  >
+                    收起时间轴<svg
+                      class="icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h14m-5-5 5 5-5 5"></path>
+                    </svg>
+                  </button>
+                </header>
+                <div
+                  id="workbench-timeline-content"
+                  class="wb-timeline-content"
+                >
+                  <div class="wb-timeline-overview">
+                    <span
+                      ><svg
+                        class="icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"
+                        ></path></svg
+                      >已填 6 小时<!--v-if--></span
+                    ><span>¥220</span>
+                  </div>
+                  <details class="wb-trip-details">
+                    <summary>旅行信息与当日主题</summary>
+                    <fieldset class="draft-fieldset">
+                      <label
+                        >目的地<input
+                          maxlength="100"
+                          required=""
+                          value="成都"
+                          readonly="" /></label
+                      ><label
+                        >出发日期<input
+                          type="date"
+                          value="2026-10-20"
+                          readonly="" /></label
+                      ><label
+                        >行程简介<textarea maxlength="500" rows="2" readonly="">
+截图测试夹具，非生产数据</textarea
+                        ></label
+                      ><label
+                        >当日主题<input
+                          maxlength="100"
+                          value="在城市里，找一段慢时光"
+                          readonly="" /></label
+                      ><button type="button" class="wb-text-button wb-danger">
+                        删除这一天
+                      </button>
+                    </fieldset>
+                  </details>
+                  <div class="wb-timeline-nodes">
+                    <article
+                      class="wb-timeline-node"
+                      id="plan-item-101"
+                      tabindex="-1"
+                    >
+                      <button
+                        type="button"
+                        class="wb-node-select"
+                        id="timeline-item-101"
+                        data-node-key="item-101"
+                        aria-label="选择安排：人民公园"
+                        aria-expanded="false"
+                      >
+                        <span class="wb-node-time">09:00</span
+                        ><span class="wb-node-order">1</span
+                        ><span class="wb-node-info"
+                          ><strong>人民公园</strong
+                          ><span class="wb-node-meta"
+                            ><svg
+                              class="icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0"
+                              ></path></svg
+                            >景点<span>·</span>1.5 小时</span
+                          ><span class="wb-node-cost"
+                            >预估 ¥20<span class="wb-lock"
+                              >智能调整固定</span
+                            ></span
+                          ></span
+                        >
+                      </button>
+                    </article>
+                    <article
+                      class="wb-timeline-node"
+                      id="plan-item-102"
+                      tabindex="-1"
+                    >
+                      <button
+                        type="button"
+                        class="wb-node-select"
+                        id="timeline-item-102"
+                        data-node-key="item-102"
+                        aria-label="选择安排：宽窄巷子午餐"
+                        aria-expanded="false"
+                      >
+                        <span class="wb-node-time">12:00</span
+                        ><span class="wb-node-order">2</span
+                        ><span class="wb-node-info"
+                          ><strong>宽窄巷子午餐</strong
+                          ><span class="wb-node-meta"
+                            ><svg
+                              class="icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M5 3v6m3-6v6M2 3v6a3 3 0 0 0 6 0m-3 3v9M17 3v18m0-18c-4 3-4 8 0 8"
+                              ></path></svg
+                            >美食<span>·</span>1 小时</span
+                          ><span class="wb-node-cost"
+                            >预估 ¥65<!--v-if--></span
+                          ></span
+                        >
+                      </button>
+                    </article>
+                    <article
+                      class="wb-timeline-node"
+                      id="plan-item-103"
+                      tabindex="-1"
+                    >
+                      <button
+                        type="button"
+                        class="wb-node-select"
+                        id="timeline-item-103"
+                        data-node-key="item-103"
+                        aria-label="选择安排：杜甫草堂"
+                        aria-expanded="false"
+                      >
+                        <span class="wb-node-time">14:00</span
+                        ><span class="wb-node-order">3</span
+                        ><span class="wb-node-info"
+                          ><strong>杜甫草堂</strong
+                          ><span class="wb-node-meta"
+                            ><svg
+                              class="icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0ZM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0"
+                              ></path></svg
+                            >景点<span>·</span>2 小时</span
+                          ><span class="wb-node-cost"
+                            >预估 ¥50<!--v-if--></span
+                          ></span
+                        >
+                      </button>
+                    </article>
+                    <article
+                      class="wb-timeline-node"
+                      id="plan-item-104"
+                      tabindex="-1"
+                    >
+                      <button
+                        type="button"
+                        class="wb-node-select"
+                        id="timeline-item-104"
+                        data-node-key="item-104"
+                        aria-label="选择安排：玉林街区晚餐"
+                        aria-expanded="false"
+                      >
+                        <span class="wb-node-time">18:30</span
+                        ><span class="wb-node-order">4</span
+                        ><span class="wb-node-info"
+                          ><strong>玉林街区晚餐</strong
+                          ><span class="wb-node-meta"
+                            ><svg
+                              class="icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.7"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M5 3v6m3-6v6M2 3v6a3 3 0 0 0 6 0m-3 3v9M17 3v18m0-18c-4 3-4 8 0 8"
+                              ></path></svg
+                            >美食<span>·</span>1.5 小时</span
+                          ><span class="wb-node-cost"
+                            >预估 ¥85<!--v-if--></span
+                          ></span
+                        >
+                      </button>
+                    </article>
+                    <!--v-if-->
+                  </div>
+                  <footer class="wb-timeline-footer">
+                    <button
+                      id="wb-add-node"
+                      type="button"
+                      class="wb-add-node"
+                      aria-label="＋ 添加行程节点"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 5v14M5 12h14"></path></svg
+                      >添加行程节点
+                    </button>
+                    <p>独立材质预览 · 示例安排，不保存</p>
+                  </footer>
+                </div>
+              </section>
+              <!--teleport start--><!--teleport end-->
+            </div>
+            <aside
+              id="workbench-insight"
+              class="wb-context-region glass-panel-stack"
+              aria-label="行程洞察面板"
+            >
+              <section class="glass-insight-card" aria-label="行程洞察示例">
+                <header class="glass-card-heading">
+                  <h2>行程洞察</h2>
+                  <span class="glass-demo-badge">演示</span>
+                </header>
+                <p class="glass-card-caption">让每天的安排，都留一点从容。</p>
+                <dl class="glass-score-grid">
+                  <div>
+                    <dt>时间安排</dt>
+                    <dd>82<small> / 100</small></dd>
+                    <p>行程时间示例</p>
+                  </div>
+                  <div>
+                    <dt>每日节奏</dt>
+                    <dd>78<small> / 100</small></dd>
+                    <p>节奏评分示例</p>
+                  </div>
+                  <div>
+                    <dt>用餐与休息</dt>
+                    <dd class="glass-score-label">待补充</dd>
+                    <p>信息不足时不评分</p>
+                  </div>
+                  <div>
+                    <dt>安排均衡</dt>
+                    <dd class="glass-score-label">不适用</dd>
+                    <p>不记为真实 0 分</p>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  class="glass-inline-action"
+                  data-preview-action="diagnostic"
+                >
+                  查看诊断示例
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12h16M14 6l6 6-6 6"></path>
+                  </svg>
+                </button>
+              </section>
+              <section class="glass-weather-card" aria-label="天气与路线示例">
+                <header class="glass-card-heading">
+                  <h2>天气与路线</h2>
+                  <span class="glass-demo-badge">演示</span>
+                </header>
+                <div class="glass-weather-display">
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path
+                      d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+                    ></path></svg
+                  ><strong>12°<small> / 4°</small></strong
+                  ><span>天气样式示例<small>非实时天气</small></span>
+                </div>
+                <button
+                  type="button"
+                  class="glass-inline-action"
+                  data-preview-action="weather"
+                >
+                  查看查询面板
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12h16M14 6l6 6-6 6"></path>
+                  </svg>
+                </button>
+              </section>
+              <section class="glass-ai-card" aria-label="AI优化建议示例">
+                <header class="glass-card-heading">
+                  <h2>AI 优化建议</h2>
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"
+                    ></path>
+                  </svg>
+                </header>
+                <p class="glass-card-caption">建议内容仅用于材质预览。</p>
+                <ol class="glass-suggestion-list">
+                  <li>
+                    <span>午餐后，留一点休息时间。</span
+                    ><button type="button" data-preview-action="ai">
+                      查看
+                    </button>
+                  </li>
+                  <li>
+                    <span>连续步行之间留点缓冲。</span
+                    ><button type="button" data-preview-action="ai">
+                      查看
+                    </button>
+                  </li>
+                </ol>
+                <button
+                  type="button"
+                  class="glass-inline-action"
+                  data-preview-action="ai"
+                >
+                  查看建议示例
+                  <svg
+                    class="icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12h16M14 6l6 6-6 6"></path>
+                  </svg>
+                </button>
+              </section>
+            </aside>
+            <aside
+              id="workbench-inspector-host"
+              class="wb-inspector-region"
+              aria-label="选中安排编辑面板"
+              style="display: none"
+            >
+              <dialog
+                class="wb-inspector-dialog"
+                id="glass-inspector"
+                aria-labelledby="glass-inspector-title"
+              >
+                <header class="wb-inspector-heading">
+                  <div>
+                    <h2 id="glass-inspector-title">编辑安排</h2>
+                    <p>独立材质预览 · 不写入正式草稿</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="wb-text-button"
+                    data-close-inspector=""
+                  >
+                    收起编辑
+                  </button>
+                </header>
+                <div class="wb-inspector-content glass-reading-surface">
+                  <form class="wb-node-fields" onsubmit="return false">
+                    <label
+                      >地点 / 活动<input
+                        id="glass-node-name"
+                        aria-label="地点 / 活动"
+                        value="人民公园"
+                        maxlength="100"
+                    /></label>
+                    <div class="glass-form-pair">
+                      <label
+                        >类型<select>
+                          <option>景点</option>
+                          <option>美食</option>
+                          <option>其他</option>
+                        </select></label
+                      ><label
+                        >开始时间<input type="time" value="09:00"
+                      /></label>
+                    </div>
+                    <div class="glass-form-pair">
+                      <label
+                        >停留时长（小时）<input
+                          type="number"
+                          value="1.5"
+                          min="0"
+                          step="0.5" /></label
+                      ><label
+                        >预估花费（元）<input type="number" value="20" min="0"
+                      /></label>
+                    </div>
+                    <label
+                      >旅行备注<textarea rows="4">
+从茶馆开始今天的旅程。</textarea
+                      >
+                    </label>
+                    <p class="glass-form-note">
+                      字段用于预览玻璃外壳与清晰阅读层，不保存账号或路书数据。
+                    </p>
+                  </form>
+                </div>
+                <footer class="wb-inspector-footer">
+                  <p>预览中的修改不会保存。</p>
+                  <button
+                    type="button"
+                    class="wb-inspector-save"
+                    data-close-inspector=""
+                  >
+                    完成预览
+                  </button>
+                </footer>
+              </dialog>
+            </aside>
+            <section
+              class="wb-tool-panel"
+              tabindex="-1"
+              aria-label="工作台工具面板"
+              style="display: none"
+            >
+              <header class="wb-tool-heading">
+                <h2></h2>
+                <button type="button" class="wb-text-button">
+                  返回行程编辑
+                </button>
+              </header>
+              <div id="workbench-analysis-host"></div>
+              <!--v-if--><!--v-if--><!--v-if-->
+            </section>
+          </div>
+        </div>
+        <!--teleport start--><!--teleport end-->
+      </main>
+      <!--v-if--><!--v-if-->
+      <dialog
+        class="wb-modal glass-preview"
+        id="glass-detail"
+        aria-labelledby="glass-detail-title"
+      >
+        <div class="glass-card-heading">
+          <h2 id="glass-detail-title">材质预览</h2>
+          <button type="button" class="wb-text-button" data-close-detail="">
+            关闭
+          </button>
+        </div>
+        <div
+          class="glass-reading-surface glass-detail-copy"
+          id="glass-detail-body"
+        ></div>
+        <button type="button" class="button" data-close-detail="">
+          返回工作台
+        </button>
+      </dialog>
+      <div class="glass-preview-toast" role="status" hidden=""></div>
+    </div>
+  </body>
+</html>
