@@ -380,105 +380,6 @@ small {
 .section-heading h2 {
   margin-top: 6px;
 }
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
-}
-.travel-card {
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  overflow: hidden;
-  background: var(--paper);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-.travel-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px #25372f09;
-}
-.card-art {
-  height: 180px;
-  position: relative;
-  overflow: hidden;
-  background: #dbe4cd;
-  padding: 25px;
-}
-.card-art:before {
-  content: "";
-  position: absolute;
-  width: 350px;
-  height: 210px;
-  left: -10px;
-  top: 110px;
-  background: #9ab896;
-  border-radius: 50%;
-  transform: rotate(-16deg);
-}
-.card-art:after {
-  content: "";
-  position: absolute;
-  width: 55px;
-  height: 55px;
-  right: 40px;
-  top: 35px;
-  background: #e6bb70;
-  border-radius: 50%;
-}
-.art-1 {
-  background: #e9ddc9;
-}
-.art-1:before {
-  background: #c7b694;
-}
-.art-2 {
-  background: #d6e3e3;
-}
-.art-2:before {
-  background: #91b6b4;
-}
-.art-city {
-  font-size: 35px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  position: relative;
-  z-index: 2;
-  color: #375847;
-}
-.art-days {
-  position: absolute;
-  left: 26px;
-  top: 77px;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: #56715c;
-  z-index: 2;
-}
-.card-body {
-  padding: 23px;
-}
-.card-body h3 {
-  margin: 9px 0 8px;
-}
-.card-body p {
-  font-size: 13px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 42px;
-}
-.card-body footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--muted);
-  border-top: 1px solid var(--line);
-  margin-top: 20px;
-  padding-top: 15px;
-  gap: 10px;
-}
 .feature-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1124,12 +1025,6 @@ form .form-error {
   .hero-copy > p:not(.eyebrow) {
     font-size: 14px;
   }
-  .card-grid {
-    gap: 15px;
-  }
-  .card-body {
-    padding: 17px;
-  }
   .profile-layout {
     grid-template-columns: 230px 1fr;
   }
@@ -1230,15 +1125,6 @@ form .form-error {
   }
   .desktop {
     display: none;
-  }
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
-  .card-art {
-    height: 180px;
-  }
-  .card-body {
-    padding: 21px;
   }
   .feature-strip {
     grid-template-columns: 1fr;
