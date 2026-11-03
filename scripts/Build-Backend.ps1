@@ -1,10 +1,11 @@
-#requires -Version 7.0
-param([switch]$Integration,[string]$MavenRepository='',[string]$BuildWorkspace='D:/codex/mission/smarttrip-build')
+﻿#requires -Version 5.1
+param([switch]$Integration,[string]$MavenRepository='',[string]$BuildWorkspace=(Join-Path ([IO.Path]::GetTempPath()) 'smarttrip-build'))
 $ErrorActionPreference='Stop'
 $projectRoot=Split-Path $PSScriptRoot -Parent
 $backendRoot=Join-Path $projectRoot 'smart-trip-backend'
-$hashBytes=[Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($projectRoot))
-$projectKey=[Convert]::ToHexString($hashBytes).Substring(0,12)
+$sha256=[Security.Cryptography.SHA256]::Create()
+try{$hashBytes=$sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($projectRoot))}finally{$sha256.Dispose()}
+$projectKey=([BitConverter]::ToString($hashBytes).Replace('-','')).Substring(0,12)
 $buildRoot=Join-Path $BuildWorkspace ('smarttrip-build-'+$projectKey)
 $aliasRoot=Join-Path $buildRoot 'backend'
 New-Item -ItemType Directory -Force -Path $buildRoot | Out-Null
@@ -17,11 +18,18 @@ if($MavenRepository){$arguments+=('-Dmaven.repo.local='+$MavenRepository)}
 if($Integration){$arguments+='test'}else{$arguments+=@('-DskipTests','package')}
 $previousConfig=$env:SMARTTRIP_CONFIG
 $previousIntegration=$env:SMARTTRIP_INTEGRATION
+$locationPushed=$false
 try{
  $env:SMARTTRIP_CONFIG=(Join-Path $projectRoot '.local/application-local.yml').Replace('\','/')
  $env:SMARTTRIP_INTEGRATION=if($Integration){'true'}else{'false'}
- Push-Location -LiteralPath $aliasRoot
+ Push-Location -LiteralPath $aliasRoot;$locationPushed=$true
  & mvn.cmd @arguments
  if($LASTEXITCODE -ne 0){throw 'Backend build or tests failed'}
  if(-not $Integration){$targetRoot=Join-Path $backendRoot 'target';New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null;Copy-Item -LiteralPath (Join-Path $buildRoot 'output/smart-trip-backend-0.0.1-SNAPSHOT.jar') -Destination $targetRoot -Force}
-}finally{Pop-Location;$env:SMARTTRIP_CONFIG=$previousConfig;$env:SMARTTRIP_INTEGRATION=$previousIntegration}
+ }finally{
+ if($locationPushed){Pop-Location}
+ foreach($entry in @{SMARTTRIP_CONFIG=$previousConfig;SMARTTRIP_INTEGRATION=$previousIntegration}.GetEnumerator()){
+  if($null -eq $entry.Value){Remove-Item -LiteralPath ('Env:\'+$entry.Key) -ErrorAction SilentlyContinue}
+  else{[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')}
+ }
+}

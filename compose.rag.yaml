@@ -1,0 +1,26 @@
+name: smarttrip-rag
+# Optional isolated stack. Does not start or modify SmartTrip MySQL/Redis.
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.23
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'true'
+      xpack.security.http.ssl.enabled: 'false'
+      xpack.license.self_generated.type: basic
+      xpack.ml.enabled: 'false'
+      ELASTIC_PASSWORD: ${SMARTTRIP_RAG_ES_PASSWORD:?Set a strong local Elasticsearch password first}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    ports:
+      - '127.0.0.1:9200:9200'
+    mem_limit: 2g
+    volumes:
+      - rag_es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow > /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  rag_es_data:

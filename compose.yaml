@@ -1,0 +1,72 @@
+name: smarttrip-local
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: smart_trip_demo
+      MYSQL_USER: smarttrip
+      MYSQL_PASSWORD: ${SMARTTRIP_DB_PASSWORD:?未配置数据库密码}
+      MYSQL_ROOT_PASSWORD: ${SMARTTRIP_MYSQL_ROOT_PASSWORD:?未配置Root密码}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: smarttrip-backend:local
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      SMARTTRIP_DB_URL: "jdbc:mysql://mysql:3306/smart_trip_demo?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
+      SMARTTRIP_DB_USER: smarttrip
+      SMARTTRIP_DB_PASSWORD: ${SMARTTRIP_DB_PASSWORD}
+      SMARTTRIP_REDIS_HOST: redis
+      SMARTTRIP_REDIS_PORT: "6379"
+      SMARTTRIP_JWT_SECRET: ${SMARTTRIP_JWT_SECRET:?未配置JWT密钥}
+      SMARTTRIP_AI_ENABLED: ${SMARTTRIP_AI_ENABLED:-false}
+      SMARTTRIP_AI_FREE_QUOTA_VERIFIED: ${SMARTTRIP_AI_FREE_QUOTA_VERIFIED:-false}
+      SMARTTRIP_AI_KEY: ${SMARTTRIP_AI_KEY:-}
+      SMARTTRIP_AI_BASE_URL: ${SMARTTRIP_AI_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      SMARTTRIP_AI_MODEL: ${SMARTTRIP_AI_MODEL:-qwen3.8-flash}
+      SMARTTRIP_AI_MAX_OUTPUT_TOKENS: ${SMARTTRIP_AI_MAX_OUTPUT_TOKENS:-8192}
+      SMARTTRIP_GEO_ENABLED: "false"
+      SMARTTRIP_MAP_ENABLED: "false"
+      SMARTTRIP_POI_ENABLED: "false"
+      SMARTTRIP_ROUTE_ENABLED: "false"
+      SMARTTRIP_WEATHER_ENABLED: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: smarttrip-frontend:local
+    ports:
+      - "127.0.0.1:8088:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:

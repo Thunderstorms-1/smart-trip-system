@@ -12,12 +12,12 @@ security:
   jwt-secret: REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_BYTES
 ai:
   llm:
-    enabled: false
-    free-quota-verified: false
-    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api-key: ''
-    model: qwen3.8-flash
-    max-output-tokens: 8192
+    enabled: ${SMARTTRIP_AI_ENABLED:false}
+    free-quota-verified: ${SMARTTRIP_AI_FREE_QUOTA_VERIFIED:false}
+    base-url: ${SMARTTRIP_AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    api-key: ${SMARTTRIP_AI_KEY:}
+    model: ${SMARTTRIP_AI_MODEL:qwen3.8-flash}
+    max-output-tokens: ${SMARTTRIP_AI_MAX_OUTPUT_TOKENS:8192}
 geo:
   enabled: false
   poi-enabled: false

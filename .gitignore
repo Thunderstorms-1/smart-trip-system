@@ -24,3 +24,9 @@
 # Browser test output
 smart-trip-frontend/test-results/
 smart-trip-frontend/playwright-report/
+
+# Local design tooling, review captures and Redis runtime snapshots
+.agents/
+.impeccable/
+*.rdb
+**/appendonlydir/
