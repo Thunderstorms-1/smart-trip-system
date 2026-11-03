@@ -132,9 +132,12 @@ class AiWorkflowIntegrationTests {
     String key = UUID.randomUUID().toString();
     var t = tasks.submit(key, "GENERATE", null, "GENERATE_FIXTURE");
     var done = await((String) t.get("id"));
-    assertEquals("SUCCEEDED", done.get("status"));
+    assertEquals("PREVIEW", done.get("status"));
     assertEquals(done.get("id"), tasks.submit(key, "GENERATE", null, "GENERATE_FIXTURE").get("id"));
-    Long trip = ((Number) done.get("tripId")).longValue();
+    assertNull(done.get("tripId"));
+    assertEquals(0, db.queryForObject("SELECT COUNT(*) FROM trip_plan WHERE user_id=?", Integer.class, user));
+    Long trip = store.apply((String) done.get("id")).getId();
+    assertEquals(trip, store.apply((String) done.get("id")).getId());
     assertEquals(1, trips.load(trip).getDays().size());
     assertEquals(1, source(trip));
     var generated = trips.load(trip);
@@ -164,7 +167,7 @@ class AiWorkflowIntegrationTests {
   void modificationWaitsForConfirmationAndApplyRestoresHistory() throws Exception {
     var first = tasks.submit(UUID.randomUUID().toString(), "GENERATE", null, "GENERATE_FIXTURE");
     var done = await((String) first.get("id"));
-    Long id = ((Number) done.get("tripId")).longValue();
+    Long id = store.apply((String) done.get("id")).getId();
     var trip = trips.load(id);
     trip.setTitle("修改前的标题");
     trip = trips.save(id, trip);
@@ -184,7 +187,8 @@ class AiWorkflowIntegrationTests {
   @Test
   void staleProposalCannotOverwriteConcurrentEdit() throws Exception {
     var first = tasks.submit(UUID.randomUUID().toString(), "GENERATE", null, "GENERATE_FIXTURE");
-    Long id = ((Number) await((String) first.get("id")).get("tripId")).longValue();
+    await((String) first.get("id"));
+    Long id = store.apply((String) first.get("id")).getId();
     var proposal = tasks.submit(UUID.randomUUID().toString(), "MODIFY", id, "MODIFY_FIXTURE");
     String task = (String) proposal.get("id");
     assertEquals("PREVIEW", await(task).get("status"));
@@ -222,7 +226,7 @@ class AiWorkflowIntegrationTests {
     String key = UUID.randomUUID().toString();
     String prompt = "请规划{\"destination\":\"成都\",\"totalDays\":2}。旅行偏好：过期前端偏好";
     String id = (String) tasks.submit(key, "GENERATE", null, prompt).get("id");
-    assertEquals("SUCCEEDED", await(id).get("status"));
+    assertEquals("PREVIEW", await(id).get("status"));
     String sent = input(id);
     assertEquals(sent, modelInputs.get(0));
     assertFalse(sent.contains("过期前端偏好"));
@@ -240,7 +244,7 @@ class AiWorkflowIntegrationTests {
         "请规划{\"destination\":\"成都\",\"totalDays\":2,\"requirements\":\"请保留文字。旅行偏好：慢游\"}";
     String id =
         (String) tasks.submit(UUID.randomUUID().toString(), "GENERATE", null, prompt).get("id");
-    assertEquals("SUCCEEDED", await(id).get("status"));
+    assertEquals("PREVIEW", await(id).get("status"));
     assertTrue(input(id).startsWith(prompt + "\nUSER_TRAVEL_PREFERENCES_JSON"));
   }
 
@@ -252,7 +256,7 @@ class AiWorkflowIntegrationTests {
             tasks
                 .submit(UUID.randomUUID().toString(), "GENERATE", null, "GENERATE_FIXTURE")
                 .get("id");
-    assertEquals("SUCCEEDED", await(id).get("status"));
+    assertEquals("PREVIEW", await(id).get("status"));
     assertTrue(input(id).endsWith("：\"\""));
   }
 
@@ -369,10 +373,34 @@ class AiWorkflowIntegrationTests {
             tasks
                 .submit(UUID.randomUUID().toString(), "GENERATE", null, "GENERATE_FIXTURE")
                 .get("id");
-    assertEquals("SUCCEEDED", await(id).get("status"));
+    assertEquals("PREVIEW", await(id).get("status"));
     assertEquals("ai_submission_trace_2026", modelContexts.get(0).get("traceId"));
     assertEquals(id, modelContexts.get(0).get("taskId"));
     assertEquals("ai_submission_trace_2026", org.slf4j.MDC.get("traceId"));
     assertNull(org.slf4j.MDC.get("taskId"));
+  }
+
+  @Test
+  void structuredGenerationWaitsForUserConfirmationAndSavesOnlyOnce() throws Exception {
+    var requirement = new ObjectMapper().convertValue(Map.of(
+        "description", "去成都一天，整体预算500元", "destinations", List.of("成都"), "days", 1,
+        "startDate", "2026-10-10", "budget", 500, "budgetScope", "TOTAL", "currency", "CNY"), TravelRequirement.class);
+    String key = UUID.randomUUID().toString();
+    assertEquals(400, assertThrows(BusinessException.class,
+        () -> tasks.submitGeneration(key, requirement, false)).getCode());
+    String id = (String) tasks.submitGeneration(key, requirement, true).get("id");
+    var preview = await(id);
+    assertEquals("PREVIEW", preview.get("status"), () -> String.valueOf(preview.get("errorMessage")));
+    assertNull(preview.get("tripId"));
+    assertNotNull(preview.get("generation"));
+    assertEquals(0, db.queryForObject("SELECT COUNT(*) FROM trip_plan WHERE user_id=?", Integer.class, user));
+    assertEquals(id, tasks.submitGeneration(key, requirement, true).get("id"));
+    var saved = store.apply(id, "我的成都慢游");
+    assertEquals("我的成都慢游", saved.getTitle());
+    assertEquals(saved.getId(), store.apply(id).getId());
+    assertEquals(1, source(saved.getId()));
+    assertEquals(1, db.queryForObject("SELECT COUNT(*) FROM trip_plan WHERE user_id=?", Integer.class, user));
+    assertEquals(1, modelInputs.size());
+    assertEquals(1, db.queryForObject("SELECT ai_quota_used FROM sys_user WHERE id=?", Integer.class, user));
   }
 }

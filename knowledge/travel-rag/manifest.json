@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "1",
+  "description": "逐条核对来源的新写简短公开事实摘记；不含原站全文、图片、实时价格或班次。",
+  "documents": [
+    {
+      "documentId": "travel-suzhou-gardens-v1",
+      "title": "苏州古典园林：文化景观参考",
+      "path": "corpus/suzhou-gardens.md",
+      "destinations": [
+        "苏州"
+      ],
+      "regions": [
+        "江苏",
+        "苏州"
+      ],
+      "category": "CULTURE",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "UNESCO World Heritage Centre",
+      "sourceUrl": "https://whc.unesco.org/en/list/813/",
+      "sourceUpdatedAt": null,
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-suzhou-pingjiang-v1",
+      "title": "苏州平江历史街区：古城街巷参考",
+      "path": "corpus/suzhou-pingjiang.md",
+      "destinations": [
+        "苏州"
+      ],
+      "regions": [
+        "江苏",
+        "苏州"
+      ],
+      "category": "CULTURE",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "苏州市地方志工作办公室",
+      "sourceUrl": "https://dfzb.suzhou.gov.cn/dfzb/szdq/201606/ebcb2291909b45a09e0e1142af036d31.shtml",
+      "sourceUpdatedAt": "2016-06-17",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-yading-landscape-v1",
+      "title": "稻城亚丁：目的地和自然景观参考",
+      "path": "corpus/yading-landscape.md",
+      "destinations": [
+        "稻城亚丁",
+        "稻城",
+        "亚丁"
+      ],
+      "regions": [
+        "四川",
+        "甘孜",
+        "稻城"
+      ],
+      "category": "LANDSCAPE",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "稻城县人民政府",
+      "sourceUrl": "https://www.daocheng.gov.cn/dcyw/article/727365",
+      "sourceUpdatedAt": "2026-08-19",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-yading-effort-v1",
+      "title": "稻城亚丁：高海拔步行强度与节奏",
+      "path": "corpus/yading-effort.md",
+      "destinations": [
+        "稻城亚丁",
+        "稻城",
+        "亚丁"
+      ],
+      "regions": [
+        "四川",
+        "甘孜",
+        "稻城"
+      ],
+      "category": "SAFETY",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "稻城县人民政府",
+      "sourceUrl": "https://www.daocheng.gov.cn/dcyw/article/727365",
+      "sourceUpdatedAt": "2026-08-19",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-daxinganling-autumn-v1",
+      "title": "大兴安岭秋季旅行：森林防火范围提醒",
+      "path": "corpus/daxinganling-autumn.md",
+      "destinations": [
+        "大兴安岭"
+      ],
+      "regions": [
+        "黑龙江",
+        "大兴安岭"
+      ],
+      "category": "SAFETY",
+      "applicableSeasons": [
+        "AUTUMN"
+      ],
+      "sourceName": "大兴安岭地区行政公署",
+      "sourceUrl": "https://dxal.gov.cn/dxal/c100019/202603/c13_331278.shtml",
+      "sourceUpdatedAt": "2026-03-16",
+      "validFrom": "2026-09-15",
+      "validUntil": "2026-11-15",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-general-altitude-v1",
+      "title": "高海拔旅行：渐进适应与求助原则",
+      "path": "corpus/general-altitude.md",
+      "destinations": [
+        "GENERAL"
+      ],
+      "regions": [
+        "GENERAL"
+      ],
+      "category": "SAFETY",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "CDC Yellow Book",
+      "sourceUrl": "https://www.cdc.gov/yellow-book/hcp/environmental-hazards-risks/high-altitude-travel-and-altitude-illness.html",
+      "sourceUpdatedAt": "2025-04-23",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-general-pace-v1",
+      "title": "旅行节奏：量力而行与留出调整空间",
+      "path": "corpus/general-pace.md",
+      "destinations": [
+        "GENERAL"
+      ],
+      "regions": [
+        "GENERAL"
+      ],
+      "category": "GENERAL",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "文化和旅游部",
+      "sourceUrl": "https://zwfw.mct.gov.cn/cxts/cxtsDetail?uuid=1983",
+      "sourceUpdatedAt": "2026-09-23",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    },
+    {
+      "documentId": "travel-general-transport-v1",
+      "title": "旅行交通：正规渠道、核实与避免疲劳",
+      "path": "corpus/general-transport.md",
+      "destinations": [
+        "GENERAL"
+      ],
+      "regions": [
+        "GENERAL"
+      ],
+      "category": "TRANSPORT",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "应急管理部",
+      "sourceUrl": "https://www.mem.gov.cn/xw/xwfbh/2026n8y24xwfbh/wzsl_4260/202609/t20260924_717597.shtml",
+      "sourceUpdatedAt": "2026-09-24",
+      "sourceCheckedAt": "2026-10-28",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": true,
+      "testOnly": false
+    }
+  ]
+}

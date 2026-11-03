@@ -15,36 +15,20 @@ public class GeoController {
 
   @GetMapping("/api/capabilities")
   public Result<?> capabilities() {
-    return Result.success(
-        Map.of(
-            "ai",
-            ai.available(),
-            "geo",
-            geo.available(),
-            "map",
-            geo.mapAvailable(),
-            "poi",
-            geo.poiAvailable(),
-            "route",
-            geo.routeAvailable(),
-            "weather",
-            geo.weatherAvailable(),
-            "status",
-            Map.of(
-                "ai",
-                ai.status(),
-                "geo",
-                geo.status(),
-                "map",
-                geo.mapStatus(),
-                "poi",
-                geo.poiStatus(),
-                "route",
-                geo.routeStatus(),
-                "weather",
-                geo.weatherStatus()),
-            "notice",
-            "仅在已确认免费权限且本机配置完整时启用外部服务"));
+    var capabilities = new java.util.LinkedHashMap<String, Object>();
+    capabilities.put("ai", ai.available());
+    capabilities.put("geo", geo.available());
+    capabilities.put("map", geo.mapAvailable());
+    capabilities.put("poi", geo.poiAvailable());
+    capabilities.put("route", geo.routeAvailable());
+    capabilities.put("weather", geo.weatherAvailable());
+    capabilities.put("status", Map.of("ai", ai.status(), "geo", geo.status(), "map", geo.mapStatus(),
+        "poi", geo.poiStatus(), "route", geo.routeStatus(), "weather", geo.weatherStatus()));
+    capabilities.put("aiReason", ai.reason());
+    capabilities.put("aiAction", ai.action());
+    capabilities.put("aiConfigurationProblems", ai.configurationProblems());
+    capabilities.put("notice", "本地配置完整仅表示可以尝试；未付费探测供应商权限、剩余额度或在线状态");
+    return Result.success(capabilities);
   }
 
   @GetMapping("/api/geo/config")

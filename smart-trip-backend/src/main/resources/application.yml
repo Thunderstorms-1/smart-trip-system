@@ -64,3 +64,30 @@ geo:
   amap-security-key: ${SMARTTRIP_AMAP_SECURITY_KEY:}
 storage:
   upload-dir: ${SMARTTRIP_UPLOAD_DIR:../.local/uploads}
+
+# RAG is independent of paid ChatModel readiness; never enabled by default.
+smarttrip:
+  rag:
+    enabled: ${SMARTTRIP_RAG_ENABLED:false}
+    fallback-to-original: ${SMARTTRIP_RAG_FALLBACK:true}
+    retrieval-top-k: ${SMARTTRIP_RAG_TOP_K:10}
+    context-top-k: ${SMARTTRIP_RAG_CONTEXT_TOP_K:5}
+    rrf-k: ${SMARTTRIP_RAG_RRF_K:60}
+    context-token-budget: ${SMARTTRIP_RAG_CONTEXT_TOKENS:1800}
+    max-source-age-days: ${SMARTTRIP_RAG_MAX_SOURCE_AGE_DAYS:1095}
+    include-test-knowledge: false
+    retrieval-timeout-millis: ${SMARTTRIP_RAG_RETRIEVAL_TIMEOUT_MS:6000}
+    elasticsearch-url: ${SMARTTRIP_RAG_ES_URL:http://127.0.0.1:9200}
+    elasticsearch-username: ${SMARTTRIP_RAG_ES_USERNAME:elastic}
+    elasticsearch-password: ${SMARTTRIP_RAG_ES_PASSWORD:}
+    index-name: ${SMARTTRIP_RAG_INDEX:smarttrip-travel-v1}
+    embedding-base-url: ${SMARTTRIP_RAG_EMBEDDING_URL:http://127.0.0.1:11434}
+    embedding-model: ${SMARTTRIP_RAG_EMBEDDING_MODEL:bge-m3}
+    embedding-version: ${SMARTTRIP_RAG_EMBEDDING_VERSION:v1}
+    embedding-timeout-millis: ${SMARTTRIP_RAG_EMBEDDING_TIMEOUT_MS:4000}
+    chunk-tokens: ${SMARTTRIP_RAG_CHUNK_TOKENS:384}
+    chunk-overlap-tokens: ${SMARTTRIP_RAG_CHUNK_OVERLAP:48}
+    ingestion-timeout-millis: ${SMARTTRIP_RAG_INGESTION_TIMEOUT_MS:120000}
+    rerank-enabled: ${SMARTTRIP_RAG_RERANK_ENABLED:false}
+    rerank-url: ${SMARTTRIP_RAG_RERANK_URL:http://127.0.0.1:8010/rerank}
+    rerank-timeout-millis: ${SMARTTRIP_RAG_RERANK_TIMEOUT_MS:1500}

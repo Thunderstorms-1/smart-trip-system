@@ -47,16 +47,12 @@ class ProviderIntegrationTests {
         .build();
   }
 
-  String sse(String answer) throws Exception {
-    return "data: "
-        + json.writeValueAsString(
-            Map.of(
-                "choices",
-                List.of(Map.of("delta", Map.of("content", answer), "finish_reason", "stop"))))
-        + "\n\n"
-        + "data:"
-        + " {\"choices\":[],\"usage\":{\"prompt_tokens\":12,\"completion_tokens\":5,\"total_tokens\":17}}\n\n"
-        + "data: [DONE]\n\n";
+  String completion(String answer, String reason) throws Exception {
+    return json.writeValueAsString(Map.of(
+        "id", "fixture-completion", "object", "chat.completion", "created", 1,
+        "model", "fixture-model", "choices", List.of(Map.of("index", 0,
+            "message", Map.of("role", "assistant", "content", answer), "finish_reason", reason)),
+        "usage", Map.of("prompt_tokens", 12, "completion_tokens", 5, "total_tokens", 17)));
   }
 
   @Test
@@ -147,9 +143,11 @@ class ProviderIntegrationTests {
                   assertFalse(payload.path("enable_thinking").asBoolean(true));
                   assertEquals(
                       "json_object", payload.path("response_format").path("type").asText());
-                  assertTrue(payload.path("stream_options").path("include_usage").asBoolean());
+                  assertFalse(payload.path("stream").asBoolean());
+                  assertFalse(payload.has("tools"));
+                  assertEquals("/compatible-mode/v1/chat/completions", chain.request().url().encodedPath());
                   try {
-                    return response(chain, 200, sse("{\"days\":[]}"));
+                    return response(chain, 200, completion("{\"days\":[]}", "stop"));
                   } catch (Exception e) {
                     throw new IOException(e);
                   }
@@ -158,6 +156,57 @@ class ProviderIntegrationTests {
     var provider = new AiProvider(p, c);
     assertEquals("{\"days\":[]}", provider.complete("fixture"));
     assertEquals(1, calls.get());
+  }
+
+  @Test
+  void springAiInterpretationConverterPreservesExplicitRequirementsAndUnknownFields() throws Exception {
+    String description = "想从苏州去大兴安岭旅行5天，和父母同行，喜欢摄影，预算5000；人数、日期和预算口径还没确定";
+    var extracted = json.readTree("""
+        {"description":null,"origin":"苏州","destinations":["大兴安岭"],"days":5,
+         "startDate":null,"timeDescription":null,"includesTravelDays":null,"travelers":null,
+         "companions":"父母","budget":5000,"budgetMax":null,"budgetScope":"UNKNOWN","currency":null,
+         "budgetIncludes":null,"interests":["摄影"],"pace":null,"exertion":null,"transport":null,
+         "accommodation":null,"mustVisit":null,"avoid":null,"timeConstraints":null,"notes":null}
+        """);
+    var calls = new AtomicInteger();
+    var config = aiConfig();
+    config.setBaseUrl("https://fixture.invalid/compatible-mode/v1");
+    var client = new OkHttpClient.Builder().addInterceptor(chain -> {
+      calls.incrementAndGet();
+      var buffer = new Buffer();
+      chain.request().body().writeTo(buffer);
+      var request = json.readTree(buffer.readUtf8());
+      assertEquals("json_object", request.path("response_format").path("type").asText());
+      assertEquals(description, request.path("messages").get(1).path("content").asText());
+      String system = request.path("messages").get(0).path("content").asText();
+      String prefix = "以下JSON Schema：";
+      int schemaStart = system.indexOf(prefix);
+      assertTrue(schemaStart >= 0);
+      var schema = json.readTree(system.substring(schemaStart + prefix.length()));
+      assertTrue(schema.path("properties").path("budget").path("anyOf").isArray());
+      assertTrue(schema.path("properties").path("travelers").path("anyOf").isArray());
+      assertFalse(request.has("tools"));
+      try { return response(chain, 200, completion(extracted.toString(), "stop")); }
+      catch (Exception e) { throw new IOException(e); }
+    }).build();
+    var requirement = new AiProvider(config, client).interpret(description);
+    assertEquals(1, calls.get());
+    assertEquals(description, requirement.description());
+    assertEquals("苏州", requirement.origin());
+    assertEquals(List.of("大兴安岭"), requirement.destinations());
+    assertEquals(5, requirement.days().intValue());
+    assertEquals("父母", requirement.companions());
+    assertEquals(List.of("摄影"), requirement.interests());
+    assertEquals(0, new BigDecimal("5000").compareTo(requirement.budget()));
+    assertEquals("UNKNOWN", requirement.budgetScope());
+    assertNull(requirement.travelers());
+    assertNull(requirement.startDate());
+    assertNull(requirement.includesTravelDays());
+    assertNull(requirement.currency());
+    assertNull(requirement.budgetMax());
+    assertNull(requirement.pace());
+    assertNull(requirement.transport());
+    assertNull(requirement.accommodation());
   }
 
   @Test
@@ -208,7 +257,7 @@ class ProviderIntegrationTests {
   }
 
   @Test
-  void freeTierOnlyHttpAndStreamFailuresAreRecognized() {
+  void freeTierOnlyHttpAndBodyFailuresAreRecognized() {
     for (boolean stream : new boolean[] {false, true}) {
       var calls = new AtomicInteger();
       var body = "{\"error\":{\"code\":\"AllocationQuota.FreeTierOnly\",\"message\":\"private\"}}";
@@ -218,7 +267,7 @@ class ProviderIntegrationTests {
                   chain -> {
                     calls.incrementAndGet();
                     return response(
-                        chain, stream ? 200 : 403, stream ? "data: " + body + "\n\n" : body);
+                        chain, stream ? 200 : 403, body);
                   })
               .build();
       var e =
@@ -251,17 +300,162 @@ class ProviderIntegrationTests {
   }
 
   @Test
-  void doneWithoutStopOrTruncatedContentCannotSucceed() {
-    for (String reason : new String[] {"null", "\"length\"", "\"content_filter\""}) {
-      var body =
-          "data: {\"choices\":[{\"delta\":{\"content\":\"{}\"},\"finish_reason\":"
-              + reason
-              + "}]}\n\ndata: [DONE]\n\n";
-      var c =
-          new OkHttpClient.Builder().addInterceptor(chain -> response(chain, 200, body)).build();
-      assertThrows(
-          BusinessException.class, () -> new AiProvider(aiConfig(), c).complete("fixture"));
+  void incompleteOrMalformedModelOutputCannotSucceed() throws Exception {
+    for (String reason : new String[] {"length", "content_filter", "tool_calls"}) {
+      var body = completion("{}", reason);
+      var c = new OkHttpClient.Builder().addInterceptor(chain -> response(chain, 200, body)).build();
+      assertThrows(BusinessException.class, () -> new AiProvider(aiConfig(), c).complete("fixture"));
     }
+    for (String text : new String[] {"not json", "[]", "{} {}"}) {
+      var body = completion(text, "stop");
+      var c = new OkHttpClient.Builder().addInterceptor(chain -> response(chain, 200, body)).build();
+      assertThrows(BusinessException.class, () -> new AiProvider(aiConfig(), c).complete("fixture"));
+    }
+  }
+
+  @Test
+  void incompleteGenerationKeepsExactResponseAndConsumableSafeDiagnostics() throws Exception {
+    String raw = "\u0060\u0060\u0060json\n{\"title\":\"fixture\",\"days\":[]}\n\u0060\u0060\u0060";
+    var calls = new AtomicInteger();
+    var body = completion(raw, "stop");
+    var client = new OkHttpClient.Builder().addInterceptor(chain -> {
+      calls.incrementAndGet();
+      return response(chain, 200, body);
+    }).build();
+    var provider = new AiProvider(aiConfig(), client);
+    String answer = provider.complete("GENERATE_DIAGNOSTIC_FIXTURE");
+    assertEquals(422, assertThrows(BusinessException.class, () -> provider.parseGeneration(answer)).getCode());
+    var captured = provider.takeDiagnostics();
+    assertEquals(raw, captured.get("responseText"));
+    assertEquals(raw.length(), captured.get("responseCharacters"));
+    assertEquals("fixture-completion", captured.get("requestId"));
+    assertEquals("STOP", captured.get("finishReason"));
+    assertEquals(8192, captured.get("maxOutputTokens"));
+    assertEquals(12, captured.get("inputTokens"));
+    assertEquals(5, captured.get("outputTokens"));
+    assertEquals(17, captured.get("totalTokens"));
+    var shape = (Map<?, ?>) captured.get("shape");
+    assertEquals("ARRAY", shape.get("daysType"));
+    assertEquals(0, shape.get("dayCount"));
+    assertEquals(0, shape.get("nodeCount"));
+    assertTrue(provider.takeDiagnostics().isEmpty());
+    assertEquals(1, calls.get());
+  }
+
+  @Test
+  void generationParserOnlyUnwrapsSingleUnambiguousPlansAndNeverFillsMissingNodes() throws Exception {
+    var provider = new AiProvider(new AiProperties());
+    String valid = "{\"title\":\"fixture\",\"destination\":\"fixture\",\"days\":[{\"items\":[{\"itemName\":\"fixture\"}]}]}";
+    assertEquals(valid, provider.parseGeneration(valid).json());
+    for (String name : List.of("data", "result", "trip")) {
+      var wrapper = json.createObjectNode();
+      wrapper.set(name, json.readTree(valid));
+      assertEquals(json.readTree(valid), json.readTree(provider.parseGeneration(wrapper.toString()).json()));
+    }
+    for (String invalid : List.of(
+        "{\"days\":[]}", "{\"days\":[{\"items\":[]}]}", "{\"days\":[{}]}",
+        "{\"data\":" + valid + ",\"result\":" + valid + "}",
+        "{\"days\":[],\"trip\":" + valid + "}",
+        "{\"data\":" + valid + ",\"otherCandidate\":" + valid + "}",
+        "{\"data\":[" + valid + "]}", "{\"days\":[],\"days\":[{\"items\":[{}]}]}")) {
+      assertEquals(422, assertThrows(BusinessException.class, () -> provider.parseGeneration(invalid)).getCode());
+    }
+    // ADJUST keeps the legacy days-array contract; generation checks must not alter it.
+    assertEquals("{\"days\":[],\"reasons\":[]}", provider.parse("{\"days\":[],\"reasons\":[]}").json());
+  }
+
+  @Test
+  void generationNormalizationPreservesActivitiesAndLeavesAmbiguousValuesUnknown() throws Exception {
+    String raw = """
+        {"data":{"title":"fixture","destination":"fixture","startDate":"2026/10/28",
+          "totalDays":"2","totalBudget":"0","days":[
+          {"dayIndex":"1","dayDate":"2026/10/28","items":[
+            {"itemName":"fixture scenic","itemType":"景点","startTime":"9:00","costTimeHours":"1.50","costEstimate":"80.00"},
+            {"itemName":"fixture meal","itemType":"餐饮","startTime":"08:00:00","costTimeHours":"1","costEstimate":"约20元"},
+            {"itemName":"fixture transit","itemType":"transportation","startTime":"11:30:15","costTimeHours":"约2小时","costEstimate":"30"}]},
+          {"dayIndex":"2","dayDate":"2026/02/30","items":[
+            {"itemName":"fixture hotel","itemType":"住宿","startTime":"18:00","costTimeHours":"0.5","costEstimate":"100"}]}]}}
+        """;
+    var calls = new AtomicInteger();
+    var body = completion(raw, "stop");
+    var client = new OkHttpClient.Builder().addInterceptor(chain -> {
+      calls.incrementAndGet();
+      var buffer = new Buffer();
+      chain.request().body().writeTo(buffer);
+      var request = json.readTree(buffer.readUtf8());
+      var system = request.path("messages").get(0).path("content").asText();
+      assertTrue(system.contains("唯一输出契约"));
+      assertFalse(system.contains("days[{"));
+      return response(chain, 200, body);
+    }).build();
+    var provider = new AiProvider(aiConfig(), client);
+    var answer = provider.complete("以下JSON是用户已确认需求：NORMALIZATION_FIXTURE");
+    var normalized = json.readTree(provider.parseGeneration(answer).json());
+    assertEquals("2026-10-28", normalized.path("startDate").asText());
+    assertTrue(normalized.path("totalDays").isIntegralNumber());
+    assertEquals(2, normalized.path("days").size());
+    assertEquals(0, normalized.path("totalBudget").asInt()); // No supplier sum is fabricated here.
+    var firstDay = normalized.path("days").get(0);
+    assertEquals("2026-10-28", firstDay.path("dayDate").asText());
+    var nodes = firstDay.path("items");
+    assertEquals(3, nodes.size());
+    assertEquals("fixture scenic", nodes.get(0).path("itemName").asText());
+    assertEquals("SCENIC", nodes.get(0).path("itemType").asText());
+    assertEquals("09:00", nodes.get(0).path("startTime").asText());
+    assertEquals(0, new BigDecimal("80").compareTo(nodes.get(0).path("costEstimate").decimalValue()));
+    assertEquals("FOOD", nodes.get(1).path("itemType").asText());
+    assertEquals("08:00", nodes.get(1).path("startTime").asText()); // No schedule reordering or moving times.
+    assertTrue(nodes.get(1).path("costEstimate").isNull());
+    assertEquals("TRAFFIC", nodes.get(2).path("itemType").asText());
+    assertTrue(nodes.get(2).path("startTime").isNull()); // Non-zero seconds are not silently discarded.
+    assertTrue(nodes.get(2).path("costTimeHours").isNull());
+    assertEquals("HOTEL", normalized.path("days").get(1).path("items").get(0).path("itemType").asText());
+    assertTrue(normalized.path("days").get(1).path("dayDate").isNull());
+    assertEquals(raw, provider.takeDiagnostics().get("responseText"));
+    assertEquals(1, calls.get());
+  }
+
+  @Test
+  void truncatedResponseIsDiagnosableAndNextRejectedRequestClearsThreadLocalState() throws Exception {
+    var calls = new AtomicInteger();
+    var config = aiConfig();
+    var body = completion("{\"days\":[]}", "length");
+    var client = new OkHttpClient.Builder().addInterceptor(chain -> {
+      calls.incrementAndGet();
+      return response(chain, 200, body);
+    }).build();
+    var provider = new AiProvider(config, client);
+    assertEquals(422, assertThrows(BusinessException.class, () -> provider.complete("GENERATE_DIAGNOSTIC_FIXTURE")).getCode());
+    var captured = provider.takeDiagnostics();
+    assertEquals("LENGTH", captured.get("finishReason"));
+    assertEquals("{\"days\":[]}", captured.get("responseText"));
+    assertThrows(BusinessException.class, () -> provider.complete("GENERATE_DIAGNOSTIC_FIXTURE"));
+    config.setEnabled(false);
+    assertEquals(503, assertThrows(BusinessException.class, () -> provider.complete("ANOTHER_GENERATION_FIXTURE")).getCode());
+    assertTrue(provider.takeDiagnostics().isEmpty());
+    assertEquals(2, calls.get());
+  }
+
+  @Test
+  void fullEndpointUrlIsNotDuplicatedAndAdjustKeepsItsConstraints() throws Exception {
+    var p = aiConfig();
+    p.setBaseUrl("https://fixture.invalid/compatible-mode/v1/chat/completions/");
+    var calls = new AtomicInteger();
+    var c = new OkHttpClient.Builder().addInterceptor(chain -> {
+      calls.incrementAndGet();
+      assertEquals("/compatible-mode/v1/chat/completions", chain.request().url().encodedPath());
+      var buffer = new Buffer();
+      chain.request().body().writeTo(buffer);
+      var payload = json.readTree(buffer.readUtf8());
+      var system = payload.path("messages").get(0).path("content").asText();
+      assertTrue(system.contains("固定安排不能移动"));
+      assertTrue(system.contains("不能新增删除节点"));
+      assertEquals("ADJUST_SCHEMA_V2 fixture", payload.path("messages").get(1).path("content").asText());
+      try { return response(chain, 200, completion("{\"days\":[],\"reasons\":[]}", "stop")); }
+      catch (Exception e) { throw new IOException(e); }
+    }).build();
+    assertEquals("{\"days\":[],\"reasons\":[]}", new AiProvider(p, c).complete("ADJUST_SCHEMA_V2 fixture"));
+    assertEquals(1, calls.get());
   }
 
   @Test

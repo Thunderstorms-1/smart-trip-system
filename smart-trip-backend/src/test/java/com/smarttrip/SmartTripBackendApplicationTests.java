@@ -23,7 +23,7 @@ class SmartTripBackendApplicationTests {
   void isolatedTestDatabaseMigratesAndStarts() {
     assertEquals("smart_trip_test", db.queryForObject("SELECT DATABASE()", String.class));
     assertEquals(
-        8,
+        10,
         db.queryForObject(
             "SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class));
   }

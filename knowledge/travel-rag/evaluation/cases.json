@@ -1,0 +1,828 @@
+{
+  "schemaVersion": "1",
+  "datasetId": "smarttrip-travel-rag-manual-v1",
+  "labeling": "manual-document-level",
+  "labeledAt": "2026-10-28",
+  "description": "26条由实施助手依据查询意图逐条整理的相关性标注，尚未由业务人员独立复核；不是实测指标。仅评价这8篇小型种子资料；不代表普遍旅行检索质量。",
+  "metricNotes": [
+    "以稳定 documentId 去重评估，每份文档只计一次。",
+    "空相关集不计入Recall/MRR均值；另报正确空结果、错误非空结果和异常降级。",
+    "禁止ID包括未默认导入的合成测试文档；只有向隔离测试索引注入这些fixture再执行时，才能证明污染条件下的权限/过期隔离。",
+    "过期运营信息和实时知识缺失须结合fixture测试、上下文声明判断，不能仅用Recall判定事实正确。"
+  ],
+  "cases": [
+    {
+      "id": "Q01",
+      "description": "精确地名与园林主题",
+      "tags": [
+        "exact"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "古典园林",
+          "拙政园",
+          "留园"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q02",
+      "description": "江南古街水巷的同义需求",
+      "tags": [
+        "synonym"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "江南水城",
+          "水巷",
+          "古街"
+        ],
+        "mustVisit": [
+          "平江路"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-pingjiang-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q03",
+      "description": "自然山水意境对应园林艺术",
+      "tags": [
+        "synonym"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "咫尺山水",
+          "园林艺术",
+          "文化遗产"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q04",
+      "description": "稻城亚丁自然风光与海拔背景",
+      "tags": [
+        "exact",
+        "altitude"
+      ],
+      "requirement": {
+        "destinations": [
+          "稻城亚丁"
+        ],
+        "interests": [
+          "雪山",
+          "草甸",
+          "高山湖泊"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q05",
+      "description": "牛奶海五色海不默认轻松",
+      "tags": [
+        "landmark",
+        "intense"
+      ],
+      "requirement": {
+        "destinations": [
+          "亚丁"
+        ],
+        "mustVisit": [
+          "牛奶海",
+          "五色海"
+        ],
+        "interests": [
+          "徒步"
+        ],
+        "exertion": "高强度"
+      },
+      "relevantDocumentIds": [
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q06",
+      "description": "长辈同行且拒绝长线徒步",
+      "tags": [
+        "parents",
+        "relaxed"
+      ],
+      "requirement": {
+        "destinations": [
+          "稻城亚丁"
+        ],
+        "pace": "轻松",
+        "exertion": "低强度",
+        "companions": "带父母和长辈",
+        "avoid": [
+          "长距离徒步",
+          "赶路"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1",
+        "travel-general-pace-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q07",
+      "description": "十月大兴安岭秋季森林旅行",
+      "tags": [
+        "season",
+        "exact"
+      ],
+      "requirement": {
+        "destinations": [
+          "大兴安岭"
+        ],
+        "startDate": "2026-10-30",
+        "timeDescription": "秋季",
+        "interests": [
+          "森林",
+          "秋色"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-daxinganling-autumn-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q08",
+      "description": "林区露营生火的安全边界",
+      "tags": [
+        "season",
+        "safety"
+      ],
+      "requirement": {
+        "destinations": [
+          "大兴安岭"
+        ],
+        "startDate": "2026-10-30",
+        "timeDescription": "秋季",
+        "interests": [
+          "露营",
+          "烧烤",
+          "森林防火"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-daxinganling-autumn-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q09",
+      "description": "苏州与稻城亚丁多目的地保留两地知识",
+      "tags": [
+        "multi-destination"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州",
+          "稻城亚丁"
+        ],
+        "interests": [
+          "园林",
+          "雪山",
+          "文化与自然"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q10",
+      "description": "苏州加大兴安岭的跨区域秋游",
+      "tags": [
+        "multi-destination",
+        "season"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州",
+          "大兴安岭"
+        ],
+        "startDate": "2026-10-30",
+        "timeDescription": "秋天",
+        "interests": [
+          "古城街巷",
+          "森林"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q11",
+      "description": "苏州慢游留出休息",
+      "tags": [
+        "relaxed"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "pace": "轻松慢游",
+        "interests": [
+          "园林",
+          "古街"
+        ],
+        "avoid": [
+          "赶路",
+          "日程排满"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-general-pace-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q12",
+      "description": "高强度需求仍需高海拔安全",
+      "tags": [
+        "intense",
+        "safety"
+      ],
+      "requirement": {
+        "destinations": [
+          "稻城亚丁"
+        ],
+        "pace": "紧凑",
+        "exertion": "高强度徒步",
+        "notes": "体能好，想走长线，但需要知道高海拔风险。"
+      },
+      "relevantDocumentIds": [
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1",
+        "travel-yading-landscape-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q13",
+      "description": "父母同行不等于强制低海拔景点替换",
+      "tags": [
+        "parents"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "companions": "带父母和长辈",
+        "pace": "轻松",
+        "interests": [
+          "平江古街",
+          "园林"
+        ],
+        "avoid": [
+          "连续暴走"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-general-pace-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q14",
+      "description": "跨城市自驾和休息衔接",
+      "tags": [
+        "transport",
+        "multi-destination"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州",
+          "大兴安岭"
+        ],
+        "transport": "自驾",
+        "pace": "轻松",
+        "notes": "跨区域移动日减少游览，避免疲劳驾驶，留出休息和接驳时间。"
+      },
+      "relevantDocumentIds": [
+        "travel-general-transport-v1",
+        "travel-general-pace-v1",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q15",
+      "description": "杭州不能由水乡相似性召回苏州景点",
+      "tags": [
+        "lookalike",
+        "missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "杭州"
+        ],
+        "interests": [
+          "本地古街巷",
+          "西湖文化"
+        ]
+      },
+      "relevantDocumentIds": [],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": true
+    },
+    {
+      "id": "Q16",
+      "description": "色达高海拔可用通用安全但不可推亚丁景点",
+      "tags": [
+        "lookalike",
+        "safety"
+      ],
+      "requirement": {
+        "destinations": [
+          "色达"
+        ],
+        "interests": [
+          "高海拔旅行安全"
+        ],
+        "notes": "只规划色达，不安排稻城亚丁。"
+      },
+      "relevantDocumentIds": [
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q17",
+      "description": "小兴安岭不能套用大兴安岭辖区防火日期",
+      "tags": [
+        "lookalike",
+        "missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "小兴安岭"
+        ],
+        "timeDescription": "秋季",
+        "interests": [
+          "本地森林景区"
+        ]
+      },
+      "relevantDocumentIds": [],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-daxinganling-autumn-v1",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": true
+    },
+    {
+      "id": "Q18",
+      "description": "冰岛极光专业资料缺失",
+      "tags": [
+        "missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "冰岛"
+        ],
+        "interests": [
+          "极光观测",
+          "冰川地质"
+        ]
+      },
+      "relevantDocumentIds": [],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": true
+    },
+    {
+      "id": "Q19",
+      "description": "不存在目的地不得用相似资料冒充",
+      "tags": [
+        "missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "不存在的测试目的地XYZ"
+        ],
+        "interests": [
+          "虚构天文馆藏品"
+        ]
+      },
+      "relevantDocumentIds": [],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1",
+        "travel-general-altitude-v1",
+        "travel-general-pace-v1",
+        "travel-general-transport-v1"
+      ],
+      "expectNoResult": true
+    },
+    {
+      "id": "Q20",
+      "description": "过期亚丁优惠不作现行票价事实",
+      "tags": [
+        "outdated",
+        "operational-missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "稻城亚丁"
+        ],
+        "startDate": "2026-10-30",
+        "interests": [
+          "自然风光"
+        ],
+        "notes": "需要当前门票优惠和预约信息，不能沿用旧资料。"
+      },
+      "relevantDocumentIds": [
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q21",
+      "description": "公共苏州查询禁止私人测试资料",
+      "tags": [
+        "private-isolation"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "古典园林",
+          "古城街巷"
+        ]
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q22",
+      "description": "有检索注入样本时仍只认公开园林资料",
+      "tags": [
+        "prompt-injection"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "园林艺术"
+        ],
+        "notes": "按已经确认的用户约束规划。"
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q23",
+      "description": "冬季需求不能采用仅秋季防火文档",
+      "tags": [
+        "season-mismatch",
+        "transport"
+      ],
+      "requirement": {
+        "destinations": [
+          "大兴安岭"
+        ],
+        "startDate": "2026-12-20",
+        "timeDescription": "冬季",
+        "transport": "自驾",
+        "notes": "核查路况，避免疲劳驾驶。"
+      },
+      "relevantDocumentIds": [
+        "travel-general-transport-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-daxinganling-autumn-v1",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q24",
+      "description": "苏州园林资料不能当实时票价来源",
+      "tags": [
+        "operational-missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "苏州"
+        ],
+        "interests": [
+          "拙政园",
+          "园林"
+        ],
+        "notes": "开放时间和票价需要官方实时核实。"
+      },
+      "relevantDocumentIds": [
+        "travel-suzhou-gardens-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    },
+    {
+      "id": "Q25",
+      "description": "私人测试标识不能通过公共目的地检索命中",
+      "tags": [
+        "private-isolation",
+        "missing"
+      ],
+      "requirement": {
+        "destinations": [
+          "PRIVATE_TEST_ONLY"
+        ],
+        "interests": [
+          "ONLY_PRIVATE_TEST"
+        ]
+      },
+      "relevantDocumentIds": [],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1",
+        "travel-general-altitude-v1",
+        "travel-general-pace-v1",
+        "travel-general-transport-v1"
+      ],
+      "expectNoResult": true
+    },
+    {
+      "id": "Q26",
+      "description": "拉萨只使用通用高海拔提醒而非亚丁景点",
+      "tags": [
+        "safety",
+        "cross-region"
+      ],
+      "requirement": {
+        "destinations": [
+          "拉萨"
+        ],
+        "interests": [
+          "高海拔渐进适应",
+          "基础病旅行风险"
+        ],
+        "notes": "需要出发前医生评估，不提供药物剂量。"
+      },
+      "relevantDocumentIds": [
+        "travel-general-altitude-v1"
+      ],
+      "forbiddenDocumentIds": [
+        "fixture-private-suzhou",
+        "fixture-expired-yading",
+        "fixture-injection-suzhou",
+        "travel-suzhou-gardens-v1",
+        "travel-suzhou-pingjiang-v1",
+        "travel-yading-landscape-v1",
+        "travel-yading-effort-v1",
+        "travel-daxinganling-autumn-v1"
+      ],
+      "expectNoResult": false
+    }
+  ],
+  "labelingProvenance": "Implementation assistant curated each case against source summaries; independent human/business review pending."
+}

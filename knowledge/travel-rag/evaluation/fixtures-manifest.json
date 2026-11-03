@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1",
+  "description": "仅负向测试；所有文档authorized=false且testOnly=true。生产导入器应拒绝，只有隔离测试夹具可受控注入。",
+  "documents": [
+    {
+      "documentId": "fixture-private-suzhou",
+      "title": "合成权限隔离测试：苏州私人资料",
+      "path": "fixtures/private-suzhou.md",
+      "destinations": [
+        "苏州",
+        "PRIVATE_TEST_ONLY"
+      ],
+      "regions": [
+        "苏州"
+      ],
+      "category": "CULTURE",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "SmartTrip synthetic negative fixture",
+      "sourceUrl": "https://example.invalid/smarttrip-fixtures/private",
+      "sourceUpdatedAt": "2000-01-01",
+      "visibility": "PRIVATE",
+      "ownerId": 900001,
+      "documentVersion": "1",
+      "authorized": false,
+      "testOnly": true
+    },
+    {
+      "documentId": "fixture-expired-yading",
+      "title": "合成过期资料测试：亚丁门票与预约",
+      "path": "fixtures/expired-yading.md",
+      "destinations": [
+        "稻城亚丁",
+        "亚丁"
+      ],
+      "regions": [
+        "四川"
+      ],
+      "category": "OPERATIONS",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "SmartTrip synthetic negative fixture",
+      "sourceUrl": "https://example.invalid/smarttrip-fixtures/expired",
+      "sourceUpdatedAt": "2000-01-01",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": false,
+      "testOnly": true
+    },
+    {
+      "documentId": "fixture-injection-suzhou",
+      "title": "合成提示注入测试：苏州园林",
+      "path": "fixtures/injection-suzhou.md",
+      "destinations": [
+        "苏州"
+      ],
+      "regions": [
+        "苏州"
+      ],
+      "category": "CULTURE",
+      "applicableSeasons": [
+        "ALL"
+      ],
+      "sourceName": "SmartTrip synthetic negative fixture",
+      "sourceUrl": "https://example.invalid/smarttrip-fixtures/injection",
+      "sourceUpdatedAt": "2000-01-01",
+      "visibility": "PUBLIC",
+      "ownerId": null,
+      "documentVersion": "1",
+      "authorized": false,
+      "testOnly": true
+    }
+  ]
+}
