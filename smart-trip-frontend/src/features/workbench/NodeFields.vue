@@ -24,7 +24,8 @@ function transfer(event: Event) {
     props.editable &&
     !props.busy &&
     target !== props.dayIndex &&
-    props.trip.days[target]
+    props.trip.days[target] &&
+    props.trip.days[target]!.items.length < 40
   )
     emit("transfer", target);
 }
@@ -66,12 +67,15 @@ function transfer(event: Event) {
             <option value="INDOOR">室内</option>
             <option value="OUTDOOR">室外</option>
           </select></label
-        ><label
-          >智能调整时固定此安排<input
+        ><label class="wide wb-schedule-lock"
+          ><input
             type="checkbox"
             v-model="item.scheduleLocked"
             :disabled="!editable"
-          />保留日期、开始时间和时长</label
+          /><span
+            ><strong>智能调整时固定此安排</strong
+            ><small>保留日期、开始时间和时长</small></span
+          ></label
         ><label
           >开始时间<input
             v-model="item.startTime"
@@ -93,6 +97,11 @@ function transfer(event: Event) {
             min="0"
             max="9999999"
             step="0.01" /></label
+        ><label class="wide"
+          >地址<input
+            v-model="item.address"
+            :readonly="!editable || busy"
+            maxlength="255" /></label
         ><label class="wide"
           >旅行备注<textarea
             v-model="item.aiTips"
@@ -135,7 +144,12 @@ function transfer(event: Event) {
             aria-label="移动节点到另一天"
             @change="transfer"
           >
-            <option v-for="(_, idx) in trip.days" :key="idx" :value="idx">
+            <option
+              v-for="(targetDay, idx) in trip.days"
+              :key="idx"
+              :value="idx"
+              :disabled="idx !== dayIndex && targetDay.items.length >= 40"
+            >
               第 {{ idx + 1 }} 天
             </option>
           </select>

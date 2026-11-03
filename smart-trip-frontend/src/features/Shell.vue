@@ -6,6 +6,20 @@ import { message, severity } from "./ui";
 import HomeIcon from "./HomeIcon.vue";
 import "./pages-v3.css";
 import "./pages-second-v3.css";
+import AppRouteTransition from "./AppRouteTransition.vue";
+import { routeMotion } from "./route-motion";
+import { useNavigationIndicator } from "./useNavigationIndicator";
+import "./motion.css";
+useNavigationIndicator();
+function retryRoute() {
+  if (routeMotion.reload) {
+    // Browser module failures are cached; a new document can fetch the route again.
+    window.location.assign(router.resolve(routeMotion.target).href);
+    return;
+  }
+  routeMotion.error = "";
+  void router.push(routeMotion.target).catch(() => {});
+}
 const s = useSession(),
   router = useRouter();
 const route = useRoute();
@@ -122,8 +136,9 @@ function logout() {
                     : 'site-main'
       "
       tabindex="-1"
+      :aria-busy="routeMotion.pending || undefined"
     >
-      <RouterView />
+      <AppRouteTransition />
     </main>
     <footer
       v-if="!login && !square && !planning && !library && !home && !workbench"
@@ -142,6 +157,22 @@ function logout() {
         >寻找旅行灵感 <HomeIcon name="arrow"
       /></RouterLink>
     </footer>
+    <Transition name="motion-fade">
+      <div v-if="routeMotion.waiting" class="route-waiting" role="status">
+        正在打开页面…
+      </div>
+    </Transition>
+    <Transition name="motion-panel">
+      <div v-if="routeMotion.error" class="route-failure" role="alert">
+        <span>{{ routeMotion.error }}</span
+        ><button @click="retryRoute">
+          {{ routeMotion.reload ? "重新打开" : "重试" }}
+        </button>
+        <button aria-label="关闭页面加载提示" @click="routeMotion.error = ''">
+          关闭
+        </button>
+      </div>
+    </Transition>
     <Transition name="toast"
       ><div v-if="message" class="toast" :class="severity" role="status">
         {{ message }}

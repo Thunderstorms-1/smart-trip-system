@@ -124,7 +124,11 @@ function targets(f: Pick<QualityFinding, "dayIds" | "itemIds">) {
         <p v-if="!findings.length" class="wb-insight-caption">
           已填写信息中未发现质量提醒；未知信息仍需核实。
         </p>
-        <article v-for="f in findings" :key="f.id">
+        <article
+          v-for="f in findings"
+          :key="f.id"
+          :class="'wb-finding-' + (f.severity || 'INFO').toLowerCase()"
+        >
           <strong>{{
             f.severity === "ERROR"
               ? "需要处理"

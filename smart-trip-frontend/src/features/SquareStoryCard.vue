@@ -33,9 +33,24 @@ withDefaults(defineProps<{ post: Post; lead?: boolean; compact?: boolean }>(), {
           <span class="story-author">{{ post.authorName }}</span
           ><span v-if="compact">{{ post.totalDays }} 天</span
           ><span>预估 {{ money(post.totalBudget) }}</span
-          ><span class="story-interactions"
-            >点赞 {{ post.likeCount }} · 收藏 {{ post.favoriteCount }}</span
-          >
+          ><span class="story-interactions">
+            点赞
+            <span class="story-count-slot"
+              ><Transition name="library-like-count"
+                ><span :key="post.likeCount">{{
+                  post.likeCount
+                }}</span></Transition
+              ></span
+            >
+            · 收藏
+            <span class="story-count-slot"
+              ><Transition name="library-save-count"
+                ><span :key="post.favoriteCount">{{
+                  post.favoriteCount
+                }}</span></Transition
+              ></span
+            >
+          </span>
         </div>
         <RouterLink
           class="open-story explore-entry"

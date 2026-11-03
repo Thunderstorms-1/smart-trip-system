@@ -97,10 +97,22 @@ export type CapabilityStatus =
   | "DISABLED"
   | "QUOTA_UNVERIFIED"
   | "KEY_MISSING"
-  | "BROWSER_KEY_MISSING";
+  | "BROWSER_KEY_MISSING"
+  | "CONFIG_INVALID"
+  | "AUTH_INVALID"
+  | "KEY_INVALID"
+  | "QUOTA_EXHAUSTED"
+  | "MODEL_UNAVAILABLE"
+  | "UPSTREAM_UNAVAILABLE"
+  | "RATE_LIMITED"
+  | "TIMEOUT"
+  | "PROVIDER_UNAVAILABLE";
 
 export interface Capabilities {
   ai: boolean;
+  aiReason?: string;
+  aiAction?: string;
+  aiConfigurationProblems?: string[];
   geo: boolean;
   map: boolean;
   poi?: boolean;
@@ -116,15 +128,95 @@ export interface Capabilities {
   };
   notice: string;
 }
+export interface DraftTaskPhase {
+  phase: string;
+  at: string;
+}
+export interface DraftBudgetSnapshot {
+  budgetMax: number | null;
+  totalCap: number;
+  budgetScope: "TOTAL" | "PER_PERSON";
+  currency: "CNY";
+  travelers: number | null;
+}
+export interface DraftBudgetChange {
+  requestKey: string;
+  before: DraftBudgetSnapshot;
+  after: DraftBudgetSnapshot;
+  userId: number;
+  changedAt: string;
+  draftRevision: number;
+}
+export interface RagSource {
+  documentId?: string;
+  chunkId: string;
+  title?: string;
+  ref?: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  sourceUpdatedAt?: string;
+  freshness?: string;
+  validFrom?: string;
+  validUntil?: string;
+  applicability?: string;
+  applicableFrom?: string;
+  applicableUntil?: string;
+  applicabilityNote?: string;
+}
+export interface RagSnapshot {
+  status: string;
+  ragEnabled?: boolean;
+  strategy?: string;
+  bm25HitCount?: number;
+  vectorHitCount?: number;
+  mergedHitCount?: number;
+  finalContextCount?: number;
+  durationMs?: number;
+  fallbackReason?: string;
+  rerankProvider?: string;
+  sources?: RagSource[];
+  candidates?: RagSource[];
+}
 export interface Task {
   id: string;
-  type: "GENERATE" | "MODIFY" | "ADJUST";
+  type: "GENERATE" | "MODIFY" | "ADJUST" | "INTERPRET";
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "PREVIEW" | "APPLIED" | "FAILED";
   tripId?: number;
   baseVersion?: number;
   result?: Trip;
   errorMessage?: string;
+  phase?: string;
+  recoverable?: boolean;
+  createdAt?: string;
+  startedAt?: string | null;
   proposal?: AdjustmentProposal;
+  interpretation?: RequirementReview;
+  interpretationContext?: {
+    requirement: TravelRequirement;
+    editedFields: (keyof TravelRequirement)[];
+  };
+  generation?: {
+    rag?: RagSnapshot;
+    requirement: TravelRequirement;
+    warnings: string[];
+    expiresAt: string;
+    draftRevision?: number;
+    issues?: {
+      code: string;
+      dayIndex?: number;
+      itemIndex?: number;
+      relatedItemIndex?: number;
+      message: string;
+    }[];
+    corrections?: string[];
+    saveBlocked?: boolean;
+    recoveredFromTaskId?: string;
+    phase?: string;
+    startedAt?: string | null;
+    phaseHistory?: DraftTaskPhase[];
+    originalRequirement?: TravelRequirement;
+    budgetChanges?: DraftBudgetChange[];
+  };
 }
 export interface Expense {
   id?: number;
@@ -340,4 +432,40 @@ export interface QualityComparison {
   resolved: string[];
   remaining: string[];
   added: string[];
+}
+
+export interface TravelRequirement {
+  description: string;
+  origin: string;
+  destinations: string[];
+  days: number | null;
+  startDate: string | null;
+  timeDescription: string;
+  includesTravelDays: boolean | null;
+  travelers: number | null;
+  companions: string;
+  budget: number | null;
+  budgetMax: number | null;
+  budgetScope: "UNKNOWN" | "PER_PERSON" | "TOTAL";
+  currency: string;
+  budgetIncludes: string[];
+  interests: string[];
+  pace: "RELAXED" | "BALANCED" | "PACKED" | "";
+  exertion: string;
+  transport: string;
+  accommodation: string;
+  mustVisit: string[];
+  avoid: string[];
+  timeConstraints: string;
+  notes: string;
+}
+export interface RequirementReview {
+  source: "AI" | "RULES";
+  requirement: TravelRequirement;
+  clarifications: string[];
+  hardConstraints: string[];
+  preferences: string[];
+  unresolved: string[];
+  assumptions: string[];
+  conflicts: string[];
 }

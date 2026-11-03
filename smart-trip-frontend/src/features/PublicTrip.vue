@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { api } from "./api";
 import { useAction } from "./ui";
@@ -9,14 +9,31 @@ import TripRead from "./TripRead.vue";
 import { useLatestQuery } from "./useLatestQuery";
 import HomeIcon from "./HomeIcon.vue";
 import JourneyBackdrop from "./JourneyBackdrop.vue";
+import { prefersReducedMotion } from "./motion-tokens";
 const reader = ref<HTMLElement>();
+const selectedDay = ref<number>();
+let targetTimer: ReturnType<typeof setTimeout> | undefined;
+onBeforeUnmount(() => clearTimeout(targetTimer));
 function focusDay(index: number) {
   const section =
     reader.value?.querySelectorAll<HTMLElement>(".day-block")[index];
   if (!section) return;
   section.tabIndex = -1;
   section.focus({ preventScroll: true });
-  section.scrollIntoView({ block: "start", behavior: "auto" });
+  clearTimeout(targetTimer);
+  selectedDay.value = index;
+  reader.value
+    ?.querySelectorAll(".is-motion-target")
+    .forEach((el) => el.classList.remove("is-motion-target"));
+  section.classList.add("is-motion-target");
+  targetTimer = setTimeout(
+    () => section.classList.remove("is-motion-target"),
+    1400,
+  );
+  section.scrollIntoView({
+    block: "start",
+    behavior: prefersReducedMotion() ? "instant" : "smooth",
+  });
 }
 const queryState = useLatestQuery();
 const route = useRoute(),
@@ -27,6 +44,7 @@ const route = useRoute(),
   comments = ref<Comment[]>([]),
   content = ref("");
 const { busy, error, run } = useAction();
+const interactionType = ref("");
 async function load() {
   const token = String(route.params.token || ""),
     id = String(route.params.id || "");
@@ -77,9 +95,10 @@ function loginRequired() {
   router.push("/login?redirect=" + encodeURIComponent(route.fullPath));
   return true;
 }
-function interact(type: string) {
-  if (loginRequired() || !post.value) return;
-  run(async () => {
+async function interact(type: string) {
+  if (busy.value || loginRequired() || !post.value) return;
+  interactionType.value = type;
+  await run(async () => {
     const id = post.value!.id;
     const result = await api<Post>(
       "/community/posts/" + post.value!.id + "/interaction",
@@ -91,6 +110,7 @@ function interact(type: string) {
     );
     if (post.value?.id === id) post.value = result;
   });
+  interactionType.value = "";
 }
 function clone() {
   if (loginRequired() || !post.value) return;
@@ -168,20 +188,52 @@ function remove(id: number) {
       </header>
       <div v-if="post" class="journal-actions">
         <button
-          class="button secondary"
           :disabled="busy"
           :aria-pressed="post.liked"
+          :aria-busy="(busy && interactionType === 'LIKE') || undefined"
+          class="button secondary motion-like"
           @click="interact('LIKE')"
         >
-          {{ post.liked ? "已点赞" : "点赞" }} {{ post.likeCount }}</button
+          <svg
+            class="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"
+            />
+          </svg>
+          <Transition name="motion-live" mode="out-in"
+            ><span :key="post.liked + '-' + post.likeCount"
+              >{{ post.liked ? "已点赞" : "点赞" }} {{ post.likeCount }}</span
+            ></Transition
+          ></button
         ><button
-          class="button secondary"
           :disabled="busy"
           :aria-pressed="post.favorited"
+          :aria-busy="(busy && interactionType === 'FAVORITE') || undefined"
+          class="button secondary motion-favorite"
           @click="interact('FAVORITE')"
         >
-          {{ post.favorited ? "已收藏" : "收藏路书" }}
-          {{ post.favoriteCount }}</button
+          <svg
+            class="icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            aria-hidden="true"
+          >
+            <path d="M6 3h12v18l-6-4-6 4Z" />
+          </svg>
+          <Transition name="motion-live" mode="out-in"
+            ><span :key="post.favorited + '-' + post.favoriteCount"
+              >{{ post.favorited ? "已收藏" : "收藏路书" }}
+              {{ post.favoriteCount }}</span
+            ></Transition
+          ></button
         ><button class="button" :disabled="busy" @click="clone">
           保存为我的路书 <HomeIcon name="arrow" />
         </button>
@@ -195,6 +247,8 @@ function remove(id: number) {
             <button
               v-for="(day, index) in trip.days"
               :key="day.id || index"
+              :class="{ 'is-motion-target': selectedDay === index }"
+              :aria-current="selectedDay === index ? 'step' : undefined"
               @click="focusDay(index)"
             >
               <span>第 {{ index + 1 }} 天</span
@@ -227,23 +281,29 @@ function remove(id: number) {
             ></textarea></label
           ><button class="button" :disabled="busy">发表评论</button>
         </form>
-        <article v-for="c in comments" :key="c.id" class="journal-comment">
-          <header>
-            <RouterLink :to="'/authors/' + c.authorId">{{
-              c.authorName
-            }}</RouterLink
-            ><button
-              v-if="c.authorId === s.profile?.id"
-              class="text-button"
-              :disabled="busy"
-              @click="remove(c.id)"
-            >
-              删除
-            </button>
-          </header>
-          <p>{{ c.content }}</p>
-          <small>{{ new Date(c.createdAt).toLocaleString("zh-CN") }}</small>
-        </article>
+        <TransitionGroup
+          tag="div"
+          name="motion-list"
+          class="journal-comment-list"
+        >
+          <article v-for="c in comments" :key="c.id" class="journal-comment">
+            <header>
+              <RouterLink :to="'/authors/' + c.authorId">{{
+                c.authorName
+              }}</RouterLink
+              ><button
+                v-if="c.authorId === s.profile?.id"
+                class="text-button"
+                :disabled="busy"
+                @click="remove(c.id)"
+              >
+                删除
+              </button>
+            </header>
+            <p>{{ c.content }}</p>
+            <small>{{ new Date(c.createdAt).toLocaleString("zh-CN") }}</small>
+          </article>
+        </TransitionGroup>
         <p v-if="!comments.length" class="v3-state">
           还没有评论，留下第一句话吧。
         </p>

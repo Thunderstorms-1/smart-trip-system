@@ -19,6 +19,7 @@ import LibraryIcon from "./LibraryIcon.vue";
 import LibraryTripCard from "./LibraryTripCard.vue";
 import LibraryStoryCard from "./LibraryStoryCard.vue";
 import "./library-v3.css";
+import "./library-motion.css";
 
 type Tab = "trips" | "FAVORITE" | "LIKE";
 type AssetTab = Exclude<Tab, "trips">;
@@ -237,6 +238,28 @@ onMounted(() => {
   window.addEventListener("pageshow", replayEntrance);
 });
 onBeforeUnmount(() => window.removeEventListener("pageshow", replayEntrance));
+
+function retireView(element: Element) {
+  (element as HTMLElement).inert = true;
+}
+function restoreView(element: Element) {
+  (element as HTMLElement).inert = false;
+}
+function freezeLeavingCard(element: Element) {
+  const card = element as HTMLElement;
+  const rect = card.getBoundingClientRect();
+  card.style.setProperty("--motion-card-width", rect.width + "px");
+  card.style.setProperty("--motion-card-height", rect.height + "px");
+  card.style.setProperty("--motion-card-left", card.offsetLeft + "px");
+  card.style.setProperty("--motion-card-top", card.offsetTop + "px");
+  card.inert = true;
+}
+function releaseLeavingCard(element: Element) {
+  const card = element as HTMLElement;
+  for (const name of ["width", "height", "left", "top"])
+    card.style.removeProperty("--motion-card-" + name);
+  card.inert = false;
+}
 </script>
 
 <template>
@@ -359,46 +382,52 @@ onBeforeUnmount(() => window.removeEventListener("pageshow", replayEntrance));
           ><button type="submit">搜索</button>
         </form>
       </div>
-      <section
-        v-if="showInvite"
-        id="library-invite"
-        class="library-invite"
-        aria-labelledby="invite-title"
-        @keydown="inviteKey"
+      <Transition
+        name="motion-panel"
+        @before-leave="retireView"
+        @leave-cancelled="restoreView"
       >
-        <div>
-          <h2 id="invite-title">加入一段同行的旅程</h2>
-          <p>粘贴收到的邀请口令，打开同行路书。</p>
-        </div>
-        <form class="library-join" @submit.prevent="join">
-          <input
-            ref="inviteInput"
-            v-model="inviteCode"
-            required
-            minlength="43"
-            maxlength="43"
-            pattern="[A-Za-z0-9_\-]{43}"
-            autocomplete="off"
-            aria-label="同行邀请口令"
-            placeholder="输入同行邀请口令"
-            :disabled="joinAction.busy.value"
-          /><button class="invite-submit" :disabled="joinAction.busy.value">
-            {{ joinAction.busy.value ? "正在加入…" : "确认加入" }}
-          </button>
-        </form>
-        <button
-          class="close-invite"
-          type="button"
-          aria-label="关闭同行邀请"
-          :disabled="joinAction.busy.value"
-          @click="closeInvite"
+        <section
+          v-if="showInvite"
+          id="library-invite"
+          class="library-invite"
+          aria-labelledby="invite-title"
+          @keydown="inviteKey"
         >
-          <LibraryIcon name="close" />
-        </button>
-        <p v-if="joinAction.error.value" class="join-error" role="alert">
-          {{ joinAction.error.value }}
-        </p>
-      </section>
+          <div>
+            <h2 id="invite-title">加入一段同行的旅程</h2>
+            <p>粘贴收到的邀请口令，打开同行路书。</p>
+          </div>
+          <form class="library-join" @submit.prevent="join">
+            <input
+              ref="inviteInput"
+              v-model="inviteCode"
+              required
+              minlength="43"
+              maxlength="43"
+              pattern="[A-Za-z0-9_\-]{43}"
+              autocomplete="off"
+              aria-label="同行邀请口令"
+              placeholder="输入同行邀请口令"
+              :disabled="joinAction.busy.value"
+            /><button class="invite-submit" :disabled="joinAction.busy.value">
+              {{ joinAction.busy.value ? "正在加入…" : "确认加入" }}
+            </button>
+          </form>
+          <button
+            class="close-invite"
+            type="button"
+            aria-label="关闭同行邀请"
+            :disabled="joinAction.busy.value"
+            @click="closeInvite"
+          >
+            <LibraryIcon name="close" />
+          </button>
+          <p v-if="joinAction.error.value" class="join-error" role="alert">
+            {{ joinAction.error.value }}
+          </p>
+        </section>
+      </Transition>
       <section
         id="library-panel"
         class="library-workspace"
@@ -443,108 +472,178 @@ onBeforeUnmount(() => window.removeEventListener("pageshow", replayEntrance));
             </div>
           </div>
         </div>
-        <p v-if="busy" class="library-state" role="status">正在整理你的旅行…</p>
-        <div v-else-if="error" class="library-state" role="alert">
-          <p>{{ error }}</p>
-          <button type="button" class="state-action" @click="load">
-            重新加载
-          </button>
-        </div>
-        <template v-else-if="visibleCount">
-          <template v-if="tab === 'trips'">
-            <div v-if="state.layout === 'grid'" class="trip-panels">
-              <section
-                class="recent-section"
-                aria-labelledby="recent-trip-title"
-              >
-                <div class="section-heading">
-                  <h2 id="recent-trip-title">{{ leadHeading }}</h2>
-                  <LibraryIcon name="arrow" />
-                </div>
-                <LibraryTripCard :trip="visibleTrips[0]!" featured />
-              </section>
-              <section
-                v-if="visibleTrips.length > 1"
-                class="shelf-section"
-                aria-labelledby="library-shelf-title"
-              >
-                <div class="section-heading">
-                  <h2 id="library-shelf-title">其他路书</h2>
-                  <LibraryIcon name="arrow" />
-                </div>
-                <div class="trip-shelf">
-                  <LibraryTripCard
-                    v-for="trip in visibleTrips.slice(1, 5)"
-                    :key="trip.id"
-                    :trip="trip"
+        <div class="library-motion-stage">
+          <Transition
+            name="library-motion-view"
+            @before-leave="retireView"
+            @leave-cancelled="restoreView"
+          >
+            <div :key="tab + ':' + state.layout" class="library-motion-view">
+              <p v-if="busy" class="library-state" role="status">
+                正在整理你的旅行…
+              </p>
+              <div v-else-if="error" class="library-state" role="alert">
+                <p>{{ error }}</p>
+                <button type="button" class="state-action" @click="load">
+                  重新加载
+                </button>
+              </div>
+              <template v-else-if="visibleCount">
+                <template v-if="tab === 'trips'">
+                  <div v-if="state.layout === 'grid'" class="trip-panels">
+                    <section
+                      class="recent-section"
+                      aria-labelledby="recent-trip-title"
+                    >
+                      <div class="section-heading">
+                        <h2 id="recent-trip-title">{{ leadHeading }}</h2>
+                        <LibraryIcon name="arrow" />
+                      </div>
+                      <TransitionGroup
+                        name="library-motion-list"
+                        tag="div"
+                        class="library-feature-slot"
+                        appear
+                        @before-leave="freezeLeavingCard"
+                        @after-leave="releaseLeavingCard"
+                        @leave-cancelled="releaseLeavingCard"
+                      >
+                        <LibraryTripCard
+                          v-for="trip in visibleTrips.slice(0, 1)"
+                          :key="trip.id"
+                          :trip="trip"
+                          featured
+                        />
+                      </TransitionGroup>
+                    </section>
+                    <section
+                      v-if="visibleTrips.length > 1"
+                      class="shelf-section"
+                      aria-labelledby="library-shelf-title"
+                    >
+                      <div class="section-heading">
+                        <h2 id="library-shelf-title">其他路书</h2>
+                        <LibraryIcon name="arrow" />
+                      </div>
+                      <TransitionGroup
+                        name="library-motion-list"
+                        tag="div"
+                        class="trip-shelf"
+                        appear
+                        @before-leave="freezeLeavingCard"
+                        @after-leave="releaseLeavingCard"
+                        @leave-cancelled="releaseLeavingCard"
+                      >
+                        <LibraryTripCard
+                          v-for="trip in visibleTrips.slice(1, 5)"
+                          :key="trip.id"
+                          :trip="trip"
+                        />
+                      </TransitionGroup>
+                    </section>
+                  </div>
+                  <TransitionGroup
+                    v-else
+                    name="library-motion-list"
+                    tag="div"
+                    class="library-trip-list"
+                    appear
+                    @before-leave="freezeLeavingCard"
+                    @after-leave="releaseLeavingCard"
+                    @leave-cancelled="releaseLeavingCard"
+                  >
+                    <LibraryTripCard
+                      v-for="trip in visibleTrips"
+                      :key="trip.id"
+                      :trip="trip"
+                    />
+                  </TransitionGroup>
+                  <section
+                    v-if="state.layout === 'grid' && visibleTrips.length > 5"
+                    class="library-remaining"
+                    aria-labelledby="remaining-title"
+                  >
+                    <div class="section-heading">
+                      <h2 id="remaining-title">继续浏览</h2>
+                    </div>
+                    <TransitionGroup
+                      name="library-motion-list"
+                      tag="div"
+                      class="remaining-grid"
+                      appear
+                      @before-leave="freezeLeavingCard"
+                      @after-leave="releaseLeavingCard"
+                      @leave-cancelled="releaseLeavingCard"
+                    >
+                      <LibraryTripCard
+                        v-for="trip in visibleTrips.slice(5)"
+                        :key="trip.id"
+                        :trip="trip"
+                      />
+                    </TransitionGroup>
+                  </section>
+                </template>
+                <TransitionGroup
+                  v-else
+                  name="library-motion-list"
+                  tag="div"
+                  class="saved-grid"
+                  appear
+                  @before-leave="freezeLeavingCard"
+                  @after-leave="releaseLeavingCard"
+                  @leave-cancelled="releaseLeavingCard"
+                >
+                  <LibraryStoryCard
+                    v-for="post in visiblePosts"
+                    :key="post.id"
+                    :post="post"
                   />
-                </div>
-              </section>
-            </div>
-            <div v-else class="library-trip-list">
-              <LibraryTripCard
-                v-for="trip in visibleTrips"
-                :key="trip.id"
-                :trip="trip"
-              />
-            </div>
-            <section
-              v-if="state.layout === 'grid' && visibleTrips.length > 5"
-              class="library-remaining"
-              aria-labelledby="remaining-title"
-            >
-              <div class="section-heading">
-                <h2 id="remaining-title">继续浏览</h2>
+                </TransitionGroup>
+                <p
+                  v-if="tab !== 'trips' && loadedCount >= 200"
+                  class="loaded-limit"
+                >
+                  当前展示最近的 200 份{{
+                    tab === "FAVORITE" ? "收藏" : "点赞"
+                  }}。
+                </p>
+              </template>
+              <div v-else class="library-empty">
+                <LibraryIcon :name="searchTerm ? 'search' : 'route'" />
+                <h2>
+                  {{
+                    searchTerm
+                      ? "还没有找到这段旅程"
+                      : tab === "trips"
+                        ? "把想去的地方，写成计划"
+                        : tab === "FAVORITE"
+                          ? "心动的旅程，等你收藏"
+                          : "下一份旅行灵感，等你发现"
+                  }}
+                </h2>
+                <p>
+                  {{
+                    searchTerm
+                      ? "换个关键词，或清空搜索继续看看。"
+                      : tab === "trips"
+                        ? "创建第一份路书，旅行从这里开始。"
+                        : "这里还没有路书。去广场寻找心动的路线吧。"
+                  }}
+                </p>
+                <button v-if="searchTerm" type="button" @click="clearSearch">
+                  清空搜索</button
+                ><button
+                  v-else-if="tab === 'trips'"
+                  type="button"
+                  @click="create"
+                >
+                  新建路书</button
+                ><RouterLink v-else class="state-action" to="/square"
+                  >探索旅行灵感 <LibraryIcon name="arrow"
+                /></RouterLink>
               </div>
-              <div class="remaining-grid">
-                <LibraryTripCard
-                  v-for="trip in visibleTrips.slice(5)"
-                  :key="trip.id"
-                  :trip="trip"
-                />
-              </div>
-            </section>
-          </template>
-          <div v-else class="saved-grid">
-            <LibraryStoryCard
-              v-for="post in visiblePosts"
-              :key="post.id"
-              :post="post"
-            />
-          </div>
-          <p v-if="tab !== 'trips' && loadedCount >= 200" class="loaded-limit">
-            当前展示最近的 200 份{{ tab === "FAVORITE" ? "收藏" : "点赞" }}。
-          </p>
-        </template>
-        <div v-else class="library-empty">
-          <LibraryIcon :name="searchTerm ? 'search' : 'route'" />
-          <h2>
-            {{
-              searchTerm
-                ? "还没有找到这段旅程"
-                : tab === "trips"
-                  ? "把想去的地方，写成计划"
-                  : tab === "FAVORITE"
-                    ? "心动的旅程，等你收藏"
-                    : "下一份旅行灵感，等你发现"
-            }}
-          </h2>
-          <p>
-            {{
-              searchTerm
-                ? "换个关键词，或清空搜索继续看看。"
-                : tab === "trips"
-                  ? "创建第一份路书，旅行从这里开始。"
-                  : "这里还没有路书。去广场寻找心动的路线吧。"
-            }}
-          </p>
-          <button v-if="searchTerm" type="button" @click="clearSearch">
-            清空搜索</button
-          ><button v-else-if="tab === 'trips'" type="button" @click="create">
-            新建路书</button
-          ><RouterLink v-else class="state-action" to="/square"
-            >探索旅行灵感 <LibraryIcon name="arrow"
-          /></RouterLink>
+            </div>
+          </Transition>
         </div>
       </section>
     </div>

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import LoginTravelCanvas from "./LoginTravelCanvas.vue";
+import { useLoginMotion } from "./useLoginMotion";
 import { useRoute, useRouter } from "vue-router";
 import { useSession } from "./session";
 import { api } from "./api";
@@ -31,7 +33,8 @@ async function submit() {
   });
 }
 
-const backgroundFailed = ref(false);
+const scene = ref<HTMLElement | null>(null);
+useLoginMotion(scene);
 const passwordVisible = ref(false);
 function toggleMode() {
   if (busy.value) return;
@@ -44,10 +47,7 @@ function logout() {
 }
 </script>
 <template>
-  <section
-    class="login-v3 entry-scene v3-entry"
-    :class="{ 'image-failed': backgroundFailed }"
-  >
+  <section ref="scene" class="login-v3 entry-scene v3-entry">
     <svg
       class="svg-library"
       xmlns="http://www.w3.org/2000/svg"
@@ -98,17 +98,6 @@ function logout() {
       </defs>
     </svg>
     <a class="skip-link" href="#auth-panel">跳到登录</a>
-
-    <div class="landscape" aria-hidden="true">
-      <img
-        src="/design-v3/login-scenery.png"
-        alt=""
-        width="1672"
-        height="941"
-        fetchpriority="high"
-        @error="backgroundFailed = true"
-      />
-    </div>
     <header class="entry-header">
       <RouterLink class="brand" to="/" aria-label="SmartTrip 智游伴路首页"
         ><svg class="icon" aria-hidden="true"><use href="#login-i-route" /></svg
@@ -142,89 +131,7 @@ function logout() {
       ></RouterLink>
     </header>
     <div class="entry-main">
-      <div class="journey-intro">
-        <p class="journey-slogan">
-          <svg class="icon" aria-hidden="true">
-            <use href="#login-i-spark" /></svg
-          >让旅行更简单，更有意义
-        </p>
-        <h1>下一段旅程，<br /><span>从这里</span>开始。</h1>
-        <p class="journey-description">
-          收藏心动的路线，规划专属的旅行，<br />遇见更大的世界。
-        </p>
-        <RouterLink class="journey-link" to="/square"
-          ><span class="explore-circle"
-            ><svg class="icon" aria-hidden="true">
-              <use href="#login-i-compass" /></svg></span
-          ><span>探索旅行灵感</span
-          ><svg class="icon" aria-hidden="true">
-            <use href="#login-i-arrow" /></svg
-        ></RouterLink>
-      </div>
-      <div
-        class="journey-route"
-        aria-label="山间、湖畔和小城的旅行灵感示意，非真实地理路线"
-      >
-        <svg
-          class="route-thread"
-          viewBox="0 0 340 450"
-          preserveAspectRatio="none"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M14 8C-30 77 28 84 107 130S188 173 169 223 65 278 98 332 178 374 190 419"
-          />
-        </svg>
-        <div class="route-stop stop-mountain">
-          <span class="stop-label"
-            ><svg class="pin" aria-hidden="true">
-              <use href="#login-i-pin" /></svg
-            >山间 · 灵感示意</span
-          >
-          <div class="route-photo">
-            <img
-              class="photo-mountain"
-              src="/design-v3/login-scenery.png"
-              alt="概念影像中的雪山"
-              width="1672"
-              height="941"
-            />
-          </div>
-        </div>
-        <div class="route-stop stop-lake">
-          <span class="stop-label"
-            ><svg class="pin" aria-hidden="true">
-              <use href="#login-i-pin" /></svg
-            >湖畔 · 灵感示意</span
-          >
-          <div class="route-photo">
-            <img
-              class="photo-lake"
-              src="/design-v3/login-scenery.png"
-              alt="概念影像中的湖面与帆船"
-              width="1672"
-              height="941"
-            />
-          </div>
-        </div>
-        <div class="route-stop stop-town">
-          <span class="stop-label"
-            ><svg class="pin" aria-hidden="true">
-              <use href="#login-i-pin" /></svg
-            >小城 · 灵感示意</span
-          >
-          <div class="route-photo">
-            <img
-              class="photo-town"
-              src="/design-v3/login-scenery.png"
-              alt="概念影像中的湖畔小城"
-              width="1672"
-              height="941"
-            />
-          </div>
-        </div>
-      </div>
+      <LoginTravelCanvas class="entry-canvas" />
       <section
         class="auth-panel"
         id="auth-panel"
@@ -269,22 +176,24 @@ function logout() {
                 3–32 位字母、数字或下划线
               </p>
             </div>
-            <div class="field" id="nickname-field" v-if="register">
-              <label for="nickname"
-                >昵称<span class="optional">选填</span></label
-              >
-              <div class="input-wrap">
-                <svg class="input-icon icon" aria-hidden="true">
-                  <use href="#login-i-user" /></svg
-                ><input
-                  v-model="nickname"
-                  id="nickname"
-                  autocomplete="nickname"
-                  placeholder="旅行中，怎么称呼你？"
-                  maxlength="50"
-                />
+            <Transition name="motion-panel">
+              <div class="field" id="nickname-field" v-if="register">
+                <label for="nickname"
+                  >昵称<span class="optional">选填</span></label
+                >
+                <div class="input-wrap">
+                  <svg class="input-icon icon" aria-hidden="true">
+                    <use href="#login-i-user" /></svg
+                  ><input
+                    v-model="nickname"
+                    id="nickname"
+                    autocomplete="nickname"
+                    placeholder="旅行中，怎么称呼你？"
+                    maxlength="50"
+                  />
+                </div>
               </div>
-            </div>
+            </Transition>
             <div class="field">
               <label for="password">密码</label>
               <div class="input-wrap password-input">
@@ -316,9 +225,11 @@ function logout() {
                 8–72 个字符
               </p>
             </div>
-            <p v-if="error" id="auth-error" class="form-error" role="alert">
-              {{ error }}
-            </p>
+            <Transition name="motion-fade">
+              <p v-if="error" id="auth-error" class="form-error" role="alert">
+                {{ error }}
+              </p>
+            </Transition>
             <button class="submit-button" type="submit" id="auth-submit">
               <span>{{
                 busy ? "请稍候…" : register ? "注册并登录" : "登录"
@@ -344,39 +255,53 @@ function logout() {
           </button>
         </p>
       </section>
-      <nav class="journey-tools" aria-label="旅行功能">
-        <RouterLink to="/square"
-          ><svg class="icon" aria-hidden="true">
-            <use href="#login-i-compass" /></svg
-          ><span
-            ><strong>收藏灵感</strong><small>寻找心动的风景</small></span
-          ></RouterLink
-        ><RouterLink to="/ai-generate"
-          ><svg class="icon" aria-hidden="true"><use href="#login-i-map" /></svg
-          ><span
-            ><strong>规划路线</strong><small>构建自己的旅程</small></span
-          ></RouterLink
-        ><RouterLink to="/my-trips"
-          ><svg class="icon" aria-hidden="true">
-            <use href="#login-i-people" /></svg
-          ><span
-            ><strong>分享路书</strong><small>记录走过的世界</small></span
-          ></RouterLink
-        >
+
+      <nav class="journey-tools" data-login-extra aria-label="旅行功能">
+        <RouterLink class="tool-inspiration" to="/square">
+          <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <circle cx="16" cy="16" r="11" />
+            <g class="compass-needle">
+              <path d="m21 11-3 7-7 3 3-7Z" />
+              <path d="m14 14 4 4" />
+            </g>
+            <path class="tool-quiet-line" d="M16 2v3m0 22v3M2 16h3m22 0h3" />
+          </svg>
+          <span><strong>收藏灵感</strong><small>寻找心动的风景</small></span>
+        </RouterLink>
+        <RouterLink class="tool-planning" to="/ai-generate">
+          <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path
+              class="tool-quiet-line"
+              d="M5 24C7 12 24 27 25 13S13 8 16 4"
+            />
+            <path
+              class="tool-route-progress"
+              pathLength="1"
+              d="M5 24C7 12 24 27 25 13S13 8 16 4"
+            />
+            <circle cx="5" cy="25" r="2.5" />
+            <circle cx="16" cy="4" r="2" />
+          </svg>
+          <span><strong>规划路线</strong><small>构建自己的旅程</small></span>
+        </RouterLink>
+        <RouterLink class="tool-sharing" to="/my-trips">
+          <svg class="tool-icon" viewBox="0 0 32 32" aria-hidden="true">
+            <path
+              class="tool-share-path"
+              pathLength="1"
+              d="m9 17 13-9M9 17l13 8"
+            />
+            <circle class="share-point share-point-a" cx="6" cy="17" r="3.5" />
+            <circle class="share-point share-point-b" cx="25" cy="6" r="3.5" />
+            <circle class="share-point share-point-c" cx="25" cy="26" r="3.5" />
+          </svg>
+          <span><strong>分享路书</strong><small>记录走过的世界</small></span>
+        </RouterLink>
       </nav>
-      <div class="journey-signature" aria-hidden="true">
-        去看更大的世界<svg viewBox="0 0 290 32" preserveAspectRatio="none">
-          <path d="M7 26C67 9 207-8 161 9S125 30 276 20" />
-        </svg>
-      </div>
     </div>
-    <footer class="entry-footer">
-      <span>智游伴路 · 把灵感走成风景</span
-      ><span id="image-caption">{{
-        backgroundFailed
-          ? "旅行概念影像暂不可用"
-          : "旅行概念影像 · 非目的地实拍"
-      }}</span>
+    <footer class="entry-footer" data-login-extra>
+      <span>智游伴路 · 把灵感走成风景</span>
+      <span>抽象旅行画布 · 非实际地图或导航路线</span>
     </footer>
   </section>
 </template>

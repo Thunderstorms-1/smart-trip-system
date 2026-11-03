@@ -7,6 +7,7 @@ import { useLatestQuery } from "./useLatestQuery";
 import { useSession } from "./session";
 import HomeIcon from "./HomeIcon.vue";
 import SquareStoryCard from "./SquareStoryCard.vue";
+import "./library-motion.css";
 const q = ref(""),
   posts = ref<Post[]>([]),
   cursor = ref<string>(),
@@ -98,6 +99,22 @@ function clearSearch() {
 function logout() {
   s.logout();
   router.push("/");
+}
+
+function freezeLeavingCard(element: Element) {
+  const card = element as HTMLElement;
+  const rect = card.getBoundingClientRect();
+  card.style.setProperty("--motion-card-width", rect.width + "px");
+  card.style.setProperty("--motion-card-height", rect.height + "px");
+  card.style.setProperty("--motion-card-left", card.offsetLeft + "px");
+  card.style.setProperty("--motion-card-top", card.offsetTop + "px");
+  card.inert = true;
+}
+function releaseLeavingCard(element: Element) {
+  const card = element as HTMLElement;
+  for (const name of ["width", "height", "left", "top"])
+    card.style.removeProperty("--motion-card-" + name);
+  card.inert = false;
 }
 </script>
 
@@ -220,7 +237,13 @@ function logout() {
         <p v-if="busy && !posts.length" class="loading-state" role="status">
           正在加载路书…
         </p>
-        <div
+        <TransitionGroup
+          name="library-motion-list"
+          tag="div"
+          appear
+          @before-leave="freezeLeavingCard"
+          @after-leave="releaseLeavingCard"
+          @leave-cancelled="releaseLeavingCard"
           v-if="featuredPosts.length"
           class="square-featured-stories"
           :data-count="featuredPosts.length"
@@ -231,7 +254,7 @@ function logout() {
             :post="post"
             :lead="index === 0"
           />
-        </div>
+        </TransitionGroup>
         <div v-if="!error && !busy && !posts.length" class="empty-state">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -267,14 +290,22 @@ function logout() {
             <p>在旅行者的故事里，找到下一次出发的理由。</p>
           </div>
         </div>
-        <div class="square-compact-stories">
+        <TransitionGroup
+          name="library-motion-list"
+          tag="div"
+          appear
+          @before-leave="freezeLeavingCard"
+          @after-leave="releaseLeavingCard"
+          @leave-cancelled="releaseLeavingCard"
+          class="square-compact-stories"
+        >
           <SquareStoryCard
             v-for="post in compactPosts"
             :key="post.id"
             :post="post"
             compact
           />
-        </div>
+        </TransitionGroup>
       </section>
       <section
         v-if="isExplore"
@@ -298,13 +329,20 @@ function logout() {
         </div>
         <template v-else-if="popularPosts.length"
           ><p v-if="popularAllZero" class="hot-note">近期路书暂未收到点赞。</p>
-          <div class="square-compact-stories square-popular-stories">
+          <TransitionGroup
+            name="library-motion-list"
+            tag="div"
+            appear
+            @before-leave="freezeLeavingCard"
+            @after-leave="releaseLeavingCard"
+            @leave-cancelled="releaseLeavingCard"
+            class="square-compact-stories square-popular-stories"
+          >
             <SquareStoryCard
               v-for="post in popularPosts"
               :key="post.id"
               :post="post"
-              compact
-            /></div
+              compact /></TransitionGroup
         ></template>
         <div v-else class="empty-state">
           <h3>近30天还没有公开路书</h3>

@@ -8,7 +8,12 @@ withDefaults(defineProps<{ posts: Post[]; featured?: boolean }>(), {
 });
 </script>
 <template>
-  <div class="explore-feed" :class="{ 'explore-featured': featured }">
+  <TransitionGroup
+    tag="div"
+    name="motion-list"
+    class="explore-feed"
+    :class="{ 'explore-featured': featured }"
+  >
     <RouterLink
       v-for="(post, i) in posts"
       :key="post.id"
@@ -34,5 +39,5 @@ withDefaults(defineProps<{ posts: Post[]; featured?: boolean }>(), {
       </div>
       <span class="explore-open">查看路书 <HomeIcon name="arrow" /></span>
     </RouterLink>
-  </div>
+  </TransitionGroup>
 </template>

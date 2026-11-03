@@ -17,6 +17,7 @@ const p = defineProps<{
   dirty: boolean;
   active: boolean;
   controlsOpen: boolean;
+  inlineMap?: boolean;
   selectedNode: string;
   nodeKey: (item: Item) => string;
 }>();
@@ -107,7 +108,10 @@ async function draw() {
     map?.destroy();
     buttons.clear();
     overlays = [];
-    map = new A.Map(host.value, { zoom: 12, center: points.value[0]!.position });
+    map = new A.Map(host.value, {
+      zoom: 12,
+      center: points.value[0]!.position,
+    });
     for (const point of points.value) {
       const key = p.nodeKey(point.item),
         button = document.createElement("button");
@@ -177,6 +181,13 @@ watch(
 );
 watch(() => p.selectedNode, focusSelection);
 watch(
+  () => p.inlineMap,
+  async () => {
+    await nextTick();
+    if (!disposed && map && overlays.length) map.setFitView(overlays);
+  },
+);
+watch(
   () => p.controlsOpen,
   async (open) => {
     if (open) {
@@ -198,22 +209,30 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="wb-geo-canvas">
-    <div
-      v-show="requested"
-      ref="host"
-      class="wb-real-map"
-      aria-label="高德地图画布"
-    ></div>
+    <div id="workbench-scene-map-host"></div>
+
     <div
       v-if="!mapReady"
       class="wb-map-fallback"
-      role="img"
-      :aria-label="trip.destination + '行程规划画布，非地理地图'"
+      role="region"
+      aria-label="当天旅程概要"
     >
       <div class="wb-canvas-title">
+        <span class="wb-scene-kicker">当前目的地</span>
         <strong>{{ trip.destination || "你的目的地" }}</strong>
+        <p class="wb-scene-theme">{{ day.dayTheme || "自由探索" }}</p>
+        <span class="wb-scene-kicker"
+          >{{ day.items.length }} 个安排<span v-if="day.dayDate">
+            · {{ day.dayDate }}</span
+          ></span
+        >
+        <p v-if="day.daySummary || trip.summary" class="wb-scene-summary">
+          {{ day.daySummary || trip.summary }}
+        </p>
       </div>
-      <p class="wb-canvas-notice">规划画布 · 不表示地理位置、真实道路或路线</p>
+      <p class="wb-canvas-notice">
+        旅行场景 · 非地图定位<br />真实地图、路线与天气按需查询
+      </p>
     </div>
     <div
       v-if="forecast"
@@ -261,148 +280,171 @@ onBeforeUnmount(() => {
         route ? " · 路线查询时间 " + route.retrievedAt : " · 尚未查询路线"
       }}
     </p>
-    <section
-      v-show="controlsOpen"
-      ref="controls"
-      class="wb-geo-controls"
-      tabindex="-1"
-      aria-label="路线与天气查询面板"
-      @keydown.esc.stop.prevent="emit('close')"
-    >
-      <header>
-        <h2>路线与天气</h2>
-        <button class="wb-text-button" @click="emit('close')">
-          返回行程编辑
-        </button>
-      </header>
-      <p v-if="dirty" class="notice">
-        请先保存当前修改，再查询最新地图、路线和天气。
-      </p>
-      <p v-if="!enabled('route') && !enabled('weather')" class="notice">
-        路线与天气查询尚未启用。可以继续手动安排路书。
-      </p>
-      <div class="wb-geo-actions">
-        <button
-          :disabled="!enabled('map') || dirty || mapBusy || !points.length"
-          @click="loadMap"
+    <Teleport defer to="#workbench-geo-host">
+      <Transition name="motion-drawer"
+        ><section
+          v-show="controlsOpen"
+          ref="controls"
+          class="wb-geo-controls"
+          tabindex="-1"
+          aria-label="路线与天气查询面板"
+          @keydown.esc.stop.prevent="emit('close')"
         >
-          {{ mapBusy ? "加载地图中…" : mapReady ? "重载地图" : "加载地图" }}
-        </button>
-        <p v-if="!enabled('map')" class="muted">
-          {{ capabilityNotice(s.capabilities, "map") }}
-        </p>
-        <p v-else class="muted">只标记已确认的地点；名称不会自动生成坐标。</p>
-      </div>
-      <p v-if="enabled('map') && !points.length" class="muted">
-        当前日期没有已确认坐标。请关联地点并保存，或显式查询路线。
-      </p>
-      <div class="wb-geo-actions">
-        <h3>当日路线</h3>
-        <div class="button-row">
-          <select v-model="mode" aria-label="交通方式">
-            <option value="walking">步行</option>
-            <option value="driving">驾车</option>
-          </select>
-          <button
-            :disabled="routeBusy || !enabled('route') || dirty"
-            @click="queryRoute()"
-          >
-            {{ routeBusy ? "查询路线中…" : "查询路线" }}
-          </button>
-          <button
-            v-if="route"
-            :disabled="routeBusy || !enabled('route') || dirty"
-            @click="queryRoute(true)"
-          >
-            重新查询
-          </button>
-        </div>
-        <p v-if="!enabled('route')" class="muted">
-          {{ capabilityNotice(s.capabilities, "route") }}
-        </p>
-        <p class="muted">
-          修改地点或顺序后，保存并重新查询。未确认地点不绘制标记或连线。
-        </p>
-        <template v-if="route">
-          <p class="muted">
-            数据来源：高德 · {{ route.mode === "walking" ? "步行" : "驾车" }} ·
-            路书版本 {{ route.tripVersion }} · 查询时间 {{ route.retrievedAt }}
+          <header>
+            <h2>路线与天气</h2>
+            <button class="wb-text-button" @click="emit('close')">
+              返回行程编辑
+            </button>
+          </header>
+          <div v-show="inlineMap && requested" class="wb-inline-map-preview">
+            <div id="workbench-inline-map-host"></div>
+          </div>
+          <p v-if="dirty" class="notice">
+            请先保存当前修改，再查询最新地图、路线和天气。
           </p>
-          <p v-for="point in route.points" :key="point.itemId">
-            {{ point.name }} · {{ point.resolved ? "已确认" : "待确认" }}
+          <p v-if="!enabled('route') && !enabled('weather')" class="notice">
+            路线与天气查询尚未启用。可以继续手动安排路书。
           </p>
-          <p v-for="leg in route.legs" :key="leg.from + '-' + leg.to">
-            <template v-if="leg.available"
-              >{{
-                measured(leg.distanceMeters) == null
-                  ? "距离未提供"
-                  : "约 " +
-                    (measured(leg.distanceMeters)! / 1000).toFixed(1) +
-                    " km"
-              }}
-              ·
-              {{
-                measured(leg.durationSeconds) == null
-                  ? "耗时未提供"
-                  : Math.ceil(measured(leg.durationSeconds)! / 60) + " 分钟"
-              }}</template
+          <div class="wb-geo-actions">
+            <button
+              :disabled="!enabled('map') || dirty || mapBusy || !points.length"
+              @click="loadMap"
             >
-            <template v-else>{{ leg.reason || "此段路线不可用" }}</template>
+              {{ mapBusy ? "加载地图中…" : mapReady ? "重载地图" : "加载地图" }}
+            </button>
+            <p v-if="!enabled('map')" class="muted">
+              {{ capabilityNotice(s.capabilities, "map") }}
+            </p>
+            <p v-else class="muted">
+              只标记已确认的地点；名称不会自动生成坐标。
+            </p>
+          </div>
+          <p v-if="enabled('map') && !points.length" class="muted">
+            当前日期没有已确认坐标。请关联地点并保存，或显式查询路线。
           </p>
-        </template>
-        <p v-if="routeError" role="alert" class="form-error">
-          {{ routeError }}
-        </p>
-      </div>
-      <button
-        v-if="routeBusy || weatherBusy"
-        class="wb-text-button"
-        @click="cancel"
+          <div class="wb-geo-actions">
+            <h3>当日路线</h3>
+            <div class="button-row">
+              <select v-model="mode" aria-label="交通方式">
+                <option value="walking">步行</option>
+                <option value="driving">驾车</option>
+              </select>
+              <button
+                :disabled="routeBusy || !enabled('route') || dirty"
+                @click="queryRoute()"
+              >
+                {{ routeBusy ? "查询路线中…" : "查询路线" }}
+              </button>
+              <button
+                v-if="route"
+                :disabled="routeBusy || !enabled('route') || dirty"
+                @click="queryRoute(true)"
+              >
+                重新查询
+              </button>
+            </div>
+            <p v-if="!enabled('route')" class="muted">
+              {{ capabilityNotice(s.capabilities, "route") }}
+            </p>
+            <p class="muted">
+              修改地点或顺序后，保存并重新查询。未确认地点不绘制标记或连线。
+            </p>
+            <template v-if="route">
+              <p class="muted">
+                数据来源：高德 ·
+                {{ route.mode === "walking" ? "步行" : "驾车" }} · 路书版本
+                {{ route.tripVersion }} · 查询时间 {{ route.retrievedAt }}
+              </p>
+              <p v-for="point in route.points" :key="point.itemId">
+                {{ point.name }} · {{ point.resolved ? "已确认" : "待确认" }}
+              </p>
+              <p v-for="leg in route.legs" :key="leg.from + '-' + leg.to">
+                <template v-if="leg.available"
+                  >{{
+                    measured(leg.distanceMeters) == null
+                      ? "距离未提供"
+                      : "约 " +
+                        (measured(leg.distanceMeters)! / 1000).toFixed(1) +
+                        " km"
+                  }}
+                  ·
+                  {{
+                    measured(leg.durationSeconds) == null
+                      ? "耗时未提供"
+                      : Math.ceil(measured(leg.durationSeconds)! / 60) + " 分钟"
+                  }}</template
+                >
+                <template v-else>{{ leg.reason || "此段路线不可用" }}</template>
+              </p>
+            </template>
+            <p v-if="routeError" role="alert" class="form-error">
+              {{ routeError }}
+            </p>
+          </div>
+          <button
+            v-if="routeBusy || weatherBusy"
+            class="wb-text-button"
+            @click="cancel"
+          >
+            取消查询
+          </button>
+          <div class="wb-geo-actions">
+            <h3>出行天气</h3>
+            <button
+              :disabled="weatherBusy || !enabled('weather') || dirty"
+              @click="queryWeather"
+            >
+              {{
+                weatherBusy
+                  ? "查询天气中…"
+                  : "查看 " + (day.dayDate || "当日") + " 天气"
+              }}
+            </button>
+            <p v-if="!enabled('weather')" class="muted">
+              {{ capabilityNotice(s.capabilities, "weather") }}
+            </p>
+            <p class="muted">
+              仅显示数据源提供的对应日期预报，较远日期不会推测天气。
+            </p>
+            <p v-if="forecast">
+              {{ weather!.city }} · {{ weather!.dayWeather }} ·
+              {{ weather!.low }}–{{ weather!.high }}° · {{ weather!.date }}
+            </p>
+            <p v-else-if="weather" class="notice">
+              {{ weather.reason || "对应日期的完整天气预报暂不可用" }}
+            </p>
+            <button v-if="forecast" :disabled="dirty" @click="emit('adjust')">
+              查看天气与行程诊断
+            </button>
+            <p v-if="weatherError" role="alert" class="form-error">
+              {{ weatherError }}
+            </p>
+          </div>
+          <p class="muted">
+            {{
+              enabled("poi")
+                ? "在安排 Inspector 中关联真实地点，再保存路书。"
+                : capabilityNotice(s.capabilities, "poi")
+            }}
+          </p>
+          <p v-if="mapError" class="form-error" role="alert">
+            {{ mapError }} <button @click="loadMap">重试地图加载</button>
+          </p>
+        </section></Transition
       >
-        取消查询
-      </button>
-      <div class="wb-geo-actions">
-        <h3>出行天气</h3>
-        <button
-          :disabled="weatherBusy || !enabled('weather') || dirty"
-          @click="queryWeather"
-        >
-          {{
-            weatherBusy
-              ? "查询天气中…"
-              : "查看 " + (day.dayDate || "当日") + " 天气"
-          }}
-        </button>
-        <p v-if="!enabled('weather')" class="muted">
-          {{ capabilityNotice(s.capabilities, "weather") }}
-        </p>
-        <p class="muted">
-          仅显示数据源提供的对应日期预报，较远日期不会推测天气。
-        </p>
-        <p v-if="forecast">
-          {{ weather!.city }} · {{ weather!.dayWeather }} ·
-          {{ weather!.low }}–{{ weather!.high }}° · {{ weather!.date }}
-        </p>
-        <p v-else-if="weather" class="notice">
-          {{ weather.reason || "对应日期的完整天气预报暂不可用" }}
-        </p>
-        <button v-if="forecast" :disabled="dirty" @click="emit('adjust')">
-          查看天气与行程诊断
-        </button>
-        <p v-if="weatherError" role="alert" class="form-error">
-          {{ weatherError }}
-        </p>
-      </div>
-      <p class="muted">
-        {{
-          enabled("poi")
-            ? "在安排 Inspector 中关联真实地点，再保存路书。"
-            : capabilityNotice(s.capabilities, "poi")
-        }}
-      </p>
-      <p v-if="mapError" class="form-error" role="alert">
-        {{ mapError }} <button @click="loadMap">重试地图加载</button>
-      </p>
-    </section>
+    </Teleport>
+    <Teleport
+      defer
+      :to="
+        inlineMap ? '#workbench-inline-map-host' : '#workbench-scene-map-host'
+      "
+    >
+      <div
+        v-show="requested"
+        ref="host"
+        class="wb-real-map"
+        aria-label="高德地图画布"
+      ></div>
+    </Teleport>
   </div>
 </template>

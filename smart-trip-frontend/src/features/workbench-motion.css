@@ -1,0 +1,56 @@
+/* Workbench effects preserve the existing surfaces, positioning, and business DOM. */
+.workbench-v3-shell .wb-day-list {
+  position: relative;
+  isolation: isolate;
+}
+.workbench-v3-shell .wb-day-selection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  box-sizing: border-box;
+}
+.workbench-v3-shell .has-moving-selection .wb-day-selection {
+  opacity: 1;
+  transition:
+    transform var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    width var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    height var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.workbench-v3-shell .has-moving-selection .wb-day-button.active {
+  background: transparent;
+  box-shadow: none;
+}
+.workbench-v3-shell .wb-inspector-dialog.is-dismissing {
+  pointer-events: none;
+}
+.workbench-v3-shell .wb-more-content {
+  transform-origin: top right;
+}
+/* These surfaces use their actual open/close transitions, rather than replaying page arrival. */
+.workbench-v3-shell .wb-tool-panel,
+.workbench-v3-shell .wb-context-region,
+.workbench-v3-shell .wb-geo-controls {
+  animation: none;
+}
+
+.workbench-v3-shell .wb-timeline-node.wb-problem-target > .wb-node-select {
+  outline: 2px solid rgba(255, 174, 111, 0.94);
+  outline-offset: 3px;
+}
+.workbench-v3-shell .wb-timeline-panel.wb-problem-target {
+  outline: 2px solid rgba(255, 174, 111, 0.94);
+  outline-offset: -2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .workbench-v3-shell .wb-day-selection,
+  .workbench-v3-shell .wb-inspector-dialog,
+  .workbench-v3-shell .wb-node-select {
+    transition: none !important;
+  }
+}

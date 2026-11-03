@@ -1,0 +1,334 @@
+/* Noto Serif SC is an existing local editorial subset. Missing custom-title glyphs
+   fall through to complete system Chinese serif fonts instead of a tiny display font. */
+@font-face {
+  font-family: "SmartTripWorkbenchSerif";
+  src: url("../assets/login/login-editorial.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+.workbench-v3-shell .workbench-v5 .wb-title-art input {
+  font-family:
+    "SmartTripWorkbenchSerif", "Noto Serif SC", "Source Han Serif SC",
+    "Songti SC", STSong, SimSun, serif;
+  font-size: clamp(22px, 1.9vw, 30px);
+  font-weight: 500;
+  letter-spacing: 0.035em;
+  line-height: 1.35;
+}
+.wb-dock-v5 {
+  position: relative;
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 999px;
+  color: var(--wb-v5-ink);
+  background: var(--wb-v5-control-bg);
+  box-shadow: var(--wb-v5-shadow);
+  -webkit-backdrop-filter: blur(7px) saturate(1.15);
+  backdrop-filter: blur(7px) saturate(1.15);
+  isolation: isolate;
+  flex: none;
+}
+.wb-dock-viewport {
+  overflow-x: auto;
+  max-width: 100%;
+  border-radius: inherit;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.wb-dock-viewport::-webkit-scrollbar {
+  display: none;
+}
+.wb-dock-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: max-content;
+  padding: 3px;
+  min-height: 38px;
+}
+.wb-dock-selected {
+  position: absolute;
+  z-index: 0;
+  visibility: hidden;
+  pointer-events: none;
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 999px;
+  background: var(--wb-v5-input-bg);
+  box-shadow: var(--wb-v5-shadow);
+  box-sizing: border-box;
+}
+.workbench-v3-shell .workbench-v5 .wb-dock-track > button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--wb-v5-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  text-shadow: none;
+  transition:
+    color var(--motion-fast, 160ms),
+    background var(--motion-fast, 160ms);
+}
+.workbench-v3-shell .workbench-v5 .wb-dock-track > button:hover:not(:disabled) {
+  background: var(--wb-v5-input-bg);
+  color: var(--wb-v5-ink);
+}
+.workbench-v3-shell .workbench-v5 .wb-dock-track > button.active {
+  color: #a84018;
+  font-weight: 650;
+}
+.workbench-v3-shell .workbench-v5 .wb-dock-track > button:focus-visible {
+  outline: 2px solid #ce6d36;
+  outline-offset: -2px;
+}
+.wb-dock-track svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+.workbench-v3-shell .workbench-v5 .wb-permission-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 29px;
+  padding: 5px 10px;
+  color: var(--wb-v5-ink);
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 999px;
+  background: var(--wb-v5-control-bg);
+  box-shadow: var(--wb-v5-shadow);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.wb-permission-trigger svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.workbench-v3-shell .workbench-v5 .wb-permission-trigger:hover {
+  background: var(--wb-v5-input-bg);
+}
+.wb-permission-trigger:focus-visible {
+  outline: 2px solid #ffd6b6;
+  outline-offset: 3px;
+}
+.workbench-v3-shell .workbench-v5 .wb-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.wb-save-glyph {
+  width: 17px;
+  height: 17px;
+  overflow: visible;
+  flex: none;
+}
+.wb-save-glyph .wb-save-spinner,
+.wb-save-glyph .wb-save-check {
+  opacity: 0;
+}
+.wb-tool-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0 15px 12px;
+}
+.workbench-v3-shell .workbench-v5 .wb-tool-shortcuts button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  padding: 5px 4px;
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 10px;
+  background: var(--wb-v5-control-bg);
+  box-shadow: inset 0 1px 0 var(--wb-v5-edge);
+  color: var(--wb-v5-panel-ink);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.workbench-v3-shell
+  .workbench-v5
+  .wb-tool-shortcuts
+  button[aria-pressed="true"] {
+  color: #a54120;
+  background: var(--wb-v5-input-bg);
+  border-color: var(--wb-v5-edge);
+}
+.workbench-v3-shell
+  .workbench-v5
+  .wb-tool-shortcuts
+  button:hover:not(:disabled) {
+  background: var(--wb-v5-input-bg);
+}
+.wb-tool-shortcuts button:focus-visible {
+  outline: 2px solid #c26a38;
+  outline-offset: 2px;
+}
+.wb-permissions-v5 {
+  box-sizing: border-box;
+  width: min(540px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 48px));
+  padding: 24px;
+  overflow: auto;
+  color: var(--wb-v5-panel-ink);
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 25px;
+  background: var(--wb-v5-subpanel);
+  box-shadow: var(--wb-v5-shadow);
+  -webkit-backdrop-filter: blur(12px) saturate(1.12);
+  backdrop-filter: blur(12px) saturate(1.12);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+}
+.wb-permissions-v5::backdrop {
+  background: #0a213856;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.wb-permissions-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 18px;
+}
+.wb-permissions-heading small {
+  color: var(--wb-v5-panel-muted);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+}
+.wb-permissions-heading h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0.035em;
+}
+.wb-permissions-heading button,
+.wb-permissions-v5 .wb-permission-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  color: var(--wb-v5-panel-ink);
+  border: 1px solid var(--wb-v5-edge);
+  border-radius: 11px;
+  background: var(--wb-v5-control-bg);
+  box-shadow: var(--wb-v5-shadow);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+}
+.wb-permissions-v5 button:hover:not(:disabled):not(.wb-permission-primary) {
+  background: var(--wb-v5-input-bg);
+}
+.wb-permissions-v5 button:focus-visible {
+  outline: 2px solid #bb6633;
+  outline-offset: 3px;
+}
+.wb-permissions-v5 button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wb-permissions-v5 .wb-permission-primary {
+  color: #fff;
+  border-color: #fbb080;
+  background: linear-gradient(145deg, #dd7438ed, #bb4919f2);
+  box-shadow:
+    inset 0 1px 0 #ffd5b5a6,
+    0 3px 8px #92401d20;
+}
+.wb-permission-row {
+  padding: 17px 0;
+  border-top: 1px solid var(--wb-v5-edge);
+}
+.wb-permission-row h3 {
+  margin: 0 0 7px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.wb-permission-row p {
+  margin: 0 0 10px;
+  color: var(--wb-v5-panel-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.wb-permission-row strong {
+  font-weight: 600;
+  color: var(--wb-v5-panel-ink);
+}
+.wb-permission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wb-permissions-v5 .wb-permission-notice {
+  margin: 12px 0 0;
+  color: #87502a;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.wb-permissions-v5 .form-error {
+  color: #a73330;
+  font-size: 12px;
+}
+@supports not (
+  (backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))
+) {
+  .wb-dock-v5 {
+    background: var(--wb-v5-input-bg);
+  }
+  .wb-permissions-v5 {
+    background: var(--wb-v5-input-bg);
+  }
+}
+@media (max-width: 700px) {
+  .wb-dock-v5 {
+    max-width: 100%;
+    margin: 0;
+  }
+  .workbench-v3-shell .workbench-v5 .wb-dock-track > button {
+    padding-inline: 12px;
+  }
+  .workbench-v3-shell .workbench-v5 .wb-permission-trigger {
+    min-height: 29px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  .workbench-v3-shell .workbench-v5 .wb-title-art input {
+    font-size: 23px;
+  }
+  .wb-permissions-v5 {
+    padding: 20px;
+    border-radius: 21px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-dock-v5 *,
+  .wb-permissions-v5 * {
+    transition-duration: 0ms !important;
+  }
+}

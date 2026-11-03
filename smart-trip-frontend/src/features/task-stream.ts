@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { ApiError } from "./api";
 import type { Task } from "./types";
 export class SseFrames {
   private buffer = "";
@@ -31,11 +31,15 @@ export async function followTask(
   signal?: AbortSignal,
 ) {
   const token = localStorage.getItem("AUTH_TOKEN");
-  const response = await fetch("/api/ai/tasks/" + id + "/events", {
-    headers: { Authorization: "Bearer " + token },
-    signal,
-  });
-  if (!response.ok || !response.body) throw new Error("无法连接任务进度");
+  const response = await fetch(
+    "/api/ai/tasks/" + encodeURIComponent(id) + "/events",
+    {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+      signal,
+    },
+  );
+  if (!response.ok || !response.body)
+    throw new ApiError(response.status, "无法连接任务进度，请重试查询。");
   const reader = response.body.getReader(),
     decoder = new TextDecoder(),
     frames = new SseFrames();
@@ -44,12 +48,17 @@ export async function followTask(
       const part = await reader.read();
       const decoded = decoder.decode(part.value, { stream: !part.done });
       for (const frame of frames.push(decoded, part.done)) {
-        if (frame.event === "task" && frame.id === id)
-          onTask(JSON.parse(frame.data) as Task);
+        if (frame.event === "task" && frame.id === id) {
+          const task = JSON.parse(frame.data) as Task;
+          if (task.id !== id) throw new Error("任务进度编号不匹配");
+          onTask(task);
+          if (!["QUEUED", "RUNNING"].includes(task.status)) return;
+        }
       }
-      if (part.done) break;
+      if (part.done) throw new Error("任务进度连接提前结束，请重试查询。");
     }
   } finally {
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }

@@ -1,0 +1,217 @@
+/* Motion only: these rules stay scoped to the travel library, square, and profile. */
+:is(.square-page, .library-page)
+  :is(
+    .square-featured-stories,
+    .square-compact-stories,
+    .trip-shelf,
+    .remaining-grid,
+    .library-trip-list,
+    .saved-grid,
+    .library-feature-slot
+  ),
+.library-motion-stage,
+.profile-motion-stage {
+  position: relative;
+}
+.library-motion-view,
+.profile-motion-body,
+.library-feature-slot {
+  min-width: 0;
+}
+.library-motion-list-enter-active,
+.library-motion-list-leave-active,
+.library-motion-list-move {
+  transition:
+    transform var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity var(--motion-fast, 160ms) ease-out;
+}
+.library-motion-list-enter-from {
+  opacity: 0;
+  transform: translateY(9px) scale(0.992);
+}
+.library-motion-list-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.985);
+}
+.library-motion-list-leave-active {
+  position: absolute !important;
+  left: var(--motion-card-left);
+  top: var(--motion-card-top);
+  width: var(--motion-card-width);
+  height: var(--motion-card-height);
+  pointer-events: none;
+}
+.library-motion-list-enter-active:nth-child(n + 17) {
+  transition-duration: 1ms;
+}
+.library-motion-view-enter-active,
+.library-profile-view-enter-active {
+  transition:
+    transform var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity var(--motion-fast, 160ms) ease-out;
+}
+.library-motion-view-leave-active,
+.library-profile-view-leave-active {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-fast, 160ms) ease-out,
+    transform var(--motion-fast, 160ms) ease-out;
+}
+.library-motion-view-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+.library-profile-view-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.library-motion-view-leave-to,
+.library-profile-view-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.library-page .library-title.is-entering {
+  animation-duration: var(--motion-slow, 360ms);
+}
+.library-page .library-tabs button,
+.library-page .layout-toggle button {
+  transition:
+    background-color var(--motion-fast, 160ms) ease-out,
+    color var(--motion-fast, 160ms) ease-out,
+    box-shadow var(--motion-fast, 160ms) ease-out;
+}
+.library-page .library-tabs button .icon {
+  transition: transform var(--motion-base, 280ms)
+    var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.library-page .library-tabs button[aria-pressed="true"] .icon {
+  transform: translateY(-1px);
+}
+.square-story .story-count-slot {
+  display: inline-grid;
+  vertical-align: baseline;
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+}
+.square-story .story-count-slot > span {
+  grid-area: 1 / 1;
+}
+.library-like-count-enter-active,
+.library-like-count-leave-active,
+.library-save-count-enter-active,
+.library-save-count-leave-active {
+  transition:
+    transform var(--motion-fast, 160ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity var(--motion-fast, 160ms) ease-out;
+}
+.library-like-count-enter-from {
+  opacity: 0;
+  transform: scale(0.7);
+}
+.library-like-count-leave-to {
+  opacity: 0;
+  transform: scale(1.18);
+}
+.library-save-count-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.library-save-count-leave-to {
+  opacity: 0;
+  transform: translateY(3px);
+}
+.v3-traveler .traveler-form :is(input, textarea)[aria-invalid="true"] {
+  animation: library-field-attention var(--motion-base, 280ms) ease-out;
+}
+.v3-traveler .profile-motion-error:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+.v3-traveler .profile-save-feedback {
+  animation: library-profile-confirm var(--motion-slow, 360ms)
+    var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+@keyframes library-field-attention {
+  25% {
+    transform: translateX(-2px);
+  }
+  65% {
+    transform: translateX(2px);
+  }
+}
+@keyframes library-profile-confirm {
+  40% {
+    transform: translateY(-2px);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .square-page
+    .square-story:not(.library-motion-list-leave-active):not(
+      .library-motion-list-enter-active
+    ):not(.library-motion-list-move),
+  .library-page
+    :is(.trip-card, .story-card):not(.library-motion-list-leave-active):not(
+      .library-motion-list-enter-active
+    ):not(.library-motion-list-move) {
+    transition: transform var(--motion-base, 280ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+  .square-page
+    .square-story:not(.library-motion-list-leave-active):not(
+      .library-motion-list-enter-active
+    ):not(.library-motion-list-move):hover,
+  .library-page
+    :is(.trip-card, .story-card):not(.library-motion-list-leave-active):not(
+      .library-motion-list-enter-active
+    ):not(.library-motion-list-move):hover {
+    transform: translateY(-3px);
+  }
+  .square-page .open-story .icon,
+  .library-page .card-continue .icon {
+    transition: transform var(--motion-fast, 160ms)
+      var(--motion-ease, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+  .square-page .square-story:hover .open-story .icon,
+  .library-page .trip-card:hover .card-continue .icon {
+    transform: translateX(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-motion-list-enter-active,
+  .library-motion-list-leave-active,
+  .library-motion-list-move,
+  .library-motion-view-enter-active,
+  .library-motion-view-leave-active,
+  .library-profile-view-enter-active,
+  .library-profile-view-leave-active,
+  .library-like-count-enter-active,
+  .library-like-count-leave-active,
+  .library-save-count-enter-active,
+  .library-save-count-leave-active {
+    transition: none !important;
+  }
+  :is(
+    .library-motion-list-enter-from,
+    .library-motion-list-leave-to,
+    .library-motion-view-enter-from,
+    .library-motion-view-leave-to,
+    .library-profile-view-enter-from,
+    .library-profile-view-leave-to
+  ) {
+    transform: none !important;
+  }
+  .v3-traveler .traveler-form :is(input, textarea)[aria-invalid="true"],
+  .v3-traveler .profile-save-feedback {
+    animation: none !important;
+  }
+  .square-page .square-story:hover,
+  .library-page :is(.trip-card, .story-card):hover {
+    transform: none !important;
+  }
+}
